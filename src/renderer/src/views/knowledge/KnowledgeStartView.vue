@@ -150,6 +150,8 @@ const typeFilterOptions = [
   { label: "全部", value: "__all__" },
   { label: "文档", value: "doc" },
   { label: "画板", value: "board" },
+  { label: "数据表", value: "datatable" },
+  { label: "表格", value: "sheet" },
 ]
 
 const creatorFilterOptions = [
@@ -171,9 +173,10 @@ const visibleItems = computed(() =>
       return true
     }
 
-    return selectedType.value === "board"
-      ? item.editorType === "board"
-      : item.editorType !== "board"
+    // 类型筛选：editorType 为空（存量富文本未显式标记）一律按「文档」档命中
+    const editorType = item.editorType ?? "doc"
+
+    return selectedType.value === editorType
   }),
 )
 
@@ -184,6 +187,20 @@ const markerText = (item: KnowledgeDashboardDocumentItem) => {
     return ""
   }
   return formatShortDate(item[field])
+}
+
+/** 列表行图标：按编辑器类型区分（数据表 ph:table / 表格 ph:grid-nine / 画板 ph:frame-corners，其余文档 ph:file-text） */
+const docTypeIcon = (editorType?: string) => {
+  if (editorType === "board") {
+    return "ph:frame-corners"
+  }
+  if (editorType === "datatable") {
+    return "ph:table"
+  }
+  if (editorType === "sheet") {
+    return "ph:grid-nine"
+  }
+  return "ph:file-text"
 }
 
 const openDoc = (item: KnowledgeDashboardDocumentItem) => {
@@ -527,11 +544,7 @@ onMounted(() => {
               <span
                 class="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--kb-blue-500)]"
               >
-                <Icon
-                  :icon="item.editorType === 'board' ? 'ph:frame-corners' : 'ph:file-text'"
-                  :width="20"
-                  :height="20"
-                />
+                <Icon :icon="docTypeIcon(item.editorType)" :width="20" :height="20" />
               </span>
               <span class="min-w-0 truncate text-[14px] text-ink">
                 {{ item.title || "无标题文档" }}

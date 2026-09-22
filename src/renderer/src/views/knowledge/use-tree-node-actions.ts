@@ -17,12 +17,15 @@ import {
   getKnowledgeDocument,
   trashKnowledgeDocument,
   updateKnowledgeDocument,
+  type KnowledgeDocumentEditorType,
   type KnowledgeDocumentTreeNode,
-  type KnowledgeDocumentType,
 } from "@/services/knowledge-documents"
 import {
   KNOWLEDGE_BOARD_CONTENT_SCHEME,
+  KNOWLEDGE_DATATABLE_CONTENT_SCHEME,
   KNOWLEDGE_DOCUMENT_EDITOR_TYPES,
+  KNOWLEDGE_MINDMAP_CONTENT_SCHEME,
+  type KnowledgeDocumentContent,
 } from "@/types/knowledge-document"
 import { createKnowledgeBoardDocument } from "@/utils/knowledge-board"
 import { getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
@@ -38,6 +41,74 @@ import type { KnowledgeWorkspaceCreateNodeType } from "./workspace-context"
  * DocCreateEditorType 同一组字面量：SFC 内局部类型不可 import，这里镜像声明）。
  */
 type DocCreateEditorType = "richText" | "board" | "datatable" | "sheet" | "mindmap"
+
+/** 专类文档（非富文本/目录）的新建文案与编辑器类型映射（flowchart 已撤并不做）。 */
+const SPECIALIZED_CREATE_META = {
+  board: {
+    label: "画板",
+    dialogTitle: "新建画板",
+    dialogDefault: "无标题画板",
+    instantTitle: "无标题画板",
+  },
+  datatable: {
+    label: "数据表",
+    dialogTitle: "新建数据表",
+    dialogDefault: "新建数据表",
+    instantTitle: "无标题数据表",
+  },
+  sheet: {
+    label: "表格",
+    dialogTitle: "新建表格",
+    dialogDefault: "新建表格",
+    instantTitle: "无标题表格",
+  },
+  mindmap: {
+    label: "思维导图",
+    dialogTitle: "新建思维导图",
+    dialogDefault: "新建思维导图",
+    instantTitle: "无标题思维导图",
+  },
+} as const
+
+type SpecializedCreateType = keyof typeof SPECIALIZED_CREATE_META
+
+/** 根级「+」菜单可直达创建的类型全集（template 走模板库，folder 走命名对话框）。 */
+export type RootCreateMenuAction =
+  "doc" | "folder" | "template" | "board" | "datatable" | "sheet" | "mindmap"
+
+/** 思维导图根节点 uid：与 KnowledgeMindmapEditorView.makeUid 同口径。 */
+const makeMindmapUid = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID().slice(0, 12)
+    : Math.random().toString(36).slice(2, 14)
+
+/** 按编辑器类型构建预置内容（D1 对齐语雀：专类文档创建即可进编辑器）。 */
+const buildCreateContent = (
+  editorType: DocCreateEditorType,
+  title: string,
+): KnowledgeDocumentContent | undefined => {
+  switch (editorType) {
+    case "board":
+      return {
+        scheme: KNOWLEDGE_BOARD_CONTENT_SCHEME,
+        value: createKnowledgeBoardDocument(),
+      }
+    case "datatable":
+    case "sheet":
+      // 表格与数据表共用同一 scheme（区分靠 editorType），预置空字段空行
+      return {
+        scheme: KNOWLEDGE_DATATABLE_CONTENT_SCHEME,
+        value: { fields: [], rows: [] },
+      }
+    case "mindmap":
+      return {
+        scheme: KNOWLEDGE_MINDMAP_CONTENT_SCHEME,
+        value: { data: { text: title || "中心主题", uid: makeMindmapUid() }, children: [] },
+      }
+    default:
+      return { scheme: "text/markdown", value: "" }
+  }
+}
 
 export const useTreeNodeActions = (options: {
   kbId: Ref<string>
@@ -68,6 +139,8 @@ export const useTreeNodeActions = (options: {
     onConfirm: (value: string, parentId: string, editorType: DocCreateEditorType) => void
     folders?: Array<{ id: string; label: string }>
     defaultFolderId?: string
+    /** 菜单直达专类时的预选编辑器类型（D2：CreateDialog 高级选项预选并展开） */
+    presetEditorType?: DocCreateEditorType
   }>({ open: false, title: "", defaultValue: "", onConfirm: () => {} })
   const confirmDialog = ref<{ open: boolean; message: string; onConfirm: () => void }>({
     open: false,
@@ -175,9 +248,6 @@ export const useTreeNodeActions = (options: {
       return
     }
 
-    const isFolder = type === "folder"
-    const isBoard = type === "board"
-
     // 对齐语雀新建弹窗：根目录 + 各级目录（带路径缩进 label）
     const folders: Array<{ id: string; label: string }> = [{ id: "", label: "根目录" }]
 
@@ -195,50 +265,40 @@ export const useTreeNodeActions = (options: {
 
     walkFolders(options.treeNodes.value, "")
 
+    const specializedMeta = isSpecializedCreateType(type) ? SPECIALIZED_CREATE_META[type] : null
+    const isFolder = type === "folder"
+
     inputDialog.value = {
       open: true,
-      title: isFolder ? "新建文件夹" : isBoard ? "新建画板" : "新建文档",
-      defaultValue: isFolder ? "新建文件夹" : isBoard ? "无标题画板" : "新建文档",
+      title: isFolder ? "新建文件夹" : specializedMeta ? specializedMeta.dialogTitle : "新建文档",
+      defaultValue: isFolder
+        ? "新建文件夹"
+        : specializedMeta
+          ? specializedMeta.dialogDefault
+          : "新建文档",
       folders,
       defaultFolderId: parentId ?? "",
+      presetEditorType: isSpecializedCreateType(type) ? type : undefined,
       onConfirm: async (normalizedTitle, targetParentId, editorType) => {
-        const useBoard = isBoard || editorType === "board"
-        // B7 直达编辑器入口（画板/数据表/表格/思维导图）不是 KnowledgeDocumentType 的
-        // 合法节点值：树上统一以 type="doc" 落库，编辑器种类由 editorType 承载
-        const nodeType: KnowledgeDocumentType =
-          type === "board" || type === "datatable" || type === "sheet" || type === "mindmap"
-            ? "doc"
-            : type
-        const specializedEditorType = useBoard
-          ? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.board
-          : editorType === "datatable"
-            ? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.datatable
-            : editorType === "sheet"
-              ? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.sheet
-              : editorType === "mindmap"
-                ? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.mindmap
-                : null
+        // 弹层按 presetEditorType 预选，用户仍可在高级选项改选；以提交值落库
+        const resolvedEditorType: DocCreateEditorType = editorType
         try {
           const created = await createKnowledgeDocument({
             kbId: kbId.value,
             title: normalizedTitle,
-            type: nodeType,
-            editorType: specializedEditorType ?? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.richText,
+            type: isFolder ? "folder" : "doc",
+            editorType:
+              resolvedEditorType === "richText"
+                ? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.richText
+                : KNOWLEDGE_DOCUMENT_EDITOR_TYPES[resolvedEditorType],
             status: "draft",
             parentId: targetParentId || null,
-            content: isFolder
-              ? undefined
-              : useBoard
-                ? {
-                    scheme: KNOWLEDGE_BOARD_CONTENT_SCHEME,
-                    value: createKnowledgeBoardDocument(),
-                  }
-                : specializedEditorType
-                  ? undefined
-                  : { scheme: "text/markdown", value: "" },
+            content: isFolder ? undefined : buildCreateContent(resolvedEditorType, normalizedTitle),
           })
           options.showToastMessage(
-            isFolder ? "文件夹已创建。" : useBoard ? "画板已创建。" : "文档已创建。",
+            isFolder
+              ? "文件夹已创建。"
+              : `${specializedMeta?.label ?? "文档"}「${normalizedTitle}」已创建。`,
             "success",
           )
           await options.refreshTree()
@@ -249,6 +309,57 @@ export const useTreeNodeActions = (options: {
           options.showToastMessage(getApiErrorMessage(error, "创建失败，请稍后重试。"), "error")
         }
       },
+    }
+  }
+
+  const isSpecializedCreateType = (
+    type: KnowledgeWorkspaceCreateNodeType,
+  ): type is SpecializedCreateType =>
+    type === "board" || type === "datatable" || type === "sheet" || type === "mindmap"
+
+  /**
+   * 根级菜单即时创建（D1 对齐语雀）：点类型即以默认标题创建并直接进入编辑器，
+   * 不弹命名窗（folder 仍走对话框）。创建后 toast + 刷新树 + openDoc。
+   */
+  const createNodeInstantly = async (
+    type: KnowledgeWorkspaceCreateNodeType,
+    parentId: string | null = null,
+  ) => {
+    // 目录保持「命名对话框」路径（语雀根菜单目录同样弹窗）
+    if (type === "folder") {
+      createNode("folder", parentId)
+      return
+    }
+
+    if (!ensureEditPermission()) {
+      return
+    }
+
+    const isDoc = type === "doc"
+    const specializedMeta = isSpecializedCreateType(type) ? SPECIALIZED_CREATE_META[type] : null
+    const title = isDoc ? "新建文档" : specializedMeta ? specializedMeta.instantTitle : "新建文档"
+    const editorType: KnowledgeDocumentEditorType = isDoc
+      ? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.richText
+      : KNOWLEDGE_DOCUMENT_EDITOR_TYPES[type as SpecializedCreateType]
+
+    try {
+      const created = await createKnowledgeDocument({
+        kbId: kbId.value,
+        title,
+        type: "doc",
+        editorType,
+        status: "draft",
+        parentId: parentId || null,
+        content: buildCreateContent(editorType as DocCreateEditorType, title),
+      })
+      options.showToastMessage(
+        `${specializedMeta?.label ?? "文档"}「${title}」已创建，正在打开编辑器`,
+        "success",
+      )
+      await options.refreshTree()
+      options.openDoc(created.id, created.editorType)
+    } catch (error) {
+      options.showToastMessage(getApiErrorMessage(error, "创建失败，请稍后重试。"), "error")
     }
   }
 
@@ -691,18 +802,14 @@ export const useTreeNodeActions = (options: {
     void copyDocLinkByMode("titled", node)
   }
 
-  const handleRootCreateMenuAction = (action: "doc" | "folder" | "template") => {
-    if (action === "doc") {
-      createNode("doc")
+  /** 根级「+」菜单动作（D1 全类型）：template→模板库，folder→命名对话框，其余→即时创建进编辑器 */
+  const handleRootCreateMenuAction = (action: RootCreateMenuAction) => {
+    if (action === "template") {
+      openTemplateLibrary()
       return
     }
 
-    if (action === "folder") {
-      createNode("folder")
-      return
-    }
-
-    openTemplateLibrary()
+    void createNodeInstantly(action)
   }
 
   const treeNodeMenuGroups = computed<TreeNodeMenuGroup[]>(() => {
@@ -970,6 +1077,7 @@ export const useTreeNodeActions = (options: {
     templateDialogParentId,
     hideTemplateDialog,
     createNode,
+    createNodeInstantly,
     openTemplateLibrary,
     renamingNodeId,
     finishRename,

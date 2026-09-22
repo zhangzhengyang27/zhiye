@@ -82,7 +82,6 @@ export const SHORTCUT_ROWS: ShortcutRow[] = [
     label: "锁定桌面端",
     type: "globalShortcut",
     defaultShortcut: "CommandOrControl+L",
-    unavailable: true,
   },
   {
     key: "openAIWindow",
@@ -97,6 +96,56 @@ export const SHORTCUT_ROWS: ShortcutRow[] = [
 export const MENU_SHORTCUTS = {
   openSetting: "CommandOrControl+,",
 } as const
+
+/** 锁定密码长度边界（与主进程 desktop-lock 的 LOCK_PASSWORD_* 同口径）。 */
+export const LOCK_PASSWORD_MIN_LENGTH = 4
+export const LOCK_PASSWORD_MAX_LENGTH = 32
+
+/** 问题反馈邮箱（占位，待产品定；B4 反馈直达）。 */
+export const FEEDBACK_EMAIL = "feedback@example.com"
+
+/** 反馈主题里带上的版本号：构建注入 VITE_APP_VERSION 时常显，否则按 dev 标注。 */
+const FEEDBACK_APP_VERSION = import.meta.env.VITE_APP_VERSION || "dev"
+
+/**
+ * 组装 mailto 反馈链接：subject 带产品与版本，body 带平台与 UA，便于定位问题环境。
+ */
+export const buildFeedbackMailto = (): string => {
+  const platform = typeof window !== "undefined" ? window.xiaoyeDesktop?.platform : undefined
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent : ""
+  const subject = encodeURIComponent(`${PRODUCT_NAME} 问题反馈（v${FEEDBACK_APP_VERSION}）`)
+  const bodyParts = [
+    `版本：${FEEDBACK_APP_VERSION}`,
+    `平台：${platform ?? (typeof navigator !== "undefined" ? navigator.platform : "Web")}`,
+    `User-Agent：${ua}`,
+    "",
+    "请描述你遇到的问题：",
+  ]
+  const body = encodeURIComponent(bodyParts.join("\n"))
+
+  return `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`
+}
+
+/**
+ * 打开反馈邮件：桌面端经主进程 openExternal（走系统默认邮件客户端；主进程对
+ * 非 http(s) 的 mailto 直接拒绝时回落 location.href 交给渲染层协议路由），
+ * Web 端直接 location.href。
+ */
+export const openFeedbackMailto = () => {
+  const mailto = buildFeedbackMailto()
+  const desktop = typeof window !== "undefined" ? window.xiaoyeDesktop : undefined
+
+  if (desktop?.openExternal) {
+    void desktop.openExternal(mailto).then((ok) => {
+      if (!ok) {
+        window.location.href = mailto
+      }
+    })
+    return
+  }
+
+  window.location.href = mailto
+}
 
 interface PlatformKeyMap {
   /** KeyboardEvent 属性名 → 展示符号（或 Windows 下的键名）。 */

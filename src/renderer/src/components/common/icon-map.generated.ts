@@ -20,6 +20,7 @@ import { PhCaretUp } from "@phosphor-icons/vue"
 import { PhCaretUpDown } from "@phosphor-icons/vue"
 import { PhCheck } from "@phosphor-icons/vue"
 import { PhCheckCircle } from "@phosphor-icons/vue"
+import { PhCheckSquare } from "@phosphor-icons/vue"
 import { PhCircleNotch } from "@phosphor-icons/vue"
 import { PhClipboardText } from "@phosphor-icons/vue"
 import { PhClockCounterClockwise } from "@phosphor-icons/vue"
@@ -28,6 +29,8 @@ import { PhDatabase } from "@phosphor-icons/vue"
 import { PhDotsThree } from "@phosphor-icons/vue"
 import { PhDotsThreeCircle } from "@phosphor-icons/vue"
 import { PhDotsThreeVertical } from "@phosphor-icons/vue"
+import { PhDownloadSimple } from "@phosphor-icons/vue"
+import { PhEnvelopeSimple } from "@phosphor-icons/vue"
 import { PhExport } from "@phosphor-icons/vue"
 import { PhEye } from "@phosphor-icons/vue"
 import { PhFeather } from "@phosphor-icons/vue"
@@ -43,8 +46,10 @@ import { PhFrameCorners } from "@phosphor-icons/vue"
 import { PhFunnel } from "@phosphor-icons/vue"
 import { PhGear } from "@phosphor-icons/vue"
 import { PhGlobe } from "@phosphor-icons/vue"
+import { PhGridNine } from "@phosphor-icons/vue"
 import { PhHardDrive } from "@phosphor-icons/vue"
 import { PhHouseSimple } from "@phosphor-icons/vue"
+import { PhImage } from "@phosphor-icons/vue"
 import { PhInfo } from "@phosphor-icons/vue"
 import { PhLayout } from "@phosphor-icons/vue"
 import { PhLinkSimple } from "@phosphor-icons/vue"
@@ -52,6 +57,8 @@ import { PhListChecks } from "@phosphor-icons/vue"
 import { PhListDashes } from "@phosphor-icons/vue"
 import { PhLock } from "@phosphor-icons/vue"
 import { PhMagnifyingGlass } from "@phosphor-icons/vue"
+import { PhMonitor } from "@phosphor-icons/vue"
+import { PhMoon } from "@phosphor-icons/vue"
 import { PhNoteBlank } from "@phosphor-icons/vue"
 import { PhNotePencil } from "@phosphor-icons/vue"
 import { PhPalette } from "@phosphor-icons/vue"
@@ -69,8 +76,11 @@ import { PhSlidersHorizontal } from "@phosphor-icons/vue"
 import { PhSparkle } from "@phosphor-icons/vue"
 import { PhSquaresFour } from "@phosphor-icons/vue"
 import { PhStar } from "@phosphor-icons/vue"
+import { PhSun } from "@phosphor-icons/vue"
+import { PhTable } from "@phosphor-icons/vue"
 import { PhTrash } from "@phosphor-icons/vue"
 import { PhTrashSimple } from "@phosphor-icons/vue"
+import { PhTreeStructure } from "@phosphor-icons/vue"
 import { PhUserCircle } from "@phosphor-icons/vue"
 import { PhUserPlus } from "@phosphor-icons/vue"
 import { PhUsersThree } from "@phosphor-icons/vue"
@@ -106,6 +116,7 @@ import { CornerDownRight } from "lucide-vue-next"
 import { Database } from "lucide-vue-next"
 import { Download } from "lucide-vue-next"
 import { Eraser } from "lucide-vue-next"
+import { Eye } from "lucide-vue-next"
 import { FileDown } from "lucide-vue-next"
 import { FileEdit } from "lucide-vue-next"
 import { FileJson } from "lucide-vue-next"
@@ -157,6 +168,7 @@ import { SquareArrowOutUpRight } from "lucide-vue-next"
 import { Star } from "lucide-vue-next"
 import { StarOff } from "lucide-vue-next"
 import { Table2 } from "lucide-vue-next"
+import { ThumbsUp } from "lucide-vue-next"
 import { Trash2 } from "lucide-vue-next"
 import { TriangleAlert } from "lucide-vue-next"
 import { Type } from "lucide-vue-next"
@@ -193,6 +205,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:caret-up-down": { component: PhCaretUpDown },
   "ph:check-bold": { component: PhCheck, attrs: { weight: "bold" } },
   "ph:check-circle": { component: PhCheckCircle },
+  "ph:check-square": { component: PhCheckSquare },
   "ph:circle-notch": { component: PhCircleNotch },
   "ph:clipboard-text": { component: PhClipboardText },
   "ph:clock-counter-clockwise": { component: PhClockCounterClockwise },
@@ -201,6 +214,8 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:dots-three-bold": { component: PhDotsThree, attrs: { weight: "bold" } },
   "ph:dots-three-circle": { component: PhDotsThreeCircle },
   "ph:dots-three-vertical": { component: PhDotsThreeVertical },
+  "ph:download-simple": { component: PhDownloadSimple },
+  "ph:envelope-simple": { component: PhEnvelopeSimple },
   "ph:export": { component: PhExport },
   "ph:eye": { component: PhEye },
   "ph:feather": { component: PhFeather },
@@ -216,8 +231,10 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:funnel": { component: PhFunnel },
   "ph:gear": { component: PhGear },
   "ph:globe": { component: PhGlobe },
+  "ph:grid-nine": { component: PhGridNine },
   "ph:hard-drive": { component: PhHardDrive },
   "ph:house-simple": { component: PhHouseSimple },
+  "ph:image": { component: PhImage },
   "ph:info": { component: PhInfo },
   "ph:layout": { component: PhLayout },
   "ph:link-simple": { component: PhLinkSimple },
@@ -225,6 +242,8 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:list-dashes": { component: PhListDashes },
   "ph:lock": { component: PhLock },
   "ph:magnifying-glass": { component: PhMagnifyingGlass },
+  "ph:monitor": { component: PhMonitor },
+  "ph:moon": { component: PhMoon },
   "ph:note-blank": { component: PhNoteBlank },
   "ph:note-pencil": { component: PhNotePencil },
   "ph:palette": { component: PhPalette },
@@ -243,8 +262,11 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:squares-four": { component: PhSquaresFour },
   "ph:star": { component: PhStar },
   "ph:star-fill": { component: PhStar, attrs: { weight: "fill" } },
+  "ph:sun": { component: PhSun },
+  "ph:table": { component: PhTable },
   "ph:trash": { component: PhTrash },
   "ph:trash-simple": { component: PhTrashSimple },
+  "ph:tree-structure": { component: PhTreeStructure },
   "ph:user-circle": { component: PhUserCircle },
   "ph:user-plus": { component: PhUserPlus },
   "ph:users-three": { component: PhUsersThree },
@@ -279,6 +301,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-database": { component: Database },
   "i-lucide-download": { component: Download },
   "i-lucide-eraser": { component: Eraser },
+  "i-lucide-eye": { component: Eye },
   "i-lucide-file-down": { component: FileDown },
   "i-lucide-file-edit": { component: FileEdit },
   "i-lucide-file-json": { component: FileJson },
@@ -330,6 +353,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-star": { component: Star },
   "i-lucide-star-off": { component: StarOff },
   "i-lucide-table-2": { component: Table2 },
+  "i-lucide-thumbs-up": { component: ThumbsUp },
   "i-lucide-trash-2": { component: Trash2 },
   "i-lucide-triangle-alert": { component: TriangleAlert },
   "i-lucide-type": { component: Type },

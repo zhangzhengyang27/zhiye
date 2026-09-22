@@ -39,6 +39,8 @@ export interface KnowledgeDocumentItem {
     avatar?: string | null
   } | null
   deletedAt?: string | null
+  /** 详情接口返回：累计阅读数（阅读态元信息行展示） */
+  viewCount?: number
   /** 详情接口返回：当前用户对该文档的有效编辑权限（含文档级协作者升权，B2f） */
   myDocPermissions?: {
     canEdit: boolean
@@ -60,6 +62,8 @@ export interface KnowledgeDocumentTreeNode {
   updatedAt: string
   /** 外链节点地址（仅 type=link 返回，B3c「添加链接」） */
   url?: string
+  /** 树行摘要（B4 #21，对齐语雀 flat 视图的摘要行；服务端从正文提取，可能为空） */
+  summary?: string
   children: KnowledgeDocumentTreeNode[]
 }
 
@@ -79,6 +83,21 @@ export interface KnowledgeDocumentSearchResult {
   total: number
   page: number
   pageSize: number
+  /** 站内公开分享聚合（B3 #22）：仅检索词非空时由服务端附带 */
+  publicShares?: KnowledgePublicShareItem[]
+}
+
+/**
+ * 描述站内公开分享搜索聚合项（搜索结果尾部分组，点击打开 /share/:shareKey）。
+ */
+export interface KnowledgePublicShareItem {
+  id: string
+  shareKey: string
+  /** 分享文档标题 */
+  title: string
+  /** 来源知识库名（展示用徽标） */
+  kbName?: string
+  snippet?: string
 }
 
 /**
@@ -545,7 +564,11 @@ export const listKnowledgeDocumentTemplates = (kbId: string, token?: string | nu
  */
 export const createKnowledgeDocumentFromTemplate = (
   templateId: string,
-  payload: { title: string; parentId?: string },
+  payload: {
+    title: string
+    parentId?: string
+    /** 「我的」模板跨库创建（B4 #14）：新文档落目标知识库 */ targetKbId?: string
+  },
   token?: string | null,
 ) =>
   requestKbDriveApi<KnowledgeDocumentItem>(
@@ -554,6 +577,29 @@ export const createKnowledgeDocumentFromTemplate = (
       method: "POST",
       body: JSON.stringify(payload),
     },
+    token,
+  )
+
+/**
+ * 「我的」跨库模板（B4 #14）：本人创建的全部模板（限定可读知识库集），
+ * kb.name 用于模板中心按来源知识库分组。
+ */
+export interface KnowledgeMyTemplateItem {
+  id: string
+  title: string
+  content: KnowledgeDocumentContent | null
+  kbId: string
+  updatedAt: string
+  createdAt: string
+  kb?: {
+    name: string
+  }
+}
+
+export const listMyKnowledgeTemplates = (token?: string | null) =>
+  requestKbDriveApi<KnowledgeMyTemplateItem[]>(
+    "/knowledge/documents/templates/mine",
+    undefined,
     token,
   )
 
@@ -584,3 +630,63 @@ export const recordKnowledgeDocumentView = (id: string, token?: string | null) =
     },
     token,
   )
+
+/**
+ * 知识网络卡片（对齐后端 KnowledgeLinkDocCard，updatedAt 为 JSON 序列化的 ISO 串）。
+ */
+export interface KnowledgeLinkDocCard {
+  id: string
+  title: string
+  updatedAt: string
+  creatorName: string | null
+}
+
+/** 双向链接结果（backlinks=被引用 / forwardLinks=引用了，弱引用 v1）。 */
+export interface KnowledgeLinksResult {
+  backlinks: KnowledgeLinkDocCard[]
+  forwardLinks: KnowledgeLinkDocCard[]
+}
+
+/**
+ * 获取文档知识网络（B2b：基于文档间链接引用的双向列表，端点对齐后端
+ * DocumentsKnowledgeLinksService.listLinks：GET /knowledge/documents/:id/knowledge-links）。
+ */
+export const getKnowledgeDocumentLinks = (documentId: string, token?: string | null) =>
+  requestKbDriveApi<KnowledgeLinksResult>(
+    `/knowledge/documents/${documentId}/knowledge-links`,
+    undefined,
+    token,
+  )
+
+/**
+ * 文档点赞状态（对齐 DocumentsLikeService.getLikeInfo：是否已赞 + 总数 + 最近点赞者）。
+ */
+export interface DocumentLikeInfo {
+  liked: boolean
+  count: number
+  likers: Array<{
+    id: string
+    displayName: string
+    avatar: string | null
+  }>
+}
+
+/** 点赞文档（幂等：已赞再赞返回现状）。 */
+export const likeDocument = (id: string, token?: string | null) =>
+  requestKbDriveApi<{ liked: boolean; count: number }>(
+    `/knowledge/documents/${id}/like`,
+    { method: "POST" },
+    token,
+  )
+
+/** 取消点赞（未赞时同样幂等返回现状）。 */
+export const unlikeDocument = (id: string, token?: string | null) =>
+  requestKbDriveApi<{ liked: boolean; count: number }>(
+    `/knowledge/documents/${id}/like`,
+    { method: "DELETE" },
+    token,
+  )
+
+/** 获取点赞状态与点赞者列表（阅读态进入时拉取）。 */
+export const getDocumentLike = (id: string, token?: string | null) =>
+  requestKbDriveApi<DocumentLikeInfo>(`/knowledge/documents/${id}/like`, undefined, token)

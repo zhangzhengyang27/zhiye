@@ -1,20 +1,7 @@
 /** 配置应用路由、认证守卫与页面跳转规则。 */
 
-import { h } from "vue"
 import { createRouter, createWebHistory } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
-
-/**
- * 画板编辑器路由占位：原 KnowledgeBoardEditorView.vue 在删除事故中遗失（全仓无副本）。
- * 路由名 knowledge-board-editor 是承重点（工作区 openDoc、use-knowledge-tree 都按名
- * 跳转），不能摘——恢复真身前先以占位页保住路由名，避免打开画板文档时抛「No match」。
- */
-const KnowledgeBoardEditorPlaceholder = () =>
-  h(
-    "div",
-    { class: "flex min-h-screen items-center justify-center text-sm text-ink-tertiary" },
-    "画板编辑器暂不可用（恢复中）。",
-  )
 
 const router = createRouter({
   history: createWebHistory(),
@@ -39,6 +26,21 @@ const router = createRouter({
       meta: {
         requiresGuest: true,
       },
+    },
+    {
+      path: "/auth/reset",
+      name: "auth-reset",
+      component: () => import("@/views/auth/ResetPasswordView.vue"),
+      meta: {
+        requiresGuest: true,
+      },
+    },
+    {
+      // 锁屏窗口专用路由：不挂 requiresAuth/requiresGuest——锁定须无视登录态，
+      // App.vue 也按 name=desktop-lock 拦截托盘导航，防止用导航指令绕过锁定
+      path: "/lock",
+      name: "desktop-lock",
+      component: () => import("@/views/lock/DesktopLockView.vue"),
     },
     {
       path: "/account",
@@ -151,7 +153,22 @@ const router = createRouter({
         {
           path: "board/:docId",
           name: "knowledge-board-editor",
-          component: KnowledgeBoardEditorPlaceholder,
+          component: () => import("@/views/knowledge/KnowledgeBoardEditorView.vue"),
+        },
+        {
+          path: "datatable/:docId",
+          name: "knowledge-datatable-editor",
+          component: () => import("@/views/knowledge/KnowledgeDataTableEditorView.vue"),
+        },
+        {
+          path: "sheet/:docId",
+          name: "knowledge-sheet-editor",
+          component: () => import("@/views/knowledge/KnowledgeSheetEditorView.vue"),
+        },
+        {
+          path: "mindmap/:docId",
+          name: "knowledge-mindmap-editor",
+          component: () => import("@/views/knowledge/KnowledgeMindmapEditorView.vue"),
         },
         {
           path: "settings",

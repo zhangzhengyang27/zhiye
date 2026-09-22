@@ -11,6 +11,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue"
 import { YuqueRichText } from "yuque-editor-core/vue"
 import type { EditorUploadHandler, YuqueDocScheme, YuqueEditorRef } from "yuque-editor-core/editor"
+import { useThemeMode } from "@/composables/useThemeMode"
 
 const props = withDefaults(
   defineProps<{
@@ -88,13 +89,17 @@ const CODE_BLOCK_BUTTON_ICON =
 /**
  * 点击插入代码块：与内核 insertCardByUI 的 codeblock 处理器同链路
  * （execCommand("insertCard", …) + 自构基础 cardValue——缺 cardValue 的空卡片
- * 会被 markdown 序列化丢弃）。主题枚举内核未暴露，新建固定 Github Light。
+ * 会被 markdown 序列化丢弃）。主题枚举取自内核 codeblock 卡的主题表
+ * （暗 "Darcula" / 亮 "Github Light"，按 useThemeMode 解析后的真实明暗选择，
+ * 「跟随系统 + 系统暗」同样命中暗档）。
  */
+const { isDark } = useThemeMode()
+
 const insertCodeBlock = () => {
   editorApi.value?.execCommand(
     "insertCard",
     "codeblock",
-    { code: "", mode: "plain", theme: "Github Light" },
+    { code: "", mode: "plain", theme: isDark.value ? "Darcula" : "Github Light" },
     true,
   )
 }

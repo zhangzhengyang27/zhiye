@@ -25,15 +25,25 @@ import {
 } from "@/services/knowledge-collab"
 import {
   deleteKnowledgeDocumentVersion,
+  getDocumentLike,
   getKnowledgeDocument,
+  likeDocument as likeDocumentApi,
   listKnowledgeDocumentVersions,
   recordKnowledgeDocumentView,
   rollbackKnowledgeDocumentVersion,
   trashKnowledgeDocument,
+  unlikeDocument as unlikeDocumentApi,
   updateKnowledgeDocument,
+  type DocumentLikeInfo,
   type KnowledgeDocumentItem,
   type KnowledgeDocumentVersionItem,
 } from "@/services/knowledge-documents"
+import {
+  appendDocumentLocalSnapshot,
+  clearDocumentLocalSnapshots,
+  getDocumentLocalSnapshots,
+  type DocumentLocalSnapshot,
+} from "@/utils/document-local-cache"
 import { getKnowledgeDocumentRouteTarget, isBoardDocument } from "@/utils/knowledge-document"
 import {
   addDocumentCollaborator,
@@ -71,6 +81,7 @@ import MentionMemberPicker from "./MentionMemberPicker.vue"
 import type { DocEditorStyle } from "@/components/editor/DocumentStyleSettingsDialog.vue"
 import type { YuqueEditorRef } from "yuque-editor-core/editor"
 import { escapeHtml } from "@/utils/enhanced-rich-blocks"
+import { findTreeNode } from "@/components/knowledge/tree-utils"
 import { knowledgeWorkspaceContextKey } from "./workspace-context"
 
 const YuqueDocEditor = defineAsyncComponent(() => import("@/components/editor/YuqueDocEditor.vue"))
@@ -123,6 +134,9 @@ const VersionCompareDialog = defineAsyncComponent(
 )
 const DocumentVersionsPanel = defineAsyncComponent(
   () => import("@/components/version/DocumentVersionsPanel.vue"),
+)
+const KnowledgeNetworkDialog = defineAsyncComponent(
+  () => import("@/components/editor/KnowledgeNetworkDialog.vue"),
 )
 const ConfirmDialog = defineAsyncComponent(() => import("@/components/common/ConfirmDialog.vue"))
 
@@ -288,12 +302,155 @@ const versionsLocalCacheItems = computed(() => {
 const togglingFavorite = ref(false)
 const docType = ref<string>("doc")
 
+// ==================== 本地快照（#26，IndexedDB 防抖快照） ====================
+const localSnapshots = ref<DocumentLocalSnapshot[]>([])
+
+/** 打开版本面板/切文档时读取快照列表（IndexedDB 异步，新→旧） */
+const refreshLocalSnapshots = async () => {
+  if (!docId.value) {
+    localSnapshots.value = []
+    return
+  }
+
+  const requestedDocId = docId.value
+  try {
+    const snapshots = await getDocumentLocalSnapshots(requestedDocId)
+    // 快速切文档时旧请求晚归不得覆盖新文档的快照列表
+    if (docId.value === requestedDocId) {
+      localSnapshots.value = snapshots
+    }
+  } catch {
+    // IndexedDB 不可用（隐私模式等）：快照能力静默降级，不影响编辑
+  }
+}
+
+/** 内容变更后防抖落一条快照（wordCount 用编辑器实时口径） */
+let snapshotDebounceTimer: number | null = null
+
+const scheduleLocalSnapshot = () => {
+  if (snapshotDebounceTimer !== null) {
+    window.clearTimeout(snapshotDebounceTimer)
+  }
+
+  snapshotDebounceTimer = window.setTimeout(() => {
+    snapshotDebounceTimer = null
+    const targetDocId = docId.value
+
+    if (!targetDocId || !content.value.trim()) {
+      return
+    }
+
+    const editor = editorInstance.value as YuqueEditorRef | null
+    const wordCount = editor?.wordCount?.() ?? plainTextContent.value.length
+
+    void appendDocumentLocalSnapshot(targetDocId, {
+      at: Date.now(),
+      content: content.value,
+      wordCount,
+    })
+      .then(() => refreshLocalSnapshots())
+      .catch(() => undefined)
+  }, 3000)
+}
+
+/** 恢复本地快照：写回编辑器内容并提示（标题/状态不动，与版本回滚的整档回滚区分） */
+const handleRestoreSnapshot = (snapshot: DocumentLocalSnapshot) => {
+  content.value = snapshot.content
+  showToastMessage("已恢复到本地快照，记得保存。", "success")
+}
+
+/** 清空本地快照（仅清当前文档，IndexedDB 键级删除） */
+const handleClearSnapshots = () => {
+  if (!docId.value) {
+    return
+  }
+
+  clearDocumentLocalSnapshots(docId.value)
+  localSnapshots.value = []
+  showToastMessage("本地快照已清空。", "success")
+}
+
+// ==================== 点赞（#10，阅读态文末互动区） ====================
+const likeInfo = ref<DocumentLikeInfo>({ liked: false, count: 0, likers: [] })
+const likeBusy = ref(false)
+/** 阅读数（详情接口回传的累计 viewCount；记录阅读行为后本地 +1 让本次立即生效） */
+const docViewCount = ref(0)
+
+const loadLikeInfo = async () => {
+  if (!docId.value) {
+    return
+  }
+
+  const requestedDocId = docId.value
+  try {
+    const info = await getDocumentLike(requestedDocId)
+    if (docId.value === requestedDocId) {
+      likeInfo.value = info
+    }
+  } catch {
+    // 点赞信息加载失败不阻塞阅读：保持默认态（0 赞/未赞）
+  }
+}
+
+const toggleLike = async () => {
+  if (!docId.value || likeBusy.value || !canEditOrRead()) {
+    return
+  }
+
+  likeBusy.value = true
+  try {
+    const result = likeInfo.value.liked
+      ? await unlikeDocumentApi(docId.value)
+      : await likeDocumentApi(docId.value)
+
+    likeInfo.value = {
+      ...likeInfo.value,
+      liked: result.liked,
+      count: result.count,
+    }
+    showToastMessage(result.liked ? "已点赞。" : "已取消点赞。", "success")
+  } catch (error) {
+    showToastMessage(error instanceof Error ? error.message : "点赞操作失败，请稍后重试。", "error")
+  } finally {
+    likeBusy.value = false
+  }
+}
+
+/** 阅读态也可点赞/评论：仅要求已登录（authStore.user 存在即持有会话） */
+const canEditOrRead = () => Boolean(authStore.user)
+
+/** 点赞者展示：头像堆叠最多 10 个，无头像回退首字圆片 */
+const visibleLikers = computed(() => likeInfo.value.likers.slice(0, 10))
+
 const editorInstance = ref<unknown>(null)
 
 const showInfoPanel = ref(false)
 const showShareDialog = ref(false) // 控制分享对话框显示/隐藏
 const showStyleSettings = ref(false) // 控制样式设置对话框显示/隐藏
 const showShortcutPanel = ref(false) // 控制快捷键速查面板显示/隐藏
+const showKnowledgeNetwork = ref(false) // 控制知识网络弹窗显示/隐藏（B2b 文档信息面板入口）
+
+/** 打开知识网络：信息面板快捷操作第一位，卡片点击跳转对应文档 */
+const openKnowledgeNetwork = () => {
+  showKnowledgeNetwork.value = true
+}
+
+/** 知识网络卡片点击：路由内跳转（编辑器按 docId 重载），当前文档则留在原地 */
+const handleKnowledgeNetworkOpenDoc = (targetDocId: string) => {
+  showKnowledgeNetwork.value = false
+  if (targetDocId === docId.value) {
+    return
+  }
+
+  const resolvedNode = findTreeNode(workspaceContext.treeNodes.value, targetDocId)
+  void router.push(
+    getKnowledgeDocumentRouteTarget({
+      kbId: workspaceContext.kbId.value,
+      docId: targetDocId,
+      editorType: resolvedNode?.editorType,
+    }),
+  )
+}
 
 /**
  * 文档级编辑样式（字号/段间距）：以服务端 documents.editorStyle 为准，
@@ -698,9 +855,10 @@ const submitReadingComment = async () => {
 }
 
 watch(isReadingMode, (reading) => {
-  // 阅读态不提供侧栏面板入口；进入时收起避免残留
+  // 阅读态不提供侧栏面板入口；进入时收起避免残留，并拉取点赞信息供文末互动区
   if (reading) {
     closeAllSidePanels()
+    void loadLikeInfo()
   }
 })
 const workspaceName = computed(() => workspaceContext.knowledgeBase.value?.name || "知识库")
@@ -1238,6 +1396,9 @@ const normalizeDocument = (document: KnowledgeDocumentItem) => {
   if (document.createdAt) {
     docCreatedAt.value = document.createdAt
   }
+  if (typeof document.viewCount === "number") {
+    docViewCount.value = document.viewCount
+  }
   applyServerDocStyle(document)
 
   snapshot.value = {
@@ -1603,6 +1764,7 @@ const openVersions = async () => {
     return
   }
 
+  void refreshLocalSnapshots()
   await openSidePanel("versions")
 }
 
@@ -1875,6 +2037,29 @@ const exportWord = async () => {
   } catch (error) {
     logger.error("KnowledgeDocEditorView", "Word export failed:", error)
     showToastMessage("Word 导出失败", "error")
+  }
+}
+
+/**
+ * 导出为图片（#18，对齐语雀 JPG 档）：编辑器正文 DOM 直接 2x 截图导出，
+ * 比重排版转 HTML 更贴近阅读页观感。正文未挂载（加载/报错态）时给出行内提示。
+ */
+const exportJpg = async () => {
+  try {
+    const surface = document.querySelector<HTMLElement>(".yuque-doc-editor__surface .ne-engine")
+
+    if (!surface) {
+      showToastMessage("正文尚未渲染完成，请稍后重试。", "info")
+      return
+    }
+
+    const { exportElementAsJpg } = await loadDocumentExportTools()
+    showToastMessage("正在生成图片，请稍候…", "info")
+    await exportElementAsJpg(title.value || "无标题文档", surface)
+    showToastMessage("图片导出成功", "success")
+  } catch (error) {
+    logger.error("KnowledgeDocEditorView", "JPG export failed:", error)
+    showToastMessage("图片导出失败", "error")
   }
 }
 
@@ -2247,6 +2432,7 @@ const exportMenuItems = computed<DropdownMenuItem[][]>(() => [
     { label: "导出为 Markdown", icon: "i-lucide-file-text", onSelect: () => void exportMarkdown() },
     { label: "导出为 PDF", icon: "i-lucide-file-down", onSelect: () => void exportPDF() },
     { label: "导出为 Word", icon: "i-lucide-file-type", onSelect: () => void exportWord() },
+    { label: "导出为图片", icon: "i-lucide-image", onSelect: () => void exportJpg() },
     {
       label: "导出为语雀文档 (.lake)",
       icon: "i-lucide-file-json",
@@ -2414,6 +2600,7 @@ const moreMenuItems = computed<DropdownMenuItem[][]>(() => {
           },
           { label: "导出为 PDF", icon: "i-lucide-file-down", onSelect: () => void exportPDF() },
           { label: "导出为 Word", icon: "i-lucide-file-type", onSelect: () => void exportWord() },
+          { label: "导出为图片", icon: "i-lucide-image", onSelect: () => void exportJpg() },
           {
             label: "导出为语雀文档 (.lake)",
             icon: "i-lucide-file-json",
@@ -2472,6 +2659,15 @@ watch(
     pendingSaveRequest.value = null
     retryAttempt.value = 0
     remoteConflict.value = null
+    // 点赞/阅读数/本地快照跟随文档切换重置（快照列表由打开面板或进入阅读态时刷新）
+    likeInfo.value = { liked: false, count: 0, likers: [] }
+    docViewCount.value = 0
+    localSnapshots.value = []
+    showKnowledgeNetwork.value = false
+    if (snapshotDebounceTimer !== null) {
+      window.clearTimeout(snapshotDebounceTimer)
+      snapshotDebounceTimer = null
+    }
     void loadDocument()
   },
   { immediate: true },
@@ -2482,13 +2678,18 @@ watch(
   (open) => {
     if (!open) {
       clearVersionSelection()
+      return
     }
+
+    // 面板打开（含打开即刷新路径）时同步本地快照列表
+    void refreshLocalSnapshots()
   },
 )
 
 watch([title, status, scheme, content], () => {
   scheduleAutoSave()
   scheduleRemoteConflictCheck()
+  scheduleLocalSnapshot()
   // 内容变更后锚点路径会错位，让高亮跟随重绘（引擎内部 rAF 节流）
   commentManager?.refreshHighlights()
 })
@@ -2564,6 +2765,10 @@ onBeforeUnmount(() => {
   clearAutoSaveTimer()
   clearRetrySaveTimer()
   clearRemoteCheckTimer()
+  if (snapshotDebounceTimer !== null) {
+    window.clearTimeout(snapshotDebounceTimer)
+    snapshotDebounceTimer = null
+  }
   editorInstance.value = null
   window.removeEventListener("keydown", handleSaveShortcut)
   window.removeEventListener("beforeunload", handleBeforeUnload)
@@ -2910,7 +3115,7 @@ onBeforeUnmount(() => {
           </template>
         </YuqueDocEditor>
 
-        <!-- 文末互动区（B2a 对齐语雀阅读页）：元信息行 + 文内评论；点赞/阅读数/IP 属地待后端模型后补 -->
+        <!-- 文末互动区（B2a 对齐语雀阅读页）：元信息行 + 点赞区 + 文内评论；IP 属地/社交分享不做 -->
         <div
           v-if="isReadingMode"
           ref="readingCommentsAnchor"
@@ -2928,9 +3133,58 @@ onBeforeUnmount(() => {
               更新于 {{ docUpdatedAtText }}
             </span>
             <span class="inline-flex items-center gap-1.5">
+              <AppIcon name="i-lucide-eye" class="h-3.5 w-3.5 shrink-0" />
+              {{ docViewCount }} 次阅读
+            </span>
+            <span class="inline-flex items-center gap-1.5">
               <AppIcon name="i-lucide-message-circle" class="h-3.5 w-3.5 shrink-0" />
               {{ commentItems.length }} 条评论
             </span>
+          </div>
+
+          <!-- 点赞区（#10）：👍 钮（已赞高亮）+ 点赞数 + 点赞者头像（最多 10） -->
+          <div
+            class="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-kb-2xl bg-muted px-6 py-5"
+            data-testid="doc-like-section"
+          >
+            <button
+              type="button"
+              class="inline-flex h-10 items-center gap-2 rounded-full border px-5 text-[13px] font-medium transition"
+              :class="
+                likeInfo.liked
+                  ? 'border-brand bg-brand-faint text-brand'
+                  : 'border-line bg-surface text-ink-secondary hover:border-brand-lighter hover:text-brand'
+              "
+              data-testid="doc-like-button"
+              :title="likeInfo.liked ? '取消点赞' : '点赞'"
+              @click="toggleLike"
+            >
+              <AppIcon
+                name="i-lucide-thumbs-up"
+                class="h-4 w-4 shrink-0"
+                :class="likeInfo.liked ? 'fill-current' : ''"
+              />
+              <span>赞</span>
+            </button>
+            <span class="text-[13px] text-ink-tertiary" data-testid="doc-like-count">
+              {{ likeInfo.count }} 人点赞
+            </span>
+            <div class="flex items-center -space-x-2">
+              <div
+                v-for="liker in visibleLikers"
+                :key="liker.id"
+                class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-line bg-surface text-[11px] font-semibold text-ink-secondary"
+                :title="liker.displayName"
+              >
+                <img
+                  v-if="liker.avatar"
+                  :src="liker.avatar"
+                  :alt="liker.displayName"
+                  class="h-full w-full object-cover"
+                />
+                <span v-else>{{ liker.displayName.slice(0, 1).toUpperCase() }}</span>
+              </div>
+            </div>
           </div>
 
           <section class="mt-5">
@@ -3302,6 +3556,7 @@ onBeforeUnmount(() => {
       :versions-loading="versionsLoading"
       :versions="versions"
       :local-cache-items="versionsLocalCacheItems"
+      :local-snapshots="localSnapshots"
       :selected-version-ids="selectedVersionIds"
       :selected-version-count="selectedVersionCount"
       :all-versions-selected="allVersionsSelected"
@@ -3317,6 +3572,8 @@ onBeforeUnmount(() => {
       @delete-version="deleteVersion"
       @rollback-version="rollbackVersion"
       @switch-tab="handleSidePanelSwitch"
+      @restore-snapshot="handleRestoreSnapshot"
+      @clear-snapshots="handleClearSnapshots"
     />
 
     <DocumentInfoPanel
@@ -3335,6 +3592,7 @@ onBeforeUnmount(() => {
       :meta="documentInfoMeta"
       :favorite="favorited"
       :visible-actions="[
+        'open-knowledge-network',
         'enter-reading',
         'copy-link',
         'open-template-library',
@@ -3352,6 +3610,7 @@ onBeforeUnmount(() => {
       @open-share="openShareDialog"
       @open-history="openVersions"
       @open-template-library="handleRequestTemplateLibrary"
+      @open-knowledge-network="openKnowledgeNetwork"
     />
     <ShareDialog
       v-if="docId && showShareDialog"
@@ -3380,6 +3639,15 @@ onBeforeUnmount(() => {
       :visible="showVersionCompare"
       @delete-version="deleteVersion"
       @close="showVersionCompare = false"
+    />
+
+    <!-- 知识网络（B2b）：文档信息面板快捷操作第一位，卡片点击路由内跳转对应文档 -->
+    <KnowledgeNetworkDialog
+      :visible="showKnowledgeNetwork"
+      :document-id="docId"
+      :token="authStore.accessToken"
+      @close="showKnowledgeNetwork = false"
+      @open-doc="handleKnowledgeNetworkOpenDoc"
     />
 
     <ConfirmDialog

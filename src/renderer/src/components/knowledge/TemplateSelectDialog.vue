@@ -17,6 +17,7 @@ import UiIcon from "@/components/common/UiIcon.vue"
 import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
 import {
   listKnowledgeDocumentTemplates,
+  listMyKnowledgeTemplates,
   createKnowledgeDocumentFromTemplate,
   createKnowledgeDocument,
 } from "@/services/knowledge-documents"
@@ -37,12 +38,13 @@ const emit = defineEmits<{
   (e: "created", document: KnowledgeDocumentItem): void
 }>()
 
-type TemplateSource = "official" | "kb"
+type TemplateSource = "official" | "kb" | "mine"
 
 interface TemplateOption {
   key: string
   id: string
   title: string
+  /** 官方模板为内部分类；本知识库固定文案；「我的」为来源知识库名（kb.name） */
   category: string
   description: string
   content: string
@@ -53,6 +55,9 @@ interface TemplateOption {
 
 const sourceTab = ref<TemplateSource>("official")
 const kbTemplates = ref<TemplateOption[]>([])
+/** 「我的」跨库模板（B4 #14）：切到该 tab 才懒加载，失败静默（保持空态） */
+const myTemplates = ref<TemplateOption[]>([])
+const myTemplatesLoaded = ref(false)
 const loading = ref(false)
 const creating = ref(false)
 const loadError = ref("")
@@ -70,9 +75,12 @@ const officialOptions: TemplateOption[] = OFFICIAL_TEMPLATES.map((template) => (
   source: "official" as const,
 }))
 
-const sourceOptions = computed(() =>
-  sourceTab.value === "official" ? officialOptions : kbTemplates.value,
-)
+const sourceOptions = computed(() => {
+  if (sourceTab.value === "official") {
+    return officialOptions
+  }
+  return sourceTab.value === "mine" ? myTemplates.value : kbTemplates.value
+})
 
 /** 官方 tab 按分类分组展示；本知识库 tab 平铺 */
 const groupedOptions = computed(() => {
@@ -136,9 +144,48 @@ watch(
 )
 
 watch(sourceTab, (tab) => {
-  const first = tab === "official" ? officialOptions[0] : kbTemplates.value[0]
+  if (tab === "mine") {
+    void loadMyTemplates()
+  }
+  const first =
+    tab === "official"
+      ? officialOptions[0]
+      : tab === "mine"
+        ? myTemplates.value[0]
+        : kbTemplates.value[0]
   selectedKey.value = first?.key ?? ""
 })
+
+/** 「我的」模板懒加载（B4 #14）：只拉一次；失败静默（空态可重进 tab 重试不再拉） */
+const loadMyTemplates = async () => {
+  if (myTemplatesLoaded.value) {
+    return
+  }
+
+  myTemplatesLoaded.value = true
+  try {
+    const items = await listMyKnowledgeTemplates()
+    myTemplates.value = items.map((item) => ({
+      key: `mine-${item.id}`,
+      id: item.id,
+      title: item.title,
+      // category = 来源知识库名（列表按库分组展示）
+      category: item.kb?.name || "我的模板",
+      description: "",
+      content:
+        item.content?.scheme === "text/markdown"
+          ? item.content.value
+          : typeof item.content?.value === "string"
+            ? String(item.content.value)
+            : "",
+      updatedAt: item.updatedAt,
+      source: "mine" as const,
+    }))
+  } catch {
+    // 静默失败：「我的」tab 呈现空态，不影响官方/本知识库两个 tab
+    myTemplates.value = []
+  }
+}
 
 const handleUseTemplate = async () => {
   const template = selectedTemplate.value
@@ -158,6 +205,8 @@ const handleUseTemplate = async () => {
         : await createKnowledgeDocumentFromTemplate(template.id, {
             title: `${template.title} - 副本`,
             parentId: props.parentId ?? undefined,
+            // 「我的」模板跨库创建（B4 #14）：新文档落入当前知识库
+            ...(template.source === "mine" ? { targetKbId: props.kbId } : {}),
           })
     emit("created", doc)
     emit("update:open", false)
@@ -215,6 +264,7 @@ const dialog = useDialogBehavior({
             v-for="tab in [
               { key: 'official' as const, label: '推荐（官方）' },
               { key: 'kb' as const, label: '本知识库' },
+              { key: 'mine' as const, label: '我的' },
             ]"
             :key="tab.key"
             type="button"
@@ -247,7 +297,13 @@ const dialog = useDialogBehavior({
             v-else-if="sourceOptions.length === 0"
             class="px-2 py-8 text-center text-[13px] leading-5 text-ink-quaternary"
           >
-            {{ sourceTab === "kb" ? "本知识库暂无模板，可先将文档设为模板。" : "暂无官方模板" }}
+            {{
+              sourceTab === "kb"
+                ? "本知识库暂无模板，可先将文档设为模板。"
+                : sourceTab === "mine"
+                  ? "暂无我的模板，可在文档「更多」中将文档设为模板。"
+                  : "暂无官方模板"
+            }}
           </p>
 
           <template v-for="[category, options] in groupedOptions" :key="category">

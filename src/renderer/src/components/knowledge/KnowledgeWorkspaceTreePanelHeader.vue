@@ -30,7 +30,9 @@ const emit = defineEmits<{
   "view-mode-change": [mode: TreeViewMode]
   /** 展开/收起所有目录节点 */
   "toggle-all-folders": []
-  create: [action: "doc" | "folder" | "template" | "link"]
+  create: [
+    action: "doc" | "folder" | "template" | "link" | "board" | "datatable" | "sheet" | "mindmap",
+  ]
   /** 导入本地文档（md / docx / lake） */
   import: [kind: "md" | "docx" | "lake"]
 }>()
@@ -66,7 +68,9 @@ const toggleCreateMenu = () => {
   createMenuOpen.value = !createMenuOpen.value
 }
 
-const handleCreateAction = (action: "doc" | "folder" | "template" | "link") => {
+const handleCreateAction = (
+  action: "doc" | "folder" | "template" | "link" | "board" | "datatable" | "sheet" | "mindmap",
+) => {
   createMenuOpen.value = false
   emit("create", action)
 }
@@ -147,6 +151,38 @@ defineExpose({
                 class="text-ink-tertiary"
               />
               <span>新建分组</span>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
+              @click="handleCreateAction('board')"
+            >
+              <Icon icon="ph:frame-corners" :width="15" :height="15" class="text-ink-tertiary" />
+              <span>新建画板</span>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
+              @click="handleCreateAction('datatable')"
+            >
+              <Icon icon="ph:table" :width="15" :height="15" class="text-ink-tertiary" />
+              <span>新建数据表</span>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
+              @click="handleCreateAction('sheet')"
+            >
+              <Icon icon="ph:grid-nine" :width="15" :height="15" class="text-ink-tertiary" />
+              <span>新建表格</span>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
+              @click="handleCreateAction('mindmap')"
+            >
+              <Icon icon="ph:tree-structure" :width="15" :height="15" class="text-ink-tertiary" />
+              <span>新建思维导图</span>
             </button>
             <button
               type="button"

@@ -34,6 +34,12 @@ import {
   teardownDesktopSettings,
   type WindowBounds,
 } from "./desktop-settings"
+import {
+  attachAutoLockWindow,
+  lockNow,
+  registerDesktopLockIpc,
+  teardownDesktopLock,
+} from "./desktop-lock"
 
 /** `app://` 协议主机名（standard 协议要求显式 host）。 */
 const APP_PROTOCOL_HOST = "bundle"
@@ -292,6 +298,16 @@ const preferencesMenuItem = (): MenuItemConstructorOptions => ({
 })
 
 /**
+ * 「锁定桌面端」菜单项（#27 应用锁定：菜单/托盘/⌘L 同一动作）；
+ * 未设置锁定密码时 desktop-lock.lockNow 记日志忽略，已锁定则把锁定窗唤到前台。
+ */
+const lockMenuItem = (): MenuItemConstructorOptions => ({
+  label: "锁定桌面端",
+  accelerator: "CommandOrControl+L",
+  click: () => lockNow(),
+})
+
+/**
  * 构建基础应用菜单（macOS 必需，其他平台提供常规编辑/视图快捷键）。
  *
  * macOS 首菜单不能用 `role: "appMenu"`——role 是整块模板，无法在「关于」之后
@@ -304,6 +320,7 @@ const buildAppMenu = () => {
       { role: "about" },
       { type: "separator" },
       preferencesMenuItem(),
+      lockMenuItem(),
       { type: "separator" },
       { role: "services" },
       { type: "separator" },
@@ -423,6 +440,8 @@ const createWindow = (options: CreateWindowOptions = {}) => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // preload 据此区分主窗/子窗（进程级 env 无法区分多窗口）
+      additionalArguments: [`--xiaoye-is-main-window=${isMainWindow ? "1" : "0"}`],
     },
   })
 
@@ -456,6 +475,8 @@ const createWindow = (options: CreateWindowOptions = {}) => {
 
   if (isMainWindow) {
     mainWindow = win
+    // 失焦自动锁定（#27）：只挂主窗口——辅助窗口失焦不代表离开应用
+    attachAutoLockWindow(win)
     win.on("closed", () => {
       if (mainWindow === win) {
         mainWindow = null
@@ -600,6 +621,7 @@ const createTray = () => {
       },
       { type: "separator" },
       preferencesMenuItem(),
+      lockMenuItem(),
       { label: "退出知识库", click: () => app.quit() },
     ])
     tray.setContextMenu(menu)
@@ -689,7 +711,11 @@ const bootstrap = () => {
     setTrayVisible,
     focusMainWindow,
     broadcastToRenderer,
+    lockNow,
   })
+
+  // 桌面端锁定（#27）的 IPC 通道：锁定窗校验、设置页读写、失焦自动锁定
+  registerDesktopLockIpc()
 
   app.on("second-instance", () => {
     const win = BrowserWindow.getAllWindows()[0]
@@ -725,6 +751,7 @@ const bootstrap = () => {
 // 全局快捷键必须在退出前注销，否则 macOS 下重启会短暂报「已被占用」
 app.on("will-quit", () => {
   teardownDesktopSettings()
+  teardownDesktopLock()
 })
 
 // macOS：关窗不退出，点击 Dock 图标重建窗口

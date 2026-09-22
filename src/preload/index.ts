@@ -11,6 +11,26 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron"
 
 /**
+ * 主进程经 webPreferences.additionalArguments 传入的本窗口角色标记
+ * （主窗=1，文档/设置等子窗=0）。进程级 env 无法区分多窗口，只能走 argv。
+ */
+const isMainWindowFlag = process.argv
+  .find((arg) => arg.startsWith("--xiaoye-is-main-window="))
+  ?.split("=")[1]
+  ?.trim()
+
+/** 订阅主进程广播的通用壳：只透传字符串/白名单形状，返回取消订阅函数。 */
+const subscribeBroadcast = (channel: string, callback: (payload: unknown) => void) => {
+  const listener = (_event: IpcRendererEvent, payload: unknown) => {
+    callback(payload)
+  }
+  ipcRenderer.on(channel, listener)
+  return () => {
+    ipcRenderer.removeListener(channel, listener)
+  }
+}
+
+/**
  * 注入渲染层的桌面端桥接 API。
  */
 const desktopApi = {
@@ -23,6 +43,8 @@ const desktopApi = {
   platform: process.platform,
   /** 主进程是否给本窗口隐藏了原生标题栏（渲染层据此留顶部拖拽带、列首行下移）。 */
   hiddenTitleBar: process.env.XIAOYE_HIDDEN_TITLE_BAR === "1",
+  /** 本窗口是否主窗口（偏好设置的启动同步只由主窗执行，避免多窗口重复 IPC）。 */
+  isMainWindow: isMainWindowFlag !== "0",
   /** 兜底异步通道：返回主进程解析后的完整配置。 */
   getConfig: () => ipcRenderer.invoke("xiaoye:get-config"),
   /**
@@ -48,6 +70,23 @@ const desktopApi = {
       ipcRenderer.removeListener("xiaoye:tray-command", listener)
     }
   },
+  /**
+   * 订阅应用菜单命令广播（`find-in-page` / `doc-history` / `presentation-mode`）。
+   * 主进程应用菜单的对应项发出；尚未接入的命令不会触发。
+   */
+  onInAppMenu: (callback: (command: string) => void) =>
+    subscribeBroadcast("xiaoye:in-app-menu", (payload) => {
+      if (typeof payload === "string") {
+        callback(payload)
+      }
+    }),
+  /** 订阅主进程 toast 文案（子窗口超限「最多同时打开 5 个窗口」等）。 */
+  onToast: (callback: (message: string) => void) =>
+    subscribeBroadcast("xiaoye:toast", (payload) => {
+      if (typeof payload === "string") {
+        callback(payload)
+      }
+    }),
   /** 打开（或聚焦）偏好设置独立窗口——侧栏入口用，与菜单/托盘走同一个入口函数。 */
   openSettingsWindow: () => ipcRenderer.invoke("xiaoye:open-settings-window"),
   /**
@@ -67,6 +106,30 @@ const desktopApi = {
   setGlobalShortcut: (payload: { key: string; value: string }) =>
     ipcRenderer.invoke("xiaoye:set-global-shortcut", payload),
   openExternal: (url: string) => ipcRenderer.invoke("xiaoye:open-external", url),
+  /**
+   * 桌面端锁定（#27）：密码哈希比对全在主进程，渲染层只拿状态与结果。
+   * 通道语义见 src/main/desktop-lock.ts；verifyLockPassword 供锁定窗 /lock 路由调用。
+   */
+  getLockState: () => ipcRenderer.invoke("xiaoye:lock:get-state"),
+  setLockPassword: (payload: { currentPassword?: string; newPassword: string }) =>
+    ipcRenderer.invoke("xiaoye:lock:set-password", payload),
+  clearLockPassword: (currentPassword: string) =>
+    ipcRenderer.invoke("xiaoye:lock:clear-password", currentPassword),
+  verifyLockPassword: (password: string) =>
+    ipcRenderer.invoke("xiaoye:lock:verify-password", password),
+  setAutoLock: (payload: { enabled: boolean; delayMinutes: number }) =>
+    ipcRenderer.invoke("xiaoye:lock:set-auto-lock", payload),
+  lockNow: () => ipcRenderer.invoke("xiaoye:lock:lock-now"),
+  unlockAfterLogout: () => ipcRenderer.invoke("xiaoye:lock:unlock-after-logout"),
+  /**
+   * 桌面端安全存储（G4）：加密、落盘与损坏兜底全在主进程
+   * （src/main/secure-store.ts），渲染层只传存储键与明文载荷。
+   */
+  secureStoreSet: (storageKey: string, plaintext: string) =>
+    ipcRenderer.invoke("xiaoye:secure-store:set", storageKey, plaintext),
+  secureStoreGet: (storageKey: string) => ipcRenderer.invoke("xiaoye:secure-store:get", storageKey),
+  secureStoreDelete: (storageKey: string) =>
+    ipcRenderer.invoke("xiaoye:secure-store:delete", storageKey),
 }
 
 contextBridge.exposeInMainWorld("xiaoyeDesktop", desktopApi)

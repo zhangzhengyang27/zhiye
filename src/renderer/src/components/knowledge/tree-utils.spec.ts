@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { collectFolderIds, findTreeNode, normalizeNodeIds, removeTreeNode } from "./tree-utils"
+import {
+  canDropTreeNode,
+  collectFolderIds,
+  collectFolderIdsUpToDepth,
+  findTreeNode,
+  normalizeNodeIds,
+  removeTreeNode,
+} from "./tree-utils"
 import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
 
 const makeNode = (
@@ -49,5 +56,94 @@ describe("removeTreeNode", () => {
     expect(removed?.parentId).toBe("a")
     expect(working[0]?.children.map((c: KnowledgeDocumentTreeNode) => c.id)).toEqual(["a-2"])
     expect(working[1]?.id).toBe("b")
+  })
+})
+
+describe("collectFolderIdsUpToDepth（#16 默认展开级别）", () => {
+  it("只收集深度小于 maxDepth 的目录（根为 1 级）", () => {
+    expect(collectFolderIdsUpToDepth(tree, 1)).toEqual([])
+    expect(collectFolderIdsUpToDepth(tree, 2)).toEqual(["a"])
+    expect(collectFolderIdsUpToDepth(tree, 3).sort()).toEqual(["a", "a-2"])
+  })
+
+  it("深度超出树高时等价于全展开", () => {
+    expect(collectFolderIdsUpToDepth(tree, 9)).toEqual(["a", "a-2"])
+  })
+
+  it("非法深度（0/负数）返回空数组", () => {
+    expect(collectFolderIdsUpToDepth(tree, 0)).toEqual([])
+    expect(collectFolderIdsUpToDepth(tree, -1)).toEqual([])
+  })
+})
+
+describe("canDropTreeNode（拖拽合法性纯函数）", () => {
+  const sourceDoc = makeNode("d1", "doc")
+  const sourceFolder = makeNode("f1", "folder", [
+    makeNode("f1-1", "folder", [makeNode("f1-1-1", "doc")]),
+  ])
+  const workTree = [
+    makeNode("a", "folder", [makeNode("a-1", "doc")]),
+    makeNode("b", "doc"),
+    sourceFolder,
+    sourceDoc,
+  ]
+
+  it("不能拖到自身（inside / before 同拒）", () => {
+    expect(
+      canDropTreeNode(workTree, sourceFolder, { position: "inside", nodeId: "f1", parentId: null }),
+    ).toBe(false)
+    expect(
+      canDropTreeNode(workTree, sourceDoc, { position: "before", nodeId: "d1", parentId: null }),
+    ).toBe(false)
+  })
+
+  it("inside 仅目录：文档落 inside 拒绝，目录落 inside 放行", () => {
+    expect(
+      canDropTreeNode(workTree, sourceDoc, { position: "inside", nodeId: "b", parentId: null }),
+    ).toBe(false)
+    expect(
+      canDropTreeNode(workTree, sourceDoc, { position: "inside", nodeId: "a", parentId: null }),
+    ).toBe(true)
+  })
+
+  it("目录不可入自身后代：入自身子级 / 后代目录 / 后代节点旁均拒绝", () => {
+    expect(
+      canDropTreeNode(workTree, sourceFolder, {
+        position: "inside",
+        nodeId: "f1-1",
+        parentId: null,
+      }),
+    ).toBe(false)
+    expect(
+      canDropTreeNode(workTree, sourceFolder, {
+        position: "inside",
+        nodeId: "f1-1-1",
+        parentId: null,
+      }),
+    ).toBe(false)
+    expect(
+      canDropTreeNode(workTree, sourceFolder, {
+        position: "after",
+        nodeId: "f1-1-1",
+        parentId: "f1-1",
+      }),
+    ).toBe(false)
+  })
+
+  it("目录拖到自身子树外正常放行", () => {
+    expect(
+      canDropTreeNode(workTree, sourceFolder, {
+        position: "inside",
+        nodeId: "a",
+        parentId: null,
+      }),
+    ).toBe(true)
+    expect(
+      canDropTreeNode(workTree, sourceDoc, {
+        position: "after",
+        nodeId: "b",
+        parentId: null,
+      }),
+    ).toBe(true)
   })
 })

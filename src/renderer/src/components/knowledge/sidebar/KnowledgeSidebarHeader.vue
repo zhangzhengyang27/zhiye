@@ -13,15 +13,22 @@ defineProps<{
   hasActiveKb?: boolean
 }>()
 
+/** 新建菜单两段式的动作全集（对齐语雀：上段内容类型、下段流转入口）。 */
+type SidebarCreateAction =
+  "doc" | "folder" | "template" | "board" | "datatable" | "sheet" | "mindmap"
+
 const emit = defineEmits<{
   "open-account": []
   "open-search": []
   "open-create": []
   "avatar-error": []
-  create: [action: "doc" | "folder" | "template"]
-  import: [kind: "md" | "docx" | "lake"]
+  create: [action: SidebarCreateAction]
+  import: [kind: "md" | "docx" | "lake" | "any"]
   /** 「+」菜单中的创建知识库（由父级打开创建对话框） */
   "create-kb": []
+  /** 上段菜单直达：小记 / AI 帮你写（页面级导航由父级处理） */
+  "open-notes": []
+  "open-ai-writing": []
 }>()
 
 const createMenuOpen = ref(false)
@@ -30,12 +37,12 @@ const toggleCreateMenu = () => {
   createMenuOpen.value = !createMenuOpen.value
 }
 
-const handleCreateAction = (action: "doc" | "folder" | "template") => {
+const handleCreateAction = (action: SidebarCreateAction) => {
   createMenuOpen.value = false
   emit("create", action)
 }
 
-const handleImportAction = (kind: "md" | "docx" | "lake") => {
+const handleImportAction = (kind: "md" | "docx" | "lake" | "any") => {
   createMenuOpen.value = false
   emit("import", kind)
 }
@@ -43,6 +50,16 @@ const handleImportAction = (kind: "md" | "docx" | "lake") => {
 const handleCreateKb = () => {
   createMenuOpen.value = false
   emit("create-kb")
+}
+
+const handleOpenNotes = () => {
+  createMenuOpen.value = false
+  emit("open-notes")
+}
+
+const handleOpenAiWriting = () => {
+  createMenuOpen.value = false
+  emit("open-ai-writing")
 }
 
 const fallbackInitial = (label?: string) => {
@@ -114,63 +131,91 @@ const fallbackInitial = (label?: string) => {
           v-if="createMenuOpen"
           class="absolute right-0 top-[calc(100%+8px)] z-20 w-45 rounded-kb-xl border border-line bg-surface p-1.5 shadow-[var(--kb-float-shadow)]"
         >
+          <!-- 上段：内容类型（对齐语雀「新建」下拉第一组；小记为页面直达） -->
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
+            @click="handleOpenNotes"
+          >
+            <Icon icon="ph:feather" :width="15" :height="15" class="text-ink-tertiary" />
+            <span>小记</span>
+          </button>
           <button
             type="button"
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleCreateAction('doc')"
           >
             <Icon icon="ph:file-plus" :width="15" :height="15" class="text-ink-tertiary" />
-            <span>新建文档</span>
+            <span class="flex-1">新建文档</span>
+            <span class="shrink-0 text-[11px] text-ink-quaternary">⌘ N</span>
           </button>
           <button
             type="button"
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
-            @click="handleCreateAction('folder')"
+            @click="handleCreateAction('sheet')"
           >
-            <Icon icon="ph:folder-simple-plus" :width="15" :height="15" class="text-ink-tertiary" />
-            <span>新建目录</span>
+            <Icon icon="ph:grid-nine" :width="15" :height="15" class="text-ink-tertiary" />
+            <span>新建表格</span>
           </button>
           <button
             type="button"
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
-            @click="handleCreateAction('template')"
+            @click="handleCreateAction('board')"
           >
-            <Icon icon="ph:clipboard-text" :width="15" :height="15" class="text-ink-tertiary" />
-            <span>从模板创建</span>
-          </button>
-          <div class="my-1 h-px bg-grey-200" />
-          <button
-            type="button"
-            class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
-            @click="handleImportAction('md')"
-          >
-            <Icon icon="ph:file-md" :width="15" :height="15" class="text-ink-tertiary" />
-            <span>导入 Markdown</span>
+            <Icon icon="ph:frame-corners" :width="15" :height="15" class="text-ink-tertiary" />
+            <span>新建画板</span>
           </button>
           <button
             type="button"
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
-            @click="handleImportAction('docx')"
+            @click="handleCreateAction('datatable')"
           >
-            <Icon icon="ph:file-doc" :width="15" :height="15" class="text-ink-tertiary" />
-            <span>导入 Word</span>
+            <Icon icon="ph:table" :width="15" :height="15" class="text-ink-tertiary" />
+            <span>新建数据表</span>
           </button>
           <button
             type="button"
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
-            @click="handleImportAction('lake')"
+            @click="handleCreateAction('mindmap')"
           >
-            <Icon icon="ph:file-code" :width="15" :height="15" class="text-ink-tertiary" />
-            <span>导入语雀文档 (.lake)</span>
+            <Icon icon="ph:tree-structure" :width="15" :height="15" class="text-ink-tertiary" />
+            <span>新建思维导图</span>
           </button>
-          <div class="my-1 h-px bg-grey-200" />
           <button
             type="button"
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleCreateKb"
           >
             <Icon icon="ph:book-open-text" :width="15" :height="15" class="text-ink-tertiary" />
-            <span>创建知识库</span>
+            <span>新建知识库</span>
+          </button>
+
+          <div class="my-1 h-px bg-grey-200" />
+
+          <!-- 下段：流转入口（对齐语雀「新建」下拉第二组） -->
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
+            @click="handleCreateAction('template')"
+          >
+            <Icon icon="ph:clipboard-text" :width="15" :height="15" class="text-ink-tertiary" />
+            <span>从模板新建…</span>
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
+            @click="handleOpenAiWriting"
+          >
+            <Icon icon="ph:sparkle" :width="15" :height="15" class="text-ink-tertiary" />
+            <span>AI 帮你写</span>
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
+            @click="handleImportAction('any')"
+          >
+            <Icon icon="ph:download-simple" :width="15" :height="15" class="text-ink-tertiary" />
+            <span>导入…</span>
           </button>
         </div>
       </div>

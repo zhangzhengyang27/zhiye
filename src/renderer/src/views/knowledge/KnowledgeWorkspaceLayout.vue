@@ -29,7 +29,11 @@ import { importDocxFile, importLakeFile, importMarkdownFile } from "@/services/d
 import KnowledgeAddLinkDialog from "@/components/knowledge/KnowledgeAddLinkDialog.vue"
 import { createKnowledgeDocument } from "@/services/knowledge-documents"
 import { useTreeDrag } from "@/components/knowledge/use-tree-drag"
-import { findTreeNode, collectFolderIds } from "@/components/knowledge/tree-utils"
+import {
+  findTreeNode,
+  collectFolderIds,
+  collectFolderIdsUpToDepth,
+} from "@/components/knowledge/tree-utils"
 import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
 import { getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
 import { knowledgeWorkspaceContextKey, type KnowledgeWorkspaceContext } from "./workspace-context"
@@ -150,6 +154,22 @@ const {
 
 const canEdit = computed(() => permissions.value?.canEdit ?? false)
 const isWorkspaceHomeRoute = computed(() => route.name === "knowledge-workspace-home")
+
+// ==================== 默认展开级别（#16，KB 偏好 settings.defaultExpandLevel） ====================
+// 从未持久化过展开态的库，按偏好级别初始化展开目录（根为 1 级，展开深度 < level）；
+// 缺省/非法时不动 loader 的「全展开」兜底，用户手动改过（有存档）后也不再干预
+watch([knowledgeBase, treeNodes, hasStoredExpandedFolderIds], () => {
+  if (hasStoredExpandedFolderIds.value) {
+    return
+  }
+
+  const level = knowledgeBase.value?.settings?.defaultExpandLevel
+  if (typeof level !== "number" || !Number.isFinite(level) || level <= 0) {
+    return
+  }
+
+  expandedFolderIds.value = collectFolderIdsUpToDepth(treeNodes.value, level)
+})
 
 const treePanelHeaderRef = ref<InstanceType<typeof KnowledgeWorkspaceTreePanelHeader> | null>(null)
 /** 目录栏收起态与视图模式（目录树 / 全部文档），对齐语雀目录列的切换与收起 */
@@ -377,7 +397,9 @@ const addLinkDialogOpen = ref(false)
 const addingLink = ref(false)
 
 /** 目录列头「+」菜单分流：添加链接走独立弹窗，其余沿用既有新建动作 */
-const handleHeaderCreateAction = (action: "doc" | "folder" | "template" | "link") => {
+const handleHeaderCreateAction = (
+  action: "doc" | "folder" | "template" | "link" | "board" | "datatable" | "sheet" | "mindmap",
+) => {
   if (action === "link") {
     if (!canEdit.value) {
       return
@@ -425,7 +447,7 @@ const handleFlatActivate = (doc: KnowledgeDocumentTreeNode) => {
   openDoc(doc.id, doc.editorType)
 }
 
-const handleImportAction = (kind: "md" | "docx" | "lake") => {
+const handleImportAction = (kind: "md" | "docx" | "lake" | "any") => {
   importKind.value = kind
   importFileInputRef.value?.click()
 }
@@ -435,9 +457,14 @@ const sidebarIntentHandlers: Record<string, () => void> = {
   "create-doc": () => handleRootCreateMenuAction("doc"),
   "create-folder": () => handleRootCreateMenuAction("folder"),
   "create-template": () => handleRootCreateMenuAction("template"),
+  "create-board": () => handleRootCreateMenuAction("board"),
+  "create-datatable": () => handleRootCreateMenuAction("datatable"),
+  "create-sheet": () => handleRootCreateMenuAction("sheet"),
+  "create-mindmap": () => handleRootCreateMenuAction("mindmap"),
   "import-md": () => handleImportAction("md"),
   "import-docx": () => handleImportAction("docx"),
   "import-lake": () => handleImportAction("lake"),
+  "import-any": () => handleImportAction("any"),
 }
 
 const pendingSidebarIntent = ref<string | null>(null)
@@ -753,7 +780,7 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
                   </div>
                 </div>
 
-                <!-- 对齐语雀「全部文档」视图：标题+摘要平铺卡片、选中灰底、hover 行尾 ⋮（摘要行待后端 tree 接口补 summary 后点亮） -->
+                <!-- 对齐语雀「全部文档」视图：标题+摘要平铺卡片、选中灰底、hover 行尾 ⋮（摘要行空不渲染） -->
                 <div v-else-if="treeViewMode === 'flat'" class="space-y-1">
                   <div
                     v-for="doc in flatDocRows"
@@ -766,18 +793,28 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
                     @keydown.enter.prevent="handleFlatActivate(doc)"
                   >
                     <div class="flex min-w-0 flex-1 items-start">
-                      <!-- 重命名同样就地改，不开弹窗；卡片自身的 click/Enter 会激活文档，须吃掉 -->
-                      <KnowledgeInlineTitleInput
-                        v-if="renamingNodeId === doc.id"
-                        :value="doc.title"
-                        aria-label="重命名"
-                        @click.stop
-                        @keydown.stop
-                        @finish="(payload) => finishRename({ node: doc, ...payload })"
-                      />
-                      <p v-else class="truncate text-[14px] font-medium text-ink">
-                        {{ doc.title || "无标题文档" }}
-                      </p>
+                      <div class="min-w-0 flex-1">
+                        <!-- 重命名同样就地改，不开弹窗；卡片自身的 click/Enter 会激活文档，须吃掉 -->
+                        <KnowledgeInlineTitleInput
+                          v-if="renamingNodeId === doc.id"
+                          :value="doc.title"
+                          aria-label="重命名"
+                          @click.stop
+                          @keydown.stop
+                          @finish="(payload) => finishRename({ node: doc, ...payload })"
+                        />
+                        <template v-else>
+                          <p class="truncate text-[14px] font-medium text-ink">
+                            {{ doc.title || "无标题文档" }}
+                          </p>
+                          <p
+                            v-if="doc.summary"
+                            class="mt-0.5 truncate text-[12px] leading-4 text-ink-tertiary"
+                          >
+                            {{ doc.summary }}
+                          </p>
+                        </template>
+                      </div>
                     </div>
                     <button
                       v-if="renamingNodeId !== doc.id"
@@ -927,7 +964,8 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
       "
     />
     <!-- 新建文档/文件夹/画板：对齐语雀「新建文档」弹层（名称/所属目录/高级选项）；
-         重命名不开弹窗，走树行内编辑（renamingNodeId） -->
+         重命名不开弹窗，走树行内编辑（renamingNodeId）；
+         presetEditorType 供节点菜单直达专类时预选编辑器类型（D1/D2） -->
     <KnowledgeDocCreateDialog
       v-if="inputDialog.open"
       v-model:open="inputDialog.open"
@@ -935,6 +973,7 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
       :default-value="inputDialog.defaultValue"
       :folders="inputDialog.folders"
       :default-folder-id="inputDialog.defaultFolderId"
+      :default-editor-type="inputDialog.presetEditorType"
       @confirm="
         (payload) => inputDialog.onConfirm(payload.title, payload.parentId, payload.editorType)
       "

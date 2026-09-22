@@ -10,35 +10,11 @@ import AppIcon from "@/components/common/AppIcon.vue"
 import UiIcon from "@/components/common/UiIcon.vue"
 import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
 import { formatDateTime } from "@/utils/date-format"
-import { requestKbDriveApi } from "@/services/kb-drive-http"
+import {
+  getKnowledgeDocumentLinks,
+  type KnowledgeLinkDocCard,
+} from "@/services/knowledge-documents"
 import { useDialogBehavior } from "@/composables/use-dialog-behavior"
-
-/**
- * 知识网络卡片（后端 KnowledgeLinkDocCard，updatedAt 为 JSON 序列化的 ISO 串；
- * 形状对齐 xiaoye-server/src/modules/documents/documents-knowledge-links.service.ts）。
- */
-interface KnowledgeLinkDocCard {
-  id: string
-  title: string
-  updatedAt: string
-  creatorName: string | null
-}
-
-/*
- * 恢复批注：服务层封装 getKnowledgeDocumentLinks 未随删除事故恢复件找回
- * （@/services/knowledge-documents 现无该导出）。这里按 kb-drive-http 统一入口内联
- * 补齐，端点按后端 DocumentsKnowledgeLinksService.listLinks 语义取
- * GET /knowledge/documents/:id/links；注意后端 controller 目前未挂该路由
- * （service 已在 module 注册、缺 @Get(':id/links')），接通前弹层走错误态兜底。
- */
-
-/** 双向链接列表（backlinks=被引用 / forwardLinks=引用了，弱引用 v1）。 */
-const getKnowledgeDocumentLinks = (documentId: string, token?: string | null) =>
-  requestKbDriveApi<{ backlinks: KnowledgeLinkDocCard[]; forwardLinks: KnowledgeLinkDocCard[] }>(
-    `/knowledge/documents/${documentId}/links`,
-    undefined,
-    token,
-  )
 
 type NetworkTab = "backlinks" | "forwardLinks"
 

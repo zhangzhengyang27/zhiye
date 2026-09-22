@@ -4,16 +4,21 @@
  * 页面组件：对齐语雀桌面端「小记」页——左侧快速记事卡（内容 + 添加标签 +
  * 小记一下/⌘Enter 发布），右侧标签筛选与「置顶/小记」分组卡片流。
  * 点卡片进入编辑（内容/标签回填），支持置顶与删除。
- * 语雀工具栏的 图片/待办/收藏/附件 图标本版未做（登记为偏差，待迭代）。
+ * 卡片正文走 NoteContentBody 富渲染（待办可勾选回写/图片/附件，#17）；
+ * 记事卡工具栏提供 图片/待办/附件 三钮（语雀小记工具栏子集，附件/图片经 OSS 上传后
+ * 在光标处插入 markdown-lite 语法）。
  */
-import { computed, onMounted, ref } from "vue"
+import { computed, nextTick, onMounted, ref } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue"
 import KnowledgePageShell from "@/components/knowledge/KnowledgePageShell.vue"
+import NoteContentBody from "@/components/knowledge/NoteContentBody.vue"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import { createNote, deleteNote, listNotes, updateNote, type Note } from "@/services/notes"
+import { uploadKnowledgeAsset } from "@/services/knowledge-oss"
 import { isImeComposing } from "@/utils/keyboard"
 import { formatDateTime } from "@/utils/date-format"
+import { toggleTodoLine } from "@/utils/notes-markdown"
 
 const { showToastMessage } = useTransientToast()
 
@@ -29,6 +34,98 @@ const draftContent = ref("")
 const draftTags = ref<string[]>([])
 const tagInputVisible = ref(false)
 const tagInputValue = ref("")
+
+/** 记事卡 textarea 引用：工具栏插入语法需定位光标 */
+const draftTextareaRef = ref<HTMLTextAreaElement | null>(null)
+
+/** 卡片待办勾选回写（#17）：翻转对应行后整条 updateNote 持久化 */
+const handleToggleTodo = async (note: Note, lineIndex: number) => {
+  const nextContent = toggleTodoLine(note.content, lineIndex)
+
+  if (nextContent === note.content) {
+    return
+  }
+
+  // 乐观更新：先改本地再回写，失败回滚到原内容
+  const previousContent = note.content
+  notes.value = notes.value.map((item) =>
+    item.id === note.id ? { ...item, content: nextContent } : item,
+  )
+
+  try {
+    await updateNote(note.id, { content: nextContent })
+  } catch (error) {
+    notes.value = notes.value.map((item) =>
+      item.id === note.id ? { ...item, content: previousContent } : item,
+    )
+    showToastMessage(error instanceof Error ? error.message : "待办状态保存失败。", "error")
+  }
+}
+
+/** 在光标处插入文本并归还焦点（选区整体替换，未聚焦时追加到末尾） */
+const insertAtCursor = (snippet: string) => {
+  const textarea = draftTextareaRef.value
+  const current = draftContent.value
+
+  if (!textarea) {
+    draftContent.value = `${current}${current && !current.endsWith("\n") ? "\n" : ""}${snippet}`
+    return
+  }
+
+  const start = textarea.selectionStart ?? current.length
+  const end = textarea.selectionEnd ?? current.length
+  // 待办片段行内直接续写；图片/附件语法独占一行（markdown-lite 按行解析）
+  const lineStart = start === 0 || current[start - 1] === "\n"
+  const prefix = snippet.startsWith("- [ ] ") ? "" : lineStart ? "" : "\n"
+  const next = `${current.slice(0, start)}${prefix}${snippet}${current.slice(end)}`
+  draftContent.value = next
+
+  void nextTick(() => {
+    const caret = start + prefix.length + snippet.length
+    textarea.focus()
+    textarea.setSelectionRange(caret, caret)
+  })
+}
+
+/** 记事卡工具栏：待办插入未勾语法；图片/附件先上传 OSS 再在光标处插语法 */
+const handleInsertTodo = () => {
+  insertAtCursor("- [ ] ")
+}
+
+const uploadAndInsert = async (file: File, kind: "image" | "attachment") => {
+  const uploadingToast = kind === "image" ? "正在上传图片…" : `正在上传附件「${file.name}」…`
+  showToastMessage(uploadingToast, "info")
+
+  try {
+    const url = await uploadKnowledgeAsset(file)
+    if (typeof url !== "string" || !url) {
+      throw new Error("上传结果为空")
+    }
+    insertAtCursor(kind === "image" ? `![](${url})` : `[${file.name}](${url})`)
+  } catch (error) {
+    showToastMessage(error instanceof Error ? error.message : "上传失败，请稍后重试。", "error")
+  }
+}
+
+const noteFileInputRef = ref<HTMLInputElement | null>(null)
+const noteUploadKind = ref<"image" | "attachment">("image")
+
+const pickNoteFile = (kind: "image" | "attachment") => {
+  noteUploadKind.value = kind
+  noteFileInputRef.value?.click()
+}
+
+const handleNoteFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ""
+
+  if (!file) {
+    return
+  }
+
+  await uploadAndInsert(file, noteUploadKind.value)
+}
 
 /** 标签 chips：全部 / 各标签（带计数）/ 无标签 */
 const tagChips = computed(() => {
@@ -207,7 +304,43 @@ onMounted(() => {
           <div
             class="flex min-h-[420px] flex-1 flex-col rounded-kb-2xl border border-line bg-surface p-4 transition-colors focus-within:border-brand-lighter"
           >
+            <!-- 工具栏（语雀小记子集）：图片 / 待办 / 附件，插入点为光标处 -->
+            <div class="mb-2 flex items-center gap-1">
+              <button
+                type="button"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-kb-sm text-ink-tertiary transition hover:bg-grey-200 hover:text-ink"
+                title="插入图片"
+                @click="pickNoteFile('image')"
+              >
+                <Icon icon="ph:image" :width="15" :height="15" />
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-kb-sm text-ink-tertiary transition hover:bg-grey-200 hover:text-ink"
+                title="插入待办"
+                @click="handleInsertTodo"
+              >
+                <Icon icon="ph:check-square" :width="15" :height="15" />
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-7 w-7 items-center justify-center rounded-kb-sm text-ink-tertiary transition hover:bg-grey-200 hover:text-ink"
+                title="插入附件"
+                @click="pickNoteFile('attachment')"
+              >
+                <Icon icon="ph:paperclip" :width="15" :height="15" />
+              </button>
+              <input
+                ref="noteFileInputRef"
+                type="file"
+                class="hidden"
+                :accept="noteUploadKind === 'image' ? 'image/*' : undefined"
+                @change="handleNoteFileChange"
+              />
+            </div>
+
             <textarea
+              ref="draftTextareaRef"
               v-model="draftContent"
               rows="10"
               class="w-full flex-1 resize-none bg-transparent text-[14px] leading-6 text-ink outline-none placeholder:text-ink-quaternary"
@@ -386,11 +519,10 @@ onMounted(() => {
                       </button>
                     </div>
                   </div>
-                  <p
-                    class="mt-2 whitespace-pre-wrap break-words text-[13px] leading-6 text-ink-secondary"
-                  >
-                    {{ note.content }}
-                  </p>
+                  <NoteContentBody
+                    :content="note.content"
+                    @toggle-todo="(lineIndex) => handleToggleTodo(note, lineIndex)"
+                  />
                   <div v-if="note.tags.length > 0" class="mt-2 flex flex-wrap gap-1.5">
                     <span
                       v-for="tag in note.tags"
@@ -444,11 +576,10 @@ onMounted(() => {
                     </button>
                   </div>
                 </div>
-                <p
-                  class="mt-2 whitespace-pre-wrap break-words text-[13px] leading-6 text-ink-secondary"
-                >
-                  {{ note.content }}
-                </p>
+                <NoteContentBody
+                  :content="note.content"
+                  @toggle-todo="(lineIndex) => handleToggleTodo(note, lineIndex)"
+                />
                 <div v-if="note.tags.length > 0" class="mt-2 flex flex-wrap gap-1.5">
                   <span
                     v-for="tag in note.tags"

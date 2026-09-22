@@ -25,6 +25,7 @@ const DESCRIPTION_MAX = 255
 const name = ref(props.knowledgeBase.name)
 const description = ref(props.knowledgeBase.description ?? "")
 const cover = ref(props.knowledgeBase.cover ?? "")
+const slug = ref(props.knowledgeBase.slug ?? "")
 const saving = ref(false)
 const uploadingCover = ref(false)
 const coverFileInput = ref<HTMLInputElement | null>(null)
@@ -36,6 +37,7 @@ watch(
     name.value = next.name
     description.value = next.description ?? ""
     cover.value = next.cover ?? ""
+    slug.value = next.slug ?? ""
   },
 )
 
@@ -43,7 +45,8 @@ const dirty = computed(() => {
   return (
     name.value !== props.knowledgeBase.name ||
     description.value !== (props.knowledgeBase.description ?? "") ||
-    cover.value !== (props.knowledgeBase.cover ?? "")
+    cover.value !== (props.knowledgeBase.cover ?? "") ||
+    slug.value.trim() !== (props.knowledgeBase.slug ?? "")
   )
 })
 
@@ -88,6 +91,8 @@ const handleSave = async () => {
       name: name.value.trim(),
       description: description.value.trim() || null,
       cover: cover.value || null,
+      // 路径标识（B4 #15）：留空表示未设置（提交 null 清除）
+      slug: slug.value.trim() || null,
     })
     emit("saved", updated)
     emit("notify", "知识库信息已保存。", "success")
@@ -135,6 +140,20 @@ const handleSave = async () => {
               placeholder="介绍一下这个知识库的内容"
               class="resize-none overflow-hidden"
             />
+          </label>
+
+          <!-- 路径标识（B4 #15）：URL 中的独特小标记 -->
+          <label class="block">
+            <span class="mb-1.5 block text-[13px] font-medium text-ink-secondary">路径标识</span>
+            <el-input
+              v-model="slug"
+              type="text"
+              :disabled="!canManage"
+              placeholder="如 product-handbook"
+            />
+            <span class="mt-1 block text-[12px] leading-4 text-ink-quaternary">
+              URL 中的独特小标记，仅限字母、数字与连字符；留空表示未设置。
+            </span>
           </label>
         </div>
 

@@ -16,6 +16,7 @@ import KnowledgeSearchToolbar from "@/components/knowledge/search/KnowledgeSearc
 import {
   searchKnowledgeDocuments,
   type KnowledgeDocumentSearchResult,
+  type KnowledgePublicShareItem,
   type KnowledgeSearchScope,
 } from "@/services/knowledge-documents"
 import { getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
@@ -43,6 +44,9 @@ const loading = ref(false)
 const errorMessage = ref("")
 const searchItems = ref<KnowledgeDocumentSearchResult["items"]>([])
 const resultTotal = ref(0)
+/** 站内公开分享聚合（B3 #22）：仅检索词非空时由服务端附带，最多展示 5 条 */
+const publicShares = ref<KnowledgePublicShareItem[]>([])
+const visiblePublicShares = computed(() => publicShares.value.slice(0, 5))
 const filterStatus = ref("all")
 const filterDateFrom = ref("")
 const filterDateTo = ref("")
@@ -224,6 +228,7 @@ const runSearch = async () => {
   if (!trimmedKeyword) {
     searchItems.value = []
     resultTotal.value = 0
+    publicShares.value = []
     errorMessage.value = ""
     return
   }
@@ -245,6 +250,7 @@ const runSearch = async () => {
 
     searchItems.value = result.items
     resultTotal.value = result.total
+    publicShares.value = result.publicShares ?? []
   } catch (error) {
     if (seq !== searchSeq) {
       return
@@ -252,6 +258,7 @@ const runSearch = async () => {
 
     searchItems.value = []
     resultTotal.value = 0
+    publicShares.value = []
     errorMessage.value = error instanceof Error ? error.message : "搜索失败，请稍后重试。"
   } finally {
     if (seq === searchSeq) {
@@ -296,6 +303,11 @@ const openDoc = (docId: string, editorType?: string) => {
       editorType,
     }),
   )
+}
+
+/** 站内公开分享结果点击：独立窗口打开公开分享页（不经登录态） */
+const openPublicShare = (share: KnowledgePublicShareItem) => {
+  window.open(`/share/${share.shareKey}`, "_blank", "noopener,noreferrer")
 }
 
 const resetSearch = async () => {
@@ -420,6 +432,53 @@ watch(
         @apply-suggested-search="applySuggestedSearch"
         @reset-search="resetSearch"
       />
+
+      <!-- 站内公开分享分组（B3 #22）：检索词非空且有公开分享命中时，挂在结果尾部 -->
+      <div v-if="keyword.trim() && visiblePublicShares.length > 0">
+        <header
+          class="flex items-center justify-between border-t border-line px-5 py-4 text-sm text-ink-tertiary"
+        >
+          <div>
+            <h2 class="text-base font-semibold text-ink">站内公开分享</h2>
+            <p class="mt-1 text-xs text-ink-quaternary">
+              与「{{ keyword.trim() }}」相关的站内公开分享内容
+            </p>
+          </div>
+          <span class="text-xs text-ink-quaternary">共 {{ visiblePublicShares.length }} 条</span>
+        </header>
+
+        <ul class="border-t border-line">
+          <li
+            v-for="share in visiblePublicShares"
+            :key="share.shareKey"
+            class="cursor-pointer px-5 py-3.5 transition-colors duration-100 hover:bg-grey-100"
+            @click="openPublicShare(share)"
+          >
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <span class="min-w-0 truncate text-[14px] font-medium text-ink">
+                {{ share.title || "无标题文档" }}
+              </span>
+              <span
+                v-if="share.kbName"
+                class="shrink-0 rounded-full bg-fill-muted px-2 py-0.5 text-[11px] font-medium text-ink-secondary"
+              >
+                {{ share.kbName }}
+              </span>
+              <span
+                class="shrink-0 rounded-full bg-brand-faint px-2 py-0.5 text-[11px] font-medium text-brand"
+              >
+                来自公开分享
+              </span>
+            </div>
+            <p
+              v-if="share.snippet"
+              class="mt-1 line-clamp-2 text-[12px] leading-5 text-ink-tertiary"
+            >
+              {{ share.snippet }}
+            </p>
+          </li>
+        </ul>
+      </div>
     </section>
   </div>
 </template>

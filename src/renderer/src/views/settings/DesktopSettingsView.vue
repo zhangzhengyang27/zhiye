@@ -8,12 +8,12 @@
  * 度量全部落在本文件末尾的非 scoped 样式块（对齐语雀的 CSS module 写法）。
  *
  * 与语雀的既定偏差（2026-09-19 拍板）：
- * - 「语言和时间」「桌面端锁定」「加入内测版体验计划」依赖本仓没有的能力
- *   （无 i18n、无锁屏窗口、无更新通道），条目按原样呈现但禁用并标注；
+ * - 「语言和时间」「加入内测版体验计划」依赖本仓没有的能力（无 i18n、无更新通道），
+ *   条目按原样呈现但禁用并标注；「桌面端锁定」#27 已实现（锁定窗 /lock + 密码快照）；
  * - 文案里的产品名由「语雀」换成「知识库」；
- * - Web 端（无 Electron 主进程）下开机自启、代理、状态栏图标、全局快捷键族不可用。
+ * - Web 端（无 Electron 主进程）下开机自启、代理、状态栏图标、全局快捷键族与锁定不可用。
  */
-import { computed } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import SettingsShortcutGroup from "@/components/settings/SettingsShortcutGroup.vue"
 import SettingsProxyGroup from "@/components/settings/SettingsProxyGroup.vue"
@@ -21,11 +21,14 @@ import SettingsAboutGroup from "@/components/settings/SettingsAboutGroup.vue"
 import {
   BETA_HELP_URL,
   COLOR_THEME_OPTIONS,
+  LOCK_PASSWORD_MAX_LENGTH,
+  LOCK_PASSWORD_MIN_LENGTH,
   LOCALE_OPTIONS,
   PRODUCT_NAME,
   type ColorThemeOption,
 } from "@/constants/desktop-settings"
 import { useDesktopSettings } from "@/composables/useDesktopSettings"
+import { useDesktopLock } from "@/composables/use-desktop-lock"
 import { useThemeMode } from "@/composables/useThemeMode"
 
 const { settings, desktopFeaturesUnavailable, setOpenAtLogin, setTrayVisible, openExternal } =
@@ -34,21 +37,34 @@ const { colorTheme } = useThemeMode()
 
 const router = useRouter()
 
-/** 返回：对齐 account 页的返回语义（回知识库列表页），按钮形态也是 account 页的「＜」 */
-const handleBack = () => {
-  void router.push({ name: "knowledge" })
-}
+/** 桌面端锁定（#27）：Web 端整组禁用；桌面端设/改/清密码 + 失焦自动锁定 */
+const {
+  desktopAvailable: lockAvailable,
+  state: lockState,
+  refresh: refreshLockState,
+  setLockPassword,
+  clearLockPassword,
+  setAutoLock,
+  lockNow,
+} = useDesktopLock()
 
-/** 「其他设置」分组在语雀是 `isWin ? null : ...`，只在 macOS 出现；Web 端同非 mac 不渲染。 */
-const isMac = computed(() => window.xiaoyeDesktop?.platform === "darwin")
+const lockPassword = ref("")
+const lockPasswordConfirm = ref("")
+const lockCurrentPassword = ref("")
+const lockBusy = ref(false)
+const lockErrorMessage = ref("")
 
-const autoLoginLabel = `电脑开机时，自动启动${PRODUCT_NAME}`
-const trayLabel = `在状态栏中显示${PRODUCT_NAME}图标，快速新建小记`
-const betaLabel = "开启后，可接受内测版更新推送，第一时间体验最新功能和问题修复"
+/** 失焦自动锁定延迟档（与主进程 AUTO_LOCK_DELAY_MINUTES 同值）。 */
+const AUTO_LOCK_DELAY_OPTIONS = [
+  { label: "1 分钟", value: 1 },
+  { label: "5 分钟", value: 5 },
+  { label: "15 分钟", value: 15 },
+]
+
 const lockDescription =
   "启用后，当应用空闲时，会自动进入锁屏模式，保护隐私安全。你也可以通过菜单栏主动进入锁屏模式"
 
-/** EP 的 change 载荷是宽类型，这里统一收敛回设置项自己的值域。 */
+/** 「当前主题」el-select 变更：EP change 载荷是宽类型，收敛回三态值域。 */
 const handleThemeChange = (value: string | number | boolean | string[] | undefined) => {
   const next = String(value) as ColorThemeOption
   if (next === "dark" || next === "light" || next === "system") {
@@ -63,6 +79,121 @@ const handleAutoLoginChange = (value: string | number | boolean) => {
 const handleTrayChange = (value: string | number | boolean) => {
   void setTrayVisible(value === true)
 }
+
+const lockFailureMessage = (reason?: string) => {
+  if (reason === "unauthorized") {
+    return "当前密码不正确。"
+  }
+  if (reason === "invalid-length") {
+    return `锁定密码长度需在 ${LOCK_PASSWORD_MIN_LENGTH}-${LOCK_PASSWORD_MAX_LENGTH} 位之间。`
+  }
+  if (reason === "unavailable") {
+    return "桌面端锁定不可用。"
+  }
+  return "操作失败，请稍后重试。"
+}
+
+/** 设置/修改锁定密码：已设密码时校验当前密码；两遍输入一致才提交 */
+const handleSaveLockPassword = async () => {
+  if (lockBusy.value) {
+    return
+  }
+
+  const newPassword = lockPassword.value
+  const currentPassword = lockCurrentPassword.value
+
+  if (
+    newPassword.length < LOCK_PASSWORD_MIN_LENGTH ||
+    newPassword.length > LOCK_PASSWORD_MAX_LENGTH
+  ) {
+    lockErrorMessage.value = `锁定密码长度需在 ${LOCK_PASSWORD_MIN_LENGTH}-${LOCK_PASSWORD_MAX_LENGTH} 位之间。`
+    return
+  }
+  if (newPassword !== lockPasswordConfirm.value) {
+    lockErrorMessage.value = "两次输入的密码不一致。"
+    return
+  }
+  if (lockState.hasPassword && !currentPassword) {
+    lockErrorMessage.value = "请输入当前密码。"
+    return
+  }
+
+  lockBusy.value = true
+  lockErrorMessage.value = ""
+  try {
+    const result = await setLockPassword(
+      newPassword,
+      lockState.hasPassword ? currentPassword : undefined,
+    )
+    if (!result.ok) {
+      lockErrorMessage.value = lockFailureMessage(result.reason)
+      return
+    }
+    lockPassword.value = ""
+    lockPasswordConfirm.value = ""
+    lockCurrentPassword.value = ""
+  } finally {
+    lockBusy.value = false
+  }
+}
+
+/** 清除锁定密码（需当前密码）；成功后同时关闭失焦自动锁定（主进程同口径） */
+const handleClearLockPassword = async () => {
+  if (lockBusy.value) {
+    return
+  }
+
+  if (!lockCurrentPassword.value) {
+    lockErrorMessage.value = "请输入当前密码。"
+    return
+  }
+
+  lockBusy.value = true
+  lockErrorMessage.value = ""
+  try {
+    const result = await clearLockPassword(lockCurrentPassword.value)
+    if (!result.ok) {
+      lockErrorMessage.value = lockFailureMessage(result.reason)
+      return
+    }
+    lockCurrentPassword.value = ""
+    lockPassword.value = ""
+    lockPasswordConfirm.value = ""
+  } finally {
+    lockBusy.value = false
+  }
+}
+
+const handleAutoLockChange = (value: string | number | boolean) => {
+  void setAutoLock(value === true, lockState.autoLockDelayMinutes)
+}
+
+const handleAutoLockDelayChange = (value: string | number | boolean | string[] | undefined) => {
+  const minutes = Number(value)
+  if (AUTO_LOCK_DELAY_OPTIONS.some((option) => option.value === minutes)) {
+    void setAutoLock(lockState.autoLockOnBlur, minutes)
+  }
+}
+
+const handleLockNow = () => {
+  void lockNow()
+}
+
+onMounted(() => {
+  void refreshLockState()
+})
+
+/** 返回：对齐 account 页的返回语义（回知识库列表页），按钮形态也是 account 页的「＜」 */
+const handleBack = () => {
+  void router.push({ name: "knowledge" })
+}
+
+/** 「其他设置」分组在语雀是 `isWin ? null : ...`，只在 macOS 出现；Web 端同非 mac 不渲染。 */
+const isMac = computed(() => window.xiaoyeDesktop?.platform === "darwin")
+
+const autoLoginLabel = `电脑开机时，自动启动${PRODUCT_NAME}`
+const trayLabel = `在状态栏中显示${PRODUCT_NAME}图标，快速新建小记`
+const betaLabel = "开启后，可接受内测版更新推送，第一时间体验最新功能和问题修复"
 </script>
 
 <template>
@@ -151,18 +282,103 @@ const handleTrayChange = (value: string | number | boolean) => {
       <!-- 4. 全局快捷键 -->
       <SettingsShortcutGroup />
 
-      <!-- 5. 桌面端锁定（语雀 isYuque 才出现；本仓按拍板保留条目并置灰） -->
+      <!-- 5. 桌面端锁定（#27 已实现：桌面端可设/改/清密码 + 失焦自动锁定；Web 端整组禁用） -->
       <div class="kb-settings-group">
         <h2>桌面端锁定</h2>
         <div class="kb-settings-item">
-          <p class="kb-settings-lock-state">应用锁定模式：未启用</p>
-          <p class="kb-settings-lock-desc text-ink-secondary">{{ lockDescription }}</p>
-          <div class="kb-settings-lock-actions">
-            <el-button disabled>开启锁定</el-button>
-          </div>
-          <p class="kb-settings-unavailable text-ink-quaternary">
-            锁屏窗口与锁定密码尚未实现，暂不可开启。
+          <p class="kb-settings-lock-state">
+            应用锁定模式：{{
+              lockAvailable ? (lockState.hasPassword ? "已启用" : "未启用") : "未启用"
+            }}
           </p>
+          <p class="kb-settings-lock-desc text-ink-secondary">{{ lockDescription }}</p>
+
+          <template v-if="lockAvailable">
+            <!-- 未设密码：新密码两遍确认启用；已设密码：验当前密码后改/清 -->
+            <div class="kb-settings-lock-form">
+              <el-input
+                v-if="lockState.hasPassword"
+                v-model="lockCurrentPassword"
+                type="password"
+                :disabled="lockBusy"
+                placeholder="当前密码"
+                class="kb-settings-lock-input"
+              />
+              <el-input
+                v-model="lockPassword"
+                type="password"
+                :disabled="lockBusy"
+                :placeholder="lockState.hasPassword ? '新密码' : '设置锁定密码（4-32 位）'"
+                class="kb-settings-lock-input"
+              />
+              <el-input
+                v-model="lockPasswordConfirm"
+                type="password"
+                :disabled="lockBusy"
+                placeholder="确认新密码"
+                class="kb-settings-lock-input"
+              />
+              <p v-if="lockErrorMessage" class="kb-settings-lock-error">{{ lockErrorMessage }}</p>
+            </div>
+
+            <div class="kb-settings-lock-actions">
+              <el-button
+                v-if="lockState.hasPassword"
+                text
+                class="kb-settings-lock-clear"
+                :disabled="lockBusy"
+                @click="handleClearLockPassword"
+                ><span class="truncate">清除密码</span>
+              </el-button>
+              <div class="kb-settings-lock-actions-right">
+                <el-button
+                  v-if="lockState.hasPassword"
+                  plain
+                  class="kb-settings-lock-plain"
+                  :disabled="lockBusy"
+                  @click="handleLockNow"
+                  ><span class="truncate">立即锁定</span>
+                </el-button>
+                <el-button type="primary" :loading="lockBusy" @click="handleSaveLockPassword"
+                  ><span class="truncate">{{
+                    lockState.hasPassword ? "修改密码" : "启用锁定"
+                  }}</span>
+                </el-button>
+              </div>
+            </div>
+
+            <!-- 失焦自动锁定：主窗口失去焦点且无任何应用窗口持焦后计时（档位 1/5/15 分钟） -->
+            <div class="kb-settings-row-between kb-settings-lock-auto">
+              <span>应用失焦后自动锁定</span>
+              <el-switch
+                class="kb-settings-switch"
+                data-testid="change-auto-lock"
+                :model-value="lockState.autoLockOnBlur"
+                :disabled="lockBusy || !lockState.hasPassword"
+                @update:model-value="handleAutoLockChange"
+              />
+            </div>
+            <div
+              v-if="lockState.autoLockOnBlur && lockState.hasPassword"
+              class="kb-settings-row kb-settings-lock-auto"
+            >
+              <span>自动锁定延迟</span>
+              <el-select
+                class="kb-settings-select"
+                :model-value="lockState.autoLockDelayMinutes"
+                @update:model-value="handleAutoLockDelayChange"
+              >
+                <el-option
+                  v-for="option in AUTO_LOCK_DELAY_OPTIONS"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                />
+              </el-select>
+            </div>
+          </template>
+
+          <p v-else class="kb-settings-unavailable text-ink-quaternary">仅桌面端可用。</p>
         </div>
       </div>
 
@@ -375,5 +591,36 @@ const handleTrayChange = (value: string | number | boolean) => {
   display: flex;
   justify-content: space-between;
   margin-top: 20px;
+}
+
+/* 锁定密码表单（#27 可用化）：窄输入列，与语雀 lock-module 的表单段同观感 */
+.kb-settings-lock-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  max-width: 320px;
+}
+
+.kb-settings-lock-error {
+  color: var(--kb-error);
+  font-size: 12px;
+  line-height: 18px;
+  margin: 0;
+}
+
+.kb-settings-lock-actions-right {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.kb-settings-lock-auto {
+  margin-top: 20px;
+}
+
+/* 失焦自动锁定行有独立上边距，紧邻行不叠加（首个 .kb-settings-lock-auto 前是 actions） */
+.kb-settings-lock-auto + .kb-settings-lock-auto {
+  margin-top: 12px;
 }
 </style>

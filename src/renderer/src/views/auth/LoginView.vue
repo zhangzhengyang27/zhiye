@@ -207,6 +207,11 @@ const TEST_ACCOUNT = "demo@example.com"
 const TEST_PASSWORD = "123456"
 const isDevEnvironment = import.meta.env.DEV
 
+/** 忘记密码：登录表单内直达密码找回页（表单态跳转，不携带回跳 query） */
+const goPasswordReset = () => {
+  void router.push({ name: "auth-reset" })
+}
+
 const loginAsTestAccount = () => {
   if (submitting.value) {
     return
@@ -328,6 +333,13 @@ onMounted(() => {
           <div v-if="!isRegister" class="flex flex-wrap items-center gap-x-6 gap-y-2">
             <el-checkbox v-model="rememberSession" label="记住账号" />
             <el-checkbox v-model="trustedDevice" label="信任当前设备" />
+            <button
+              type="button"
+              class="text-[13px] text-ink-tertiary underline-offset-2 transition hover:text-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              @click="goPasswordReset"
+            >
+              忘记密码？
+            </button>
           </div>
 
           <p v-if="isDeepLink" class="text-[13px] leading-6 text-ink-tertiary">

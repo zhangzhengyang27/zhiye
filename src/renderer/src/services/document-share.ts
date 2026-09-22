@@ -19,6 +19,10 @@ export interface DocumentShare {
   viewCount: number
   /** B2e 允许站内公开搜索（仅公开语义，消费端=站内搜索聚合，后续立项） */
   searchable: boolean
+  /** #22 分享页允许评论（缺省 true，对齐后端 DocumentShare.allowComment） */
+  allowComment?: boolean
+  /** #22 分享页允许导出（缺省 true，对齐后端 DocumentShare.allowExport） */
+  allowExport?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -113,14 +117,19 @@ export async function updateSharedDocument(
 }
 
 /**
- * 更新分享设置（B2e 站内公开搜索开关）。
+ * 更新分享设置（B2e 站内公开搜索 + #22 允许评论/允许导出）。
  */
 export const updateShareSettings = (
   shareId: string,
-  payload: { searchable?: boolean },
+  payload: { searchable?: boolean; allowComment?: boolean; allowExport?: boolean },
   token?: string | null,
 ) =>
-  requestKbDriveApi<{ id: string; searchable: boolean }>(
+  requestKbDriveApi<{
+    id: string
+    searchable: boolean
+    allowComment?: boolean
+    allowExport?: boolean
+  }>(
     `/knowledge/documents/shares/${shareId}`,
     { method: "PATCH", body: JSON.stringify(payload) },
     token,

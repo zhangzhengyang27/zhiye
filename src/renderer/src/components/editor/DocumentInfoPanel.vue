@@ -71,6 +71,7 @@ const emit = defineEmits<{
   "open-share": []
   "open-history": []
   "open-template-library": []
+  "open-knowledge-network": []
   "insert-emoji": []
   "enter-reading": []
 }>()
@@ -100,6 +101,7 @@ onBeforeUnmount(() => {
 
 const quickActions = computed(() => {
   const actionMap: Array<{ id: DocumentInfoAction; label: string }> = [
+    { id: "open-knowledge-network", label: "知识网络" },
     { id: "enter-reading", label: "进入阅读模式" },
     { id: "copy-link", label: "复制链接" },
     { id: "open-share", label: "打开分享" },
@@ -145,6 +147,11 @@ const quickActionsBadge = computed(() => {
 })
 
 const handleQuickAction = (action: DocumentInfoAction) => {
+  if (action === "open-knowledge-network") {
+    emit("open-knowledge-network")
+    return
+  }
+
   if (action === "enter-reading") {
     emit("enter-reading")
     return

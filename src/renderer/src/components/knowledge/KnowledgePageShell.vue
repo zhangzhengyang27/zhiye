@@ -20,13 +20,16 @@ const props = withDefaults(
 
 /** 侧栏「新建」菜单意图透传：侧栏在多个页面复用，创建/导入动作统一由页面层消费 */
 const emit = defineEmits<{
-  "sidebar-create": [action: "doc" | "folder" | "template"]
-  "sidebar-import": [kind: "md" | "docx"]
+  "sidebar-create": [
+    action: "doc" | "folder" | "template" | "board" | "datatable" | "sheet" | "mindmap",
+  ]
+  "sidebar-import": [kind: "md" | "docx" | "lake" | "any"]
 }>()
 
-const forwardSidebarCreate = (action: "doc" | "folder" | "template") =>
-  emit("sidebar-create", action)
-const forwardSidebarImport = (kind: "md" | "docx") => emit("sidebar-import", kind)
+const forwardSidebarCreate = (
+  action: "doc" | "folder" | "template" | "board" | "datatable" | "sheet" | "mindmap",
+) => emit("sidebar-create", action)
+const forwardSidebarImport = (kind: "md" | "docx" | "lake" | "any") => emit("sidebar-import", kind)
 
 const shellFrameRef = ref<HTMLElement | null>(null)
 

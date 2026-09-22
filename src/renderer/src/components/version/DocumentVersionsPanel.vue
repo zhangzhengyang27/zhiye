@@ -8,6 +8,7 @@ import DocumentSidePanelTabs from "@/components/editor/DocumentSidePanelTabs.vue
 import DocumentVersionRow from "@/components/version/DocumentVersionRow.vue"
 import DocumentVersionsBatchActions from "@/components/version/DocumentVersionsBatchActions.vue"
 import type { KnowledgeDocumentVersionItem } from "@/services/knowledge-documents"
+import type { DocumentLocalSnapshot } from "@/utils/document-local-cache"
 
 type VersionsLocalCacheItem = {
   key: string
@@ -30,6 +31,8 @@ const props = defineProps<{
   versionsLoading: boolean
   versions: KnowledgeDocumentVersionItem[]
   localCacheItems?: VersionsLocalCacheItem[]
+  /** 本地快照列表（#26，IndexedDB，新→旧；由父层在打开面板时刷新） */
+  localSnapshots?: DocumentLocalSnapshot[]
   compareDisabledReason?: string
   selectedVersionIds: string[]
   selectedVersionCount: number
@@ -48,6 +51,9 @@ const emit = defineEmits<{
   "toggle-version": [versionId: string]
   "delete-version": [versionId: string]
   "rollback-version": [versionId: string]
+  /** 本地快照：恢复到该快照内容 / 清空当前文档全部快照 */
+  "restore-snapshot": [snapshot: DocumentLocalSnapshot]
+  "clear-snapshots": []
   "switch-tab": [tab: "search" | "comments" | "versions" | "info" | "ai"]
 }>()
 
@@ -73,6 +79,26 @@ const historyTabs: Array<{ key: HistoryTab; label: string }> = [
   { key: "versions", label: "版本" },
   { key: "local", label: "本地缓存" },
 ]
+
+/** 本地快照的相对时间（语雀同款口径：刚刚/N 分钟前/N 小时前，更早落日期时间） */
+const snapshotRelativeTime = (at: number) => {
+  const diffMs = Date.now() - at
+  const diffMinutes = Math.floor(diffMs / 60_000)
+
+  if (diffMinutes < 1) {
+    return "刚刚"
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes} 分钟前`
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) {
+    return `${diffHours} 小时前`
+  }
+
+  return formatDateTime(new Date(at).toISOString())
+}
 
 /** 打开期间按 Esc 关闭（遮罩点击之外的第二关闭路径）；对话框压顶时让位 */
 const handleKeydown = (event: KeyboardEvent) => {
@@ -216,7 +242,7 @@ onBeforeUnmount(() => {
       <div class="flex-1 overflow-auto bg-muted px-3 py-3">
         <template v-if="historyTab === 'local'">
           <div
-            v-if="(localCacheItems ?? []).length === 0"
+            v-if="(localSnapshots ?? []).length === 0 && (localCacheItems ?? []).length === 0"
             class="flex h-full items-center justify-center"
           >
             <div class="rounded-kb-3xl bg-surface px-6 py-10 text-center">
@@ -228,6 +254,48 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <div v-else class="space-y-2">
+            <!-- 本地快照列表（#26）：编辑期间防抖落盘，可恢复/可清空（置于既有状态卡之前） -->
+            <div
+              v-for="(snapshot, index) in localSnapshots"
+              :key="snapshot.at"
+              class="rounded-kb-xl border border-line bg-surface p-3.5"
+            >
+              <div class="flex items-center gap-2">
+                <UiIcon
+                  icon="ph:hard-drive"
+                  :width="15"
+                  :height="15"
+                  class="shrink-0 text-ink-tertiary"
+                />
+                <p class="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
+                  {{ snapshotRelativeTime(snapshot.at) }}
+                  <span v-if="index === 0" class="ml-1 text-[11px] font-normal text-brand"
+                    >最新</span
+                  >
+                </p>
+                <el-button
+                  text
+                  size="small"
+                  class="rounded-kb-lg text-brand"
+                  @click="emit('restore-snapshot', snapshot)"
+                  ><span class="truncate">恢复</span>
+                </el-button>
+              </div>
+              <p class="mt-1.5 text-xs leading-5 text-ink-tertiary">
+                {{ snapshot.wordCount }} 字 · 自动保存于本地
+              </p>
+            </div>
+
+            <div v-if="(localSnapshots ?? []).length > 0" class="flex justify-end">
+              <el-button
+                text
+                size="small"
+                class="rounded-kb-lg text-ink-tertiary"
+                @click="emit('clear-snapshots')"
+                ><span class="truncate">清空本地快照</span>
+              </el-button>
+            </div>
+
             <div
               v-for="item in localCacheItems"
               :key="item.key"

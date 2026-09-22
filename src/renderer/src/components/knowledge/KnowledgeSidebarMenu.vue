@@ -15,6 +15,7 @@ import {
   type KnowledgeBaseItem,
 } from "@/services/knowledge-base"
 import { openSettingsWindow } from "@/services/desktop-bridge"
+import { openFeedbackMailto } from "@/constants/desktop-settings"
 import { IN_APP_COMMAND_EVENT } from "@/composables/use-in-app-shortcuts"
 import { useAuthStore } from "@/stores/auth"
 import type { KnowledgeSidebarMenuKey, KnowledgeSidebarNavItem } from "@/types/knowledge-sidebar"
@@ -152,10 +153,17 @@ const openCreateEntry = async () => {
 }
 
 /** 侧栏「新建」菜单：跳到目标库工作台首页并携带意图，由工作台布局壳消费（createNode/导入均为对话框，挂载后触发安全） */
-const sidebarCreateIntents: Record<"doc" | "folder" | "template", string> = {
+const sidebarCreateIntents: Record<
+  "doc" | "folder" | "template" | "board" | "datatable" | "sheet" | "mindmap",
+  string
+> = {
   doc: "create-doc",
   folder: "create-folder",
   template: "create-template",
+  board: "create-board",
+  datatable: "create-datatable",
+  sheet: "create-sheet",
+  mindmap: "create-mindmap",
 }
 
 /**
@@ -182,7 +190,9 @@ const resolveCreateTargetKbId = () => {
   return knowledgeBases.value[0]?.id ?? ""
 }
 
-const handleSidebarCreate = async (action: "doc" | "folder" | "template") => {
+const handleSidebarCreate = async (
+  action: "doc" | "folder" | "template" | "board" | "datatable" | "sheet" | "mindmap",
+) => {
   const targetKbId = resolveCreateTargetKbId()
 
   if (!targetKbId) {
@@ -197,7 +207,7 @@ const handleSidebarCreate = async (action: "doc" | "folder" | "template") => {
   })
 }
 
-const handleSidebarImport = async (kind: "md" | "docx" | "lake") => {
+const handleSidebarImport = async (kind: "md" | "docx" | "lake" | "any") => {
   const targetKbId = resolveCreateTargetKbId()
 
   if (!targetKbId) {
@@ -210,6 +220,21 @@ const handleSidebarImport = async (kind: "md" | "docx" | "lake") => {
     params: { kbId: targetKbId },
     query: { intent: `import-${kind}` },
   })
+}
+
+/** 头部「小记」直达：对齐语雀侧栏头两段式菜单的次级入口 */
+const openNotesPage = () => {
+  void router.push({ name: "knowledge-notes" })
+}
+
+/** 头部「AI 帮你写」直达 */
+const openAiWritingPage = () => {
+  void router.push({ name: "knowledge-ai-writing" })
+}
+
+/** 更多分区「问题反馈」：mailto 直达（B4 反馈直达） */
+const handleFeedback = () => {
+  openFeedbackMailto()
 }
 
 const handleOpenAccount = async () => {
@@ -342,6 +367,8 @@ watch(
       @create="handleSidebarCreate"
       @import="handleSidebarImport"
       @create-kb="createKbDialogOpen = true"
+      @open-notes="openNotesPage"
+      @open-ai-writing="openAiWritingPage"
       @avatar-error="handleAvatarError"
     />
 
@@ -423,6 +450,24 @@ watch(
             <span class="block truncate text-[13px] leading-5 text-ink-secondary">偏好设置</span>
             <span class="block truncate text-[11px] leading-4 text-ink-quaternary"
               >主题、快捷键与代理</span
+            >
+          </span>
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2.5 rounded-kb-md px-3 py-1.5 text-left transition hover:bg-grey-200"
+          @click="handleFeedback"
+        >
+          <Icon
+            icon="ph:envelope-simple"
+            :width="15"
+            :height="15"
+            class="shrink-0 text-ink-tertiary"
+          />
+          <span class="min-w-0">
+            <span class="block truncate text-[13px] leading-5 text-ink-secondary">问题反馈</span>
+            <span class="block truncate text-[11px] leading-4 text-ink-quaternary"
+              >邮件联系产品团队</span
             >
           </span>
         </button>

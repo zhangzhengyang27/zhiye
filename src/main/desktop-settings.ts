@@ -32,6 +32,18 @@ interface SettingsSnapshot {
   globalShortcuts?: Record<string, string>
   /** 主窗口几何（语雀的 main_position + windowSize 两处在我们是同一件事）。 */
   windowBounds?: WindowBounds
+  /** 桌面端锁定（#27）：密码哈希与失焦自动锁定档位，明文不出主进程。 */
+  lock?: LockSettingsSnapshot
+}
+
+/** 锁定设置（desktop-lock.ts 读写；哈希本体只在本模块落盘，比对在 desktop-lock）。 */
+export interface LockSettingsSnapshot {
+  /** sha256(salt:password) + 随机盐；缺省 = 未设置锁定密码 */
+  passwordHash?: { salt: string; hash: string }
+  /** 失焦自动锁定开关（无密码时视为关闭） */
+  autoLockOnBlur?: boolean
+  /** 失焦自动锁定延迟档（分钟，1/5/15） */
+  autoLockDelayMinutes?: number
 }
 
 export interface WindowBounds {
@@ -45,7 +57,7 @@ export interface WindowBounds {
 export const NO_SHORTCUT = "NO_SHORTCUT"
 
 /** 本模块能注册的全局快捷键动作白名单（渲染层只能触发这些行为）。 */
-const GLOBAL_SHORTCUT_ACTIONS = new Set(["openMainWindow", "openMiniWindow"])
+const GLOBAL_SHORTCUT_ACTIONS = new Set(["openMainWindow", "openMiniWindow", "lockWindow"])
 
 /** accelerator 只接受「修饰键+主键」组合，挡住换行、注入等非法串。 */
 const ACCELERATOR_PATTERN = /^[A-Za-z0-9]+(?:\+[A-Za-z0-9]+){1,4}$/
@@ -64,6 +76,8 @@ export interface DesktopSettingsDeps {
   setTrayVisible: (visible: boolean) => boolean
   focusMainWindow: () => void
   broadcastToRenderer: (channel: string, payload?: unknown) => void
+  /** 「锁定桌面端」全局快捷键的动作落点（index.ts 注入 desktop-lock.lockNow，避免模块环） */
+  lockNow?: () => boolean
 }
 
 let deps: DesktopSettingsDeps | null = null
@@ -201,6 +215,12 @@ const runGlobalShortcutAction = (action: string) => {
     // 小记是渲染层页面（/knowledge/notes）：主窗口唤起后由渲染层负责跳转与聚焦输入
     deps.focusMainWindow()
     deps.broadcastToRenderer("xiaoye:tray-command", "navigate-notes")
+    return
+  }
+
+  if (action === "lockWindow") {
+    // 未设密码时 lockNow 返回 false（desktop-lock 记日志忽略），不打扰
+    deps.lockNow?.()
   }
 }
 
@@ -219,6 +239,18 @@ export const getSavedWindowBounds = (): WindowBounds | null => {
 /** 写窗口几何：resize/move 会连发，先经 index.ts 的去抖再落到这里。 */
 export const saveWindowBounds = (bounds: WindowBounds) => {
   snapshot.windowBounds = bounds
+  writeSnapshot()
+}
+
+/** 读取锁定设置快照（desktop-lock 比对密码与取自动锁定档位用）。 */
+export const getLockSettings = (): LockSettingsSnapshot => snapshot.lock ?? {}
+
+/**
+ * 保存锁定设置：patch 里显式给出的键一律覆盖（含 undefined——清除密码哈希走的就是
+ * `{ passwordHash: undefined }`），未提及的键保持原值。
+ */
+export const saveLockSettings = (patch: LockSettingsSnapshot) => {
+  snapshot.lock = { ...snapshot.lock, ...patch }
   writeSnapshot()
 }
 
@@ -323,7 +355,12 @@ export const registerDesktopSettingsIpc = (injected: DesktopSettingsDeps) => {
   })
 
   ipcMain.handle("xiaoye:open-external", async (_event, url: unknown) => {
-    if (typeof url !== "string" || !/^https?:\/\//i.test(url) || url.length > 2048) {
+    // http(s) 走系统浏览器；mailto 走系统邮件客户端（问题反馈直达，B4）
+    if (
+      typeof url !== "string" ||
+      (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url)) ||
+      url.length > 2048
+    ) {
       return false
     }
 

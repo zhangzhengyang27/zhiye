@@ -12,6 +12,7 @@ import { computed, ref } from "vue"
 import { useDocumentShareDialog } from "@/composables/use-document-share-dialog"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import { useDialogBehavior } from "@/composables/use-dialog-behavior"
+import { updateShareSettings } from "@/services/document-share"
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue"
 import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
 import ShareCreateForm from "./ShareCreateForm.vue"
@@ -75,6 +76,7 @@ const {
   latestShareSummary,
   loading,
   creating,
+  loadShares,
   getShareUrl,
   getSharePermissionLabel,
   getShareExpiryText,
@@ -116,6 +118,33 @@ const handleShowQr = (target: DocumentShare) => {
 
 const handleDeleteShare = (shareId: string) => {
   requestDeleteShare(shareId)
+}
+
+// ==================== 分享设置开关（B2e 站内公开搜索 + #22 允许评论/允许导出） ====================
+/** 开关操作对象：同文档可能有多条链接，设置区按「最新一条链接」承载并标注 */
+const settingsShare = computed(() => sortedShares.value[0] ?? null)
+const shareSettingsBusy = ref(false)
+
+type ShareSettingField = "searchable" | "allowComment" | "allowExport"
+
+const handleToggleShareSetting = async (field: ShareSettingField, value: boolean) => {
+  const target = settingsShare.value
+
+  if (!target || shareSettingsBusy.value) {
+    return
+  }
+
+  shareSettingsBusy.value = true
+  try {
+    await updateShareSettings(target.id, { [field]: value })
+    showToastMessage("分享设置已更新。", "success")
+    // 服务端为单值 PATCH：整表刷新让列表与开关回到真实状态
+    await loadShares()
+  } catch (error) {
+    showToastMessage(error instanceof Error ? error.message : "更新分享设置失败。", "error")
+  } finally {
+    shareSettingsBusy.value = false
+  }
 }
 </script>
 
@@ -160,6 +189,54 @@ const handleDeleteShare = (shareId: string) => {
             @show-qr="handleShowQr"
             @delete="handleDeleteShare"
           />
+        </div>
+
+        <!-- 分享设置：允许站内公开搜索 / 允许评论 / 允许导出（同款 el-switch 交互） -->
+        <div
+          v-if="settingsShare"
+          class="mt-4 rounded-kb-xl border border-line bg-muted px-4 py-3"
+          data-testid="share-settings"
+        >
+          <p class="text-[13px] font-medium text-ink">
+            分享设置<span class="ml-1 text-[11px] font-normal text-ink-quaternary"
+              >（作用于最新一条链接）</span
+            >
+          </p>
+          <div class="mt-2 space-y-2.5">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-[12px] text-ink-secondary">允许站内公开搜索</span>
+              <el-switch
+                data-testid="share-searchable"
+                :model-value="settingsShare.searchable"
+                :disabled="shareSettingsBusy"
+                @update:model-value="
+                  (value) => handleToggleShareSetting('searchable', value === true)
+                "
+              />
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-[12px] text-ink-secondary">允许评论</span>
+              <el-switch
+                data-testid="share-allow-comment"
+                :model-value="settingsShare.allowComment ?? true"
+                :disabled="shareSettingsBusy"
+                @update:model-value="
+                  (value) => handleToggleShareSetting('allowComment', value === true)
+                "
+              />
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-[12px] text-ink-secondary">允许导出</span>
+              <el-switch
+                data-testid="share-allow-export"
+                :model-value="settingsShare.allowExport ?? true"
+                :disabled="shareSettingsBusy"
+                @update:model-value="
+                  (value) => handleToggleShareSetting('allowExport', value === true)
+                "
+              />
+            </div>
+          </div>
         </div>
 
         <p class="mt-2 text-[12px] leading-5 text-ink-quaternary">{{ latestShareSummary }}</p>
