@@ -457,7 +457,7 @@ onBeforeUnmount(() => {
                   {{ menuItem.shortcut }}
                 </span>
               </button>
-              <div class="my-2 h-px bg-grey-200" />
+              <div class="my-2 h-px bg-line" />
               <button
                 type="button"
                 class="flex h-10 w-full items-center gap-2.5 rounded-kb-md px-3 text-left text-[14px] text-ink transition duration-100 hover:bg-muted"

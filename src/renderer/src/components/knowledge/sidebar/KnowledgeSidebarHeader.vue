@@ -190,7 +190,7 @@ const fallbackInitial = (label?: string) => {
             <span>新建知识库</span>
           </button>
 
-          <div class="my-1 h-px bg-grey-200" />
+          <div class="my-1 h-px bg-line" />
 
           <!-- 下段：流转入口（对齐语雀「新建」下拉第二组） -->
           <button

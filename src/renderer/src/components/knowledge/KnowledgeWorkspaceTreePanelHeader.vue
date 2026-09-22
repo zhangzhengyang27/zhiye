@@ -200,7 +200,7 @@ defineExpose({
               <Icon icon="ph:link-simple" :width="15" :height="15" class="text-ink-tertiary" />
               <span>添加链接</span>
             </button>
-            <div class="my-1 h-px bg-grey-200" />
+            <div class="my-1 h-px bg-line" />
             <button
               type="button"
               class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
