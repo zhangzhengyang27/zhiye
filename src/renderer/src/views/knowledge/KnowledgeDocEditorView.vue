@@ -3640,6 +3640,12 @@ aside button.truncate {
   font-weight: 700;
   color: var(--kb-text);
 }
+/* 标题宿主与正文列对齐：侧向内缩随 .ne-engine 的 40px 档（标题不再贴编辑区左边），
+   工具栏下留 20px 呼吸位；标题与正文之间的间距由 .ne-engine 自身的 20px 上内边距承担。
+   必须全局样式（宿主经 Teleport 挂进 Lake DOM，scoped 够不着） */
+.doc-title-host {
+  padding: 20px 40px 0;
+}
 .doc-hero-title::placeholder {
   color: var(--kb-text-quaternary);
   font-weight: 500;
