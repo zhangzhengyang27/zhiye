@@ -41,7 +41,6 @@ await ensureDocument(kb.id, token, { title: "Smoke 验收文档" })
 
 async function captureSet(theme) {
   await page.evaluate((scheme) => {
-    // eslint-disable-next-line no-undef
     window.localStorage.setItem("vueuse-color-scheme", scheme)
   }, theme)
   for (const [name, route] of routes) {

@@ -33,5 +33,9 @@ export default defineConfig({
     server: {
       proxy: createApiProxy(process.env.NODE_ENV ?? "development", __dirname),
     },
+    // preview 同样代理 /api 与 /collab：冒烟/验证脚本经 4173 直打后端（事故恢复时该段丢失）
+    preview: {
+      proxy: createApiProxy("production", __dirname),
+    },
   },
 })
