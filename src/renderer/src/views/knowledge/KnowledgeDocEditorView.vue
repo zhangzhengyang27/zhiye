@@ -5,11 +5,11 @@ import { formatClockTime, formatDateTime } from "@/utils/date-format"
 import { isImeComposing } from "@/utils/keyboard"
 import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from "vue-router"
-import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
-import { useDialogBehavior } from "@/composables/use-dialog-behavior"
+import { onClickOutside } from "@vueuse/core"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import { getApiErrorStatus } from "@/services/http-client"
 import { resolveWebBaseUrl } from "@/services/desktop-bridge"
+import { updateKnowledgeBasePreferences } from "@/services/knowledge-base"
 import { logger } from "@/utils/logger"
 import {
   addKnowledgeFavorite,
@@ -75,8 +75,8 @@ import type { HighlightSelection } from "yuque-editor-core"
 import DocumentCommentsPanel from "@/components/editor/DocumentCommentsPanel.vue"
 import type { DocCommentItem } from "@/components/editor/DocumentCommentsPanel.vue"
 import DocumentAiPanel from "@/components/editor/DocumentAiPanel.vue"
-import EditorMoreMenu from "@/components/editor/EditorMoreMenu.vue"
-import type { DropdownMenuItem } from "@/composables/use-dropdown-menu"
+import DocHeaderFavoritePopper from "@/components/editor/DocHeaderFavoritePopper.vue"
+import DocHeaderSharePopper from "@/components/editor/DocHeaderSharePopper.vue"
 import MentionMemberPicker from "./MentionMemberPicker.vue"
 import type { DocEditorStyle } from "@/components/editor/DocumentStyleSettingsDialog.vue"
 import type { YuqueEditorRef } from "yuque-editor-core/editor"
@@ -85,6 +85,10 @@ import { findTreeNode } from "@/components/knowledge/tree-utils"
 import { knowledgeWorkspaceContextKey } from "./workspace-context"
 
 const YuqueDocEditor = defineAsyncComponent(() => import("@/components/editor/YuqueDocEditor.vue"))
+
+/** Lake 编辑器组件实例：阅读态进出时经它开关内核原生大纲侧栏（toggleTocView）
+ *  defineAsyncComponent 的 InstanceType 不透出 defineExpose 成员，这里以结构类型承接 */
+const lakeEditorRef = ref<{ toggleToc?: () => void } | null>(null)
 
 /** 对齐语雀桌面端工具栏的可见项，保留常用格式化工具。 */
 const EDITOR_TOOLBAR_ITEMS = [
@@ -152,7 +156,7 @@ if (!workspaceContext) {
   throw new Error("KnowledgeWorkspaceContext is missing")
 }
 
-type DocSidePanelTab = "search" | "comments" | "versions" | "info" | "ai"
+type DocSidePanelTab = "search" | "comments" | "versions" | "info" | "style" | "ai"
 
 // 菜单项结构：T7 解散 AppDropdownMenu 后统一走 composables/use-dropdown-menu.ts 的
 // DropdownMenuItem（children 由 EditorMoreMenu 展开为面板内缩进二级菜单项）
@@ -525,6 +529,32 @@ const applyServerDocStyle = (document: KnowledgeDocumentItem) => {
   }
 }
 
+/** KB 级页宽（更多设置→文档设置）：standard 固定页宽不变，wide 挂容器类放开正文列上限 */
+const docWidthMode = computed<"standard" | "wide">(() =>
+  workspaceContext.knowledgeBase.value?.settings?.docWidthMode === "wide" ? "wide" : "standard",
+)
+
+/** 语雀样式设置 tab 的页面尺寸双卡：写回知识库 settings.docWidthMode（与更多设置同通道） */
+const handleDocWidthModeChange = async (mode: "standard" | "wide") => {
+  const kb = workspaceContext.knowledgeBase.value
+  if (!kb || !kb.settings) {
+    showToastMessage("当前知识库不支持页面尺寸设置。", "info")
+    return
+  }
+
+  try {
+    await updateKnowledgeBasePreferences(
+      kb.id,
+      { ...kb.settings, docWidthMode: mode },
+      authStore.accessToken,
+    )
+    await workspaceContext.refreshTree()
+    showToastMessage(mode === "wide" ? "已切换为超宽模式。" : "已切换为标宽模式。", "success")
+  } catch (error) {
+    showToastMessage(error instanceof Error ? error.message : "页面尺寸保存失败。", "error")
+  }
+}
+
 const handleDocStyleUpdate = (style: DocEditorStyle) => {
   docStyle.value = style
   writeLocalDocStyle()
@@ -799,11 +829,14 @@ const readingCommentsAnchor = ref<HTMLElement | null>(null)
 
 const enterReadingMode = () => {
   void router.replace({ query: { ...route.query, preview: "1" } })
+  // 对齐语雀阅读态：大纲侧栏自动展开（退出时对称收起；Lake toggleTocView 为开关语义）
+  lakeEditorRef.value?.toggleToc?.()
 }
 
 const exitReadingMode = () => {
   // query 值置 undefined 时 vue-router 会移除该键
   void router.replace({ query: { ...route.query, preview: undefined } })
+  lakeEditorRef.value?.toggleToc?.()
 }
 
 const scrollToReadingComments = () => {
@@ -876,26 +909,10 @@ const versionDeleteBusy = computed(
   () => batchDeletingVersions.value || deletingVersionId.value !== null,
 )
 // 顶栏协作者头像堆叠：对齐语雀心智，仅展示“其他协作者”（自己在右上角全局头像体现）
-const collaboratorsForHeader = computed(() =>
-  workspaceMembers.value.filter((member) => member.userId !== authStore.user?.id),
-)
-const visibleCollaborators = computed(() => collaboratorsForHeader.value.slice(0, 3))
-const remainingCollaboratorCount = computed(() =>
-  Math.max(collaboratorsForHeader.value.length - visibleCollaborators.value.length, 0),
-)
 const collaboratorsDialogOpen = ref(false)
-const collaboratorsDialog = useDialogBehavior({
-  open: () => collaboratorsDialogOpen.value,
-})
 // P-C1 协作感知：WS 房间在线成员与本人保存广播
 const collabChannel = ref<DocCollabChannel | null>(null)
 const onlinePresence = ref<CollabPresenceMember[]>([])
-const onlineUserIds = computed(() => new Set(onlinePresence.value.map((m) => m.userId)))
-const onlineCollabCount = computed(() => onlinePresence.value.length)
-const collaboratorButtonTitle = computed(() => {
-  const base = `查看协作者（${collaboratorsForHeader.value.length} 人`
-  return onlineCollabCount.value > 0 ? `${base} · ${onlineCollabCount.value} 人在线）` : `${base}）`
-})
 const collaboratorRoleLabel: Record<KnowledgeBaseMember["role"], string> = {
   owner: "创建者",
   admin: "管理员",
@@ -1082,18 +1099,6 @@ const loadedStateLabel = computed(() =>
   hasSavedInSession.value ? `已保存 ${formatClockTime(lastSavedAt.value)}` : "已加载最新版本",
 )
 
-const savePrimaryActionLabel = computed(() => {
-  if (saveError.value) {
-    return "重试保存"
-  }
-
-  if (isDirty.value) {
-    return "保存"
-  }
-
-  return "再次保存"
-})
-
 const outlineItems = computed<DocumentOutlineItem[]>(() => {
   return extractDocumentOutline(content.value, scheme.value)
 })
@@ -1142,26 +1147,6 @@ const headerFeedbackItems = computed(() => {
   }
 
   return items
-})
-const canOpenVersionCompare = computed(() => versions.value.length >= 2)
-const activeSidePanelLabel = computed(() => {
-  if (activeSidePanel.value === "comments") {
-    return "讨论"
-  }
-
-  if (activeSidePanel.value === "versions") {
-    return "历史版本"
-  }
-
-  if (activeSidePanel.value === "info") {
-    return "文档信息"
-  }
-
-  if (activeSidePanel.value === "ai") {
-    return "AI 助手"
-  }
-
-  return ""
 })
 
 const documentInfoStats = computed(() => [
@@ -1515,6 +1500,98 @@ const toggleFavorite = async () => {
   } finally {
     togglingFavorite.value = false
   }
+}
+
+// ==================== 统计详情（对齐语雀「文档信息」卡点开的 2×2 统计 + 阅读数据） ====================
+const showStatsDialog = ref(false)
+
+// ==================== 顶栏浮层(对齐语雀真机 2026-09-21,见 docs/文档标题栏对标语雀真机) ====================
+
+const favoritePopperOpen = ref(false)
+const favoritePopperRef = ref<HTMLElement | null>(null)
+onClickOutside(favoritePopperRef, () => {
+  favoritePopperOpen.value = false
+})
+
+/** 顶栏 ☆:未收藏先收藏(变实心黄)再弹「选择分组」,已收藏直接弹(语雀口径) */
+const handleHeaderFavoriteClick = async () => {
+  if (!docId.value || togglingFavorite.value) {
+    return
+  }
+
+  if (!favorited.value) {
+    togglingFavorite.value = true
+    try {
+      await addKnowledgeFavorite(docId.value)
+      favorited.value = true
+    } catch (error) {
+      showToastMessage(error instanceof Error ? error.message : "收藏失败。", "error")
+      return
+    } finally {
+      togglingFavorite.value = false
+    }
+  }
+
+  favoritePopperOpen.value = !favoritePopperOpen.value
+}
+
+const handleHeaderUnfavorite = async () => {
+  favoritePopperOpen.value = false
+  if (!docId.value) {
+    return
+  }
+
+  togglingFavorite.value = true
+  try {
+    await removeKnowledgeFavorite(docId.value)
+    favorited.value = false
+    showToastMessage("已取消收藏。", "success")
+  } catch (error) {
+    showToastMessage(error instanceof Error ? error.message : "取消收藏失败。", "error")
+  } finally {
+    togglingFavorite.value = false
+  }
+}
+
+const handleHeaderFavoriteMoved = (folderName: string) => {
+  favoritePopperOpen.value = false
+  showToastMessage(`已移入「${folderName}」。`, "success")
+}
+
+const collaboratorsPopperRef = ref<HTMLElement | null>(null)
+onClickOutside(collaboratorsPopperRef, () => {
+  collaboratorsDialogOpen.value = false
+})
+
+/** 语雀协作者浮层的「高级设置」折叠区（收纳知识库成员只读列表） */
+const collaboratorsAdvancedOpen = ref(false)
+
+const toggleCollaboratorsPopper = () => {
+  collaboratorsDialogOpen.value = !collaboratorsDialogOpen.value
+}
+
+const sharePopperOpen = ref(false)
+const sharePopperRef = ref<HTMLElement | null>(null)
+onClickOutside(sharePopperRef, () => {
+  sharePopperOpen.value = false
+})
+
+const handleSharePopperToggle = () => {
+  if (!sharePopperOpen.value && !ensureEditPermission("当前角色没有分享权限。")) {
+    return
+  }
+
+  sharePopperOpen.value = !sharePopperOpen.value
+}
+
+const handleSharePopperCollaborators = () => {
+  sharePopperOpen.value = false
+  collaboratorsDialogOpen.value = true
+}
+
+const handleSharePopperAdvanced = () => {
+  sharePopperOpen.value = false
+  showShareDialog.value = true
 }
 
 const toggleTemplate = async () => {
@@ -2272,10 +2349,6 @@ const switchSidePanel = async (tab: DocSidePanelTab | null) => {
   await openSidePanel(tab)
 }
 
-const toggleInfoPanel = () => {
-  void switchSidePanel("info")
-}
-
 const handleSidePanelSwitch = (tab: DocSidePanelTab) => {
   void openSidePanel(tab)
 }
@@ -2358,60 +2431,6 @@ const openCurrentDocumentInNewTab = () => {
   window.open(window.location.href, "_blank", "noopener,noreferrer")
 }
 
-const buildWorkspaceHref = (target: "home" | "overview") => {
-  if (typeof window === "undefined") {
-    return ""
-  }
-
-  const routeTarget =
-    target === "home"
-      ? {
-          name: "knowledge-workspace-home" as const,
-          params: { kbId: workspaceContext.kbId.value },
-        }
-      : {
-          name: "knowledge-overview" as const,
-          params: { kbId: workspaceContext.kbId.value },
-        }
-
-  return `${resolveWebBaseUrl()}${router.resolve(routeTarget).href}`
-}
-
-const openKnowledgeWorkspacePage = async (target: "home" | "overview") => {
-  await router.push({
-    name: target === "home" ? "knowledge-workspace-home" : "knowledge-overview",
-    params: { kbId: workspaceContext.kbId.value },
-  })
-}
-
-const openKnowledgeWorkspacePageInNewTab = (target: "home" | "overview") => {
-  const href = buildWorkspaceHref(target)
-
-  if (!href) {
-    return
-  }
-
-  window.open(href, "_blank", "noopener,noreferrer")
-}
-
-const copyKnowledgeWorkspacePageLink = async (target: "home" | "overview") => {
-  const href = buildWorkspaceHref(target)
-
-  if (!href) {
-    return
-  }
-
-  try {
-    await navigator.clipboard.writeText(href)
-    showToastMessage(
-      target === "home" ? "知识库主页链接已复制。" : "知识库目录链接已复制。",
-      "success",
-    )
-  } catch {
-    showToastMessage("复制空间链接失败，请稍后重试。", "error")
-  }
-}
-
 const saveDocumentManually = () => {
   if (!canEdit.value) {
     showToastMessage("当前文档为只读模式，无法保存。", "info")
@@ -2421,215 +2440,37 @@ const saveDocumentManually = () => {
   void saveDocument()
 }
 
+/** 信息面板「导出…」分发:顶栏导出菜单收编后的统一入口 */
+const handleInfoExportAction = (
+  action:
+    "print-doc" | "export-markdown" | "export-pdf" | "export-word" | "export-image" | "export-lake",
+) => {
+  if (action === "print-doc") {
+    void printDocument()
+    return
+  }
+  if (action === "export-markdown") {
+    void exportMarkdown()
+    return
+  }
+  if (action === "export-pdf") {
+    void exportPDF()
+    return
+  }
+  if (action === "export-word") {
+    void exportWord()
+    return
+  }
+  if (action === "export-image") {
+    void exportJpg()
+    return
+  }
+  void exportLake()
+}
+
 const closeAllSidePanels = () => {
   closeSidePanels(null)
 }
-
-/** 顶栏 Docx 导出按钮的下拉菜单（对齐语雀：顶栏直出导出入口，与「更多」内项同链路） */
-const exportMenuItems = computed<DropdownMenuItem[][]>(() => [
-  [
-    { label: "打印文档", icon: "i-lucide-printer", onSelect: () => void printDocument() },
-    { label: "导出为 Markdown", icon: "i-lucide-file-text", onSelect: () => void exportMarkdown() },
-    { label: "导出为 PDF", icon: "i-lucide-file-down", onSelect: () => void exportPDF() },
-    { label: "导出为 Word", icon: "i-lucide-file-type", onSelect: () => void exportWord() },
-    { label: "导出为图片", icon: "i-lucide-image", onSelect: () => void exportJpg() },
-    {
-      label: "导出为语雀文档 (.lake)",
-      icon: "i-lucide-file-json",
-      onSelect: () => void exportLake(),
-    },
-  ],
-])
-
-const moreMenuItems = computed<DropdownMenuItem[][]>(() => {
-  const syncItems: DropdownMenuItem[] = [{ type: "label", label: "状态与同步" }]
-
-  if (canEdit.value) {
-    syncItems.push({
-      label: saveError.value ? "重试同步保存" : isDirty.value ? "立即保存文档" : "再次保存文档",
-      icon: saveError.value ? "i-lucide-cloud-alert" : "i-lucide-save",
-      onSelect: () => saveDocumentManually(),
-    })
-  }
-
-  if (pendingSaveRequest.value) {
-    syncItems.push({
-      label: isOnline.value ? "继续处理同步队列" : "等待网络恢复后同步",
-      icon: isOnline.value ? "i-lucide-cloud-upload" : "i-lucide-cloud-off",
-      disabled: !isOnline.value,
-      onSelect: () => void flushPendingSave(),
-    })
-  }
-
-  syncItems.push({
-    label: remoteConflict.value ? "加载远端最新版本（发现更新）" : "重新加载当前文档",
-    icon: remoteConflict.value ? "i-lucide-refresh-cw" : "i-lucide-rotate-cw",
-    onSelect: () => void reloadRemoteDocument(),
-  })
-
-  const items: DropdownMenuItem[][] = [
-    syncItems,
-    [
-      { type: "label", label: "视图与面板" },
-      {
-        label: activeSidePanel.value
-          ? `切换右侧面板（当前${activeSidePanelLabel.value}）`
-          : "打开右侧面板",
-        icon: "i-lucide-panels-top-left",
-        children: [
-          {
-            label: showInfoPanel.value ? "关闭文档信息" : "打开文档信息",
-            icon: "i-lucide-panel-right-open",
-            onSelect: () => toggleInfoPanel(),
-          },
-        ].filter(Boolean) as DropdownMenuItem[],
-      },
-      activeSidePanel.value
-        ? {
-            label: `收起${activeSidePanelLabel.value}`,
-            icon: "i-lucide-panel-right-close",
-            onSelect: () => closeAllSidePanels(),
-          }
-        : null,
-    ].filter(Boolean) as DropdownMenuItem[],
-    [
-      { type: "label", label: "协作与版本" },
-      canEdit.value
-        ? {
-            label: "打开分享设置",
-            icon: "i-lucide-send",
-            onSelect: () => openShareDialog(),
-          }
-        : null,
-      canEdit.value
-        ? {
-            label: "打开模板库",
-            icon: "i-lucide-book-copy",
-            onSelect: () => handleRequestTemplateLibrary(),
-          }
-        : null,
-      {
-        label: "历史版本与对比",
-        icon: "i-lucide-history",
-        children: [
-          {
-            label: versionsDialogOpen.value ? "刷新历史版本" : "打开历史版本",
-            icon: "i-lucide-history",
-            onSelect: () => void openVersions(),
-          },
-          {
-            label: "对比历史版本",
-            icon: "i-lucide-git-compare-arrows",
-            disabled: !canOpenVersionCompare.value,
-            onSelect: () => void openVersionCompare(),
-          },
-        ],
-      },
-    ].filter(Boolean) as DropdownMenuItem[],
-    [
-      { type: "label", label: "链接与流转" },
-      {
-        label: "复制与打开",
-        icon: "i-lucide-link-2",
-        children: [
-          {
-            label: "复制标题链接",
-            icon: "i-lucide-brackets",
-            onSelect: () => void copyCurrentDocumentMarkdownLink(),
-          },
-          {
-            label: "复制当前链接",
-            icon: "i-lucide-link-2",
-            onSelect: () => void copyCurrentDocumentLink(),
-          },
-          {
-            label: "复制为 Markdown",
-            icon: "i-lucide-clipboard-type",
-            onSelect: () => void copyDocumentAsMarkdown(),
-          },
-          {
-            label: "在新标签打开",
-            icon: "i-lucide-square-arrow-out-up-right",
-            onSelect: () => openCurrentDocumentInNewTab(),
-          },
-        ],
-      },
-      {
-        label: "所在空间",
-        icon: "i-lucide-book-open-text",
-        children: [
-          {
-            label: "打开空间主页",
-            icon: "i-lucide-house",
-            onSelect: () => void openKnowledgeWorkspacePage("home"),
-          },
-          {
-            label: "打开目录视图",
-            icon: "i-lucide-list-tree",
-            onSelect: () => void openKnowledgeWorkspacePage("overview"),
-          },
-          {
-            label: "复制空间主页链接",
-            icon: "i-lucide-link-2",
-            onSelect: () => void copyKnowledgeWorkspacePageLink("home"),
-          },
-          {
-            label: "在新标签打开目录",
-            icon: "i-lucide-square-arrow-out-up-right",
-            onSelect: () => openKnowledgeWorkspacePageInNewTab("overview"),
-          },
-        ],
-      },
-      {
-        label: favorited.value ? "取消收藏" : "收藏文档",
-        icon: favorited.value ? "i-lucide-star-off" : "i-lucide-star",
-        onSelect: () => void toggleFavorite(),
-      },
-    ],
-    [
-      { type: "label", label: "导出与输出" },
-      {
-        label: "导出与打印",
-        icon: "i-lucide-download",
-        children: [
-          { label: "打印文档", icon: "i-lucide-printer", onSelect: () => void printDocument() },
-          {
-            label: "导出为 Markdown",
-            icon: "i-lucide-file-text",
-            onSelect: () => void exportMarkdown(),
-          },
-          { label: "导出为 PDF", icon: "i-lucide-file-down", onSelect: () => void exportPDF() },
-          { label: "导出为 Word", icon: "i-lucide-file-type", onSelect: () => void exportWord() },
-          { label: "导出为图片", icon: "i-lucide-image", onSelect: () => void exportJpg() },
-          {
-            label: "导出为语雀文档 (.lake)",
-            icon: "i-lucide-file-json",
-            onSelect: () => void exportLake(),
-          },
-        ],
-      },
-    ],
-  ]
-
-  if (canEdit.value) {
-    items.push([
-      { type: "label", label: "文档管理" },
-      {
-        label: docType.value === "template" ? "取消模板" : "设为模板",
-        icon: "i-lucide-layout-template",
-        onSelect: () => void toggleTemplate(),
-      },
-      {
-        label: "移入回收站",
-        icon: "i-lucide-trash-2",
-        color: "error",
-        onSelect: () => deleteDocument(),
-      },
-    ])
-  }
-
-  return items
-})
 
 watch(
   () => docId.value,
@@ -2816,137 +2657,315 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="flex min-w-0 shrink-0 items-center justify-end gap-1">
-          <el-button
-            text
-            size="small"
-            :loading="togglingFavorite"
-            :class="
-              favorited
-                ? 'h-8 w-8 rounded-kb-sm bg-warning-bg p-0 text-warning'
-                : 'h-8 w-8 rounded-kb-sm p-0 text-ink-secondary'
-            "
-            :title="favorited ? '取消收藏' : '收藏文档'"
-            @click="toggleFavorite"
-            ><template #loading
-              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
-            /></template>
-            <UiIcon
-              v-if="!togglingFavorite"
-              :icon="favorited ? 'i-lucide-star' : 'i-lucide-star-off'"
-              class="h-[1.2em] w-[1.2em] shrink-0"
-            />
-          </el-button>
-          <!-- 对齐语雀顶栏：收藏后为 Docx 导出入口（点击展开格式菜单，复用导出链路） -->
-          <EditorMoreMenu :items="exportMenuItems">
-            <el-button
-              text
-              size="small"
-              class="h-8 w-8 rounded-kb-sm p-0 text-ink-secondary aspect-square p-0"
-              title="导出与打印"
-              ><UiIcon icon="i-lucide-file-type" class="h-[1.2em] w-[1.2em] shrink-0" />
-            </el-button>
-          </EditorMoreMenu>
-          <!-- 协作者头像堆叠：常显（对齐语雀编辑页顶栏），点击打开协作者弹层 -->
-          <button
-            v-if="collaboratorsForHeader.length > 0"
-            type="button"
-            class="flex shrink-0 items-center -space-x-2 rounded-full transition hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-light"
-            :title="collaboratorButtonTitle"
-            @click="collaboratorsDialogOpen = true"
-          >
-            <div
-              v-for="member in visibleCollaborators"
-              :key="member.id"
-              class="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-line bg-fill-muted text-[11px] font-semibold text-ink-secondary dark:text-ink"
-              :title="member.user.displayName || member.user.email"
+          <!-- 顶栏图标组对齐语雀真机（2026-09-21 实测，见 docs/文档标题栏对标语雀真机-2026-09-21.md）：
+               ☆收藏 ⧉复制MD 👤+协作 💬讨论 [分享] [评论与协作|操作与信息] ▯AI独立框 -->
+          <div ref="favoritePopperRef" class="relative shrink-0">
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-kb-sm transition hover:bg-fill-muted"
+              :class="favorited ? 'text-warning' : 'text-ink-secondary'"
+              :title="favorited ? '收藏' : '收藏文档'"
+              @click="handleHeaderFavoriteClick"
             >
-              <img
-                v-if="member.user.avatar"
-                :src="member.user.avatar"
-                :alt="member.user.displayName || member.user.email"
-                class="h-full w-full object-cover"
+              <UiIcon
+                v-if="togglingFavorite"
+                icon="i-lucide-loader-circle"
+                class="h-[18px] w-[18px] shrink-0 animate-spin"
               />
-              <span v-else>{{ getCollaboratorInitial(member) }}</span>
-              <span
-                v-if="onlineUserIds.has(member.userId)"
-                class="absolute bottom-0 right-0 h-2 w-2 rounded-full border border-surface bg-green-500"
-                title="在线"
-              ></span>
-            </div>
+              <UiIcon
+                v-else
+                :icon="favorited ? 'ph:star-fill' : 'i-lucide-star'"
+                class="h-[18px] w-[18px] shrink-0"
+              />
+            </button>
             <div
-              v-if="remainingCollaboratorCount > 0"
-              class="flex h-7 min-w-7 items-center justify-center rounded-full border border-line bg-fill-muted px-1.5 text-[11px] font-medium text-ink-tertiary dark:text-ink-secondary"
+              v-if="favoritePopperOpen && docId"
+              class="absolute right-0 top-[calc(100%+6px)] z-40 overflow-hidden rounded-kb-xl border border-line bg-surface shadow-[var(--kb-surface-shadow)]"
             >
-              +{{ remainingCollaboratorCount }}
+              <DocHeaderFavoritePopper
+                :document-id="docId"
+                :favorited="favorited"
+                @close="favoritePopperOpen = false"
+                @unfavorited="handleHeaderUnfavorite"
+                @moved="handleHeaderFavoriteMoved"
+              />
             </div>
+          </div>
+
+          <button
+            type="button"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-kb-sm text-ink-secondary transition hover:bg-fill-muted"
+            title="复制为markdown格式"
+            @click="copyDocumentAsMarkdown"
+          >
+            <UiIcon icon="i-lucide-copy" class="h-[18px] w-[18px] shrink-0" />
           </button>
 
-          <el-button
-            v-if="!isReadingMode"
-            text
-            size="small"
-            :loading="versionsLoading && versionsDialogOpen"
-            :class="
-              versionsDialogOpen
-                ? 'h-8 w-8 rounded-kb-sm bg-brand-faint p-0 text-brand'
-                : 'h-8 w-8 rounded-kb-sm p-0 text-ink-secondary'
-            "
-            title="历史版本"
-            @click="openVersions"
-            ><template #loading
-              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
-            /></template>
-            <UiIcon
-              v-if="!(versionsLoading && versionsDialogOpen)"
-              icon="i-lucide-clock"
-              class="h-[1.2em] w-[1.2em] shrink-0"
-            />
-          </el-button>
-          <el-button
-            v-if="!isReadingMode"
-            text
-            size="small"
-            :class="
-              mentionPickerOpen
-                ? 'h-8 w-8 rounded-kb-sm bg-brand-faint p-0 text-brand'
-                : 'h-8 w-8 rounded-kb-sm p-0 text-ink-secondary'
-            "
-            title="提及成员（@）"
-            @click="openMentionPicker"
-            ><UiIcon icon="i-lucide-at-sign" class="h-[1.2em] w-[1.2em] shrink-0" />
-          </el-button>
-          <el-button
-            text
-            size="small"
-            :class="
-              commentsPanelOpen
-                ? 'h-8 w-8 rounded-kb-sm bg-brand-faint p-0 text-brand'
-                : 'h-8 w-8 rounded-kb-sm p-0 text-ink-secondary'
-            "
+          <div ref="collaboratorsPopperRef" class="relative shrink-0">
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-kb-sm transition hover:bg-fill-muted"
+              :class="collaboratorsDialogOpen ? 'bg-fill-muted text-ink' : 'text-ink-secondary'"
+              title="协作"
+              @click="toggleCollaboratorsPopper"
+            >
+              <UiIcon icon="i-lucide-user-plus" class="h-[18px] w-[18px] shrink-0" />
+            </button>
+            <div
+              v-if="collaboratorsDialogOpen"
+              class="absolute right-0 top-[calc(100%+6px)] z-40 max-h-[70vh] w-[420px] overflow-y-auto rounded-kb-xl border border-line bg-surface p-4 shadow-[var(--kb-surface-shadow)]"
+            >
+              <div class="flex items-center justify-between">
+                <p class="text-[14px] font-semibold text-ink">文档协作者</p>
+                <button
+                  type="button"
+                  class="rounded-kb-md p-1 text-ink-tertiary transition hover:bg-muted hover:text-ink-secondary"
+                  title="关闭"
+                  @click="collaboratorsDialogOpen = false"
+                >
+                  <UiIcon icon="i-lucide-x" class="h-4 w-4" />
+                </button>
+              </div>
+
+              <!-- 邀请表单（B2f）：管理者可邀请/改角色/移除 -->
+              <form
+                v-if="canManageDocCollaborators"
+                class="mt-3 flex items-center gap-2"
+                @submit.prevent="handleAddDocCollaborator"
+              >
+                <el-input
+                  v-model="inviteEmail"
+                  type="email"
+                  maxlength="120"
+                  placeholder="输入对方邮箱，如 name@example.com"
+                  class="h-8 min-w-0 flex-1"
+                />
+                <el-dropdown
+                  trigger="click"
+                  placement="bottom-end"
+                  :show-arrow="false"
+                  @command="(role: 'editor' | 'reader') => (inviteRole = role)"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex h-8 shrink-0 items-center gap-1 rounded-kb-md border border-line bg-surface px-2.5 text-[12px] text-ink-secondary transition hover:border-brand-lighter"
+                  >
+                    {{ docCollabRoleLabel[inviteRole] }}
+                    <Icon icon="ph:caret-down" :width="12" :height="12" />
+                  </button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="editor">可编辑</el-dropdown-item>
+                      <el-dropdown-item command="reader">只读</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+                <button
+                  type="submit"
+                  class="inline-flex h-8 shrink-0 items-center rounded-kb-md bg-brand px-3 text-[12px] font-medium text-on-brand! transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-55"
+                  :disabled="docCollabBusy || !inviteEmail.trim()"
+                >
+                  {{ docCollabBusy ? "添加中…" : "添加" }}
+                </button>
+              </form>
+
+              <ul
+                v-if="docCollaborators.length > 0 || docCollaboratorsLoading"
+                class="mt-2 space-y-0.5"
+              >
+                <li
+                  v-for="collaborator in docCollaborators"
+                  :key="collaborator.id"
+                  class="flex items-center gap-3 rounded-kb-xl px-2 py-1.5 hover:bg-fill-subtle"
+                >
+                  <div
+                    class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-fill-muted text-[11px] font-semibold text-ink-secondary dark:text-ink"
+                  >
+                    <img
+                      v-if="collaborator.user.avatar"
+                      :src="collaborator.user.avatar"
+                      :alt="collaborator.user.displayName || collaborator.user.email"
+                      class="h-full w-full object-cover"
+                    />
+                    <span v-else>{{
+                      (collaborator.user.displayName || collaborator.user.email).slice(0, 1)
+                    }}</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5">
+                      <span class="truncate text-[13px] font-medium text-ink">
+                        {{ collaborator.user.displayName || collaborator.user.email }}
+                      </span>
+                      <span
+                        v-if="collaborator.user.id === authStore.user?.id"
+                        class="shrink-0 text-[11px] text-ink-quaternary"
+                        >（我）</span
+                      >
+                    </div>
+                    <div class="truncate text-[12px] text-ink-tertiary">
+                      {{ collaborator.user.email }}
+                    </div>
+                  </div>
+
+                  <el-dropdown
+                    v-if="canManageDocCollaborators"
+                    trigger="click"
+                    placement="bottom-end"
+                    :show-arrow="false"
+                    @command="
+                      (role: 'editor' | 'reader') =>
+                        handleDocCollaboratorRoleChange(collaborator, role)
+                    "
+                  >
+                    <button
+                      type="button"
+                      class="inline-flex h-7 shrink-0 items-center gap-1 rounded-kb-md border border-line bg-surface px-2.5 text-[12px] text-ink-secondary transition hover:border-brand-lighter"
+                    >
+                      {{ docCollabRoleLabel[collaborator.role] }}
+                      <Icon icon="ph:caret-down" :width="11" :height="11" />
+                    </button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item
+                          command="editor"
+                          :disabled="collaborator.role === 'editor'"
+                          >可编辑</el-dropdown-item
+                        >
+                        <el-dropdown-item
+                          command="reader"
+                          :disabled="collaborator.role === 'reader'"
+                          >只读</el-dropdown-item
+                        >
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                  <span
+                    v-else
+                    class="shrink-0 rounded-full bg-fill-subtle px-2 py-0.5 text-[11px] font-medium text-ink-tertiary dark:text-ink-secondary"
+                  >
+                    {{ docCollabRoleLabel[collaborator.role] }}
+                  </span>
+
+                  <button
+                    v-if="canManageDocCollaborators"
+                    type="button"
+                    class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-kb-md text-ink-quaternary transition hover:bg-grey-200 hover:text-error"
+                    title="移除协作者"
+                    :disabled="docCollabBusy"
+                    @click="handleRemoveDocCollaborator(collaborator)"
+                  >
+                    <Icon icon="ph:x" :width="14" :height="14" />
+                  </button>
+                </li>
+              </ul>
+              <p v-else class="mt-2 px-1 text-[12px] text-ink-quaternary">
+                {{
+                  canManageDocCollaborators
+                    ? "还没有文档协作者，通过上方邮箱邀请。"
+                    : "暂无文档协作者。"
+                }}
+              </p>
+
+              <!-- 邀请链接行（对齐语雀：只读框 + 复制链接钮） -->
+              <div class="mt-3">
+                <p class="text-[12px] font-medium text-ink-secondary">设置协作者权限链接</p>
+                <div class="mt-1.5 flex items-center gap-2">
+                  <input
+                    type="text"
+                    readonly
+                    :value="currentDocumentUrl()"
+                    class="h-8 min-w-0 flex-1 rounded-kb-md border border-line-input bg-muted px-2 text-[12px] text-ink-tertiary outline-none"
+                  />
+                  <button
+                    type="button"
+                    class="inline-flex h-8 shrink-0 items-center rounded-kb-md bg-brand px-3 text-[12px] font-medium text-on-brand! transition hover:bg-brand-hover"
+                    @click="copyCurrentDocumentLink"
+                  >
+                    复制链接
+                  </button>
+                </div>
+              </div>
+
+              <!-- 高级设置折叠：知识库成员只读列表 -->
+              <div class="mt-3 border-t border-line pt-2">
+                <button
+                  type="button"
+                  class="text-[12px] text-ink-tertiary transition hover:text-brand"
+                  @click="collaboratorsAdvancedOpen = !collaboratorsAdvancedOpen"
+                >
+                  高级设置 {{ collaboratorsAdvancedOpen ? "⌃" : "⌄" }}
+                </button>
+                <template v-if="collaboratorsAdvancedOpen">
+                  <p class="mt-2 text-[12px] text-ink-tertiary">
+                    知识库成员（{{ workspaceMembers.length }} 人，继承知识库权限）
+                  </p>
+                  <ul class="mt-1 max-h-56 space-y-0.5 overflow-y-auto">
+                    <li
+                      v-for="member in workspaceMembers"
+                      :key="member.id"
+                      class="flex items-center gap-3 rounded-kb-xl px-2 py-1.5 hover:bg-fill-subtle"
+                    >
+                      <div
+                        class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-fill-muted text-[11px] font-semibold text-ink-secondary dark:text-ink"
+                      >
+                        <img
+                          v-if="member.user.avatar"
+                          :src="member.user.avatar"
+                          :alt="member.user.displayName || member.user.email"
+                          class="h-full w-full object-cover"
+                        />
+                        <span v-else>{{ getCollaboratorInitial(member) }}</span>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <span class="truncate text-[13px] font-medium text-ink">
+                          {{ member.user.displayName || member.user.email }}
+                        </span>
+                        <span class="ml-1 truncate text-[12px] text-ink-tertiary">{{
+                          member.user.email
+                        }}</span>
+                      </div>
+                      <span
+                        class="shrink-0 rounded-full bg-fill-subtle px-2 py-0.5 text-[11px] font-medium text-ink-tertiary dark:text-ink-secondary"
+                      >
+                        {{ collaboratorRoleLabel[member.role] }}
+                      </span>
+                    </li>
+                  </ul>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-kb-sm text-ink-secondary transition hover:bg-fill-muted"
             title="讨论"
             @click="handleDiscussClick"
-            ><UiIcon icon="i-lucide-message-circle" class="h-[1.2em] w-[1.2em] shrink-0" />
-          </el-button>
-          <!-- 语雀常态没有保存按钮：仅在存在未保存改动或同步异常时出现 -->
-          <el-button
-            v-if="canEdit && !isReadingMode && (saveError || isDirty)"
-            plain
-            size="small"
-            :loading="saving && !autoSaving"
-            class="h-8 border-line-input bg-surface px-3 text-ink-secondary py-0"
-            @click="saveDocument()"
-            ><template #loading
-              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
-            /></template>
-            <span class="truncate">{{ savePrimaryActionLabel }}</span>
-          </el-button>
-          <el-button
-            plain
-            size="small"
-            class="h-8 border-line-input bg-surface px-4 text-[13px] text-ink hover:bg-muted py-0 [line-height:inherit] font-semibold"
-            @click="openShareDialog"
-            ><span class="truncate">分享</span>
-          </el-button>
+          >
+            <UiIcon icon="i-lucide-message-square-text" class="h-[18px] w-[18px] shrink-0" />
+          </button>
+
+          <div ref="sharePopperRef" class="relative shrink-0">
+            <el-button
+              plain
+              size="small"
+              class="h-8 border-line-input bg-surface px-4 text-[13px] text-ink hover:bg-muted py-0 [line-height:inherit] font-semibold"
+              @click="handleSharePopperToggle"
+              ><span class="truncate">分享</span>
+            </el-button>
+            <div
+              v-if="sharePopperOpen && docId"
+              class="absolute right-0 top-[calc(100%+6px)] z-40 overflow-hidden rounded-kb-xl border border-line bg-surface shadow-[var(--kb-surface-shadow)]"
+            >
+              <DocHeaderSharePopper
+                :document-id="docId"
+                @close="sharePopperOpen = false"
+                @open-collaborators="handleSharePopperCollaborators"
+                @open-advanced="handleSharePopperAdvanced"
+              />
+            </div>
+          </div>
+
           <!-- 对齐语雀阅读页顶栏：绿色实心「编辑」按钮，点击退回编辑态 -->
           <el-button
             v-if="isReadingMode && canEdit"
@@ -2955,60 +2974,55 @@ onBeforeUnmount(() => {
             @click="exitReadingMode"
             ><span class="truncate">编辑</span>
           </el-button>
-          <el-button
-            v-if="!isReadingMode"
-            text
-            size="small"
-            class="h-8 w-8 rounded-kb-sm p-0 text-ink-secondary aspect-square p-0"
-            title="复制链接"
-            @click="copyCurrentDocumentLink"
-            ><UiIcon icon="i-lucide-link" class="h-[1.2em] w-[1.2em] shrink-0" />
-          </el-button>
-          <el-button
-            v-if="canEdit && !isReadingMode"
-            text
-            size="small"
-            class="h-8 w-8 rounded-kb-sm p-0 text-ink-secondary aspect-square p-0"
-            title="样式设置"
-            @click="showStyleSettings = true"
-            ><UiIcon icon="i-lucide-settings-2" class="h-[1.2em] w-[1.2em] shrink-0" />
-          </el-button>
-          <!-- 对齐语雀顶栏：目录开关（原大纲面板）+ AI 开关收尾，AI 开启态蓝色高亮（编辑态专属） -->
-          <template v-if="!isReadingMode">
-            <el-button
-              text
-              size="small"
+
+          <!-- 胶囊组：划词评论 | 操作与信息（对齐语雀右侧面板 tab 快捷开关，互斥） -->
+          <div
+            class="flex shrink-0 items-center gap-0.5 rounded-kb-md border border-line bg-surface p-0.5"
+          >
+            <button
+              type="button"
+              class="flex h-7 w-7 items-center justify-center rounded-kb-sm transition"
               :class="
-                showInfoPanel
-                  ? 'h-8 w-8 rounded-kb-sm bg-brand-faint p-0 text-brand'
-                  : 'h-8 w-8 rounded-kb-sm p-0 text-ink-secondary'
+                commentsPanelOpen
+                  ? 'bg-fill-muted text-ink'
+                  : 'text-ink-secondary hover:bg-fill-muted'
               "
-              title="目录"
-              @click="toggleInfoPanel"
-              ><UiIcon icon="i-lucide-book-open" class="h-[1.2em] w-[1.2em] shrink-0" />
-            </el-button>
-            <el-button
-              text
-              size="small"
+              title="评论与协作"
+              @click="switchSidePanel('comments')"
+            >
+              <UiIcon icon="i-lucide-message-square-text" class="h-4 w-4 shrink-0" />
+            </button>
+            <button
+              type="button"
+              class="flex h-7 w-7 items-center justify-center rounded-kb-sm transition"
               :class="
-                aiPanelOpen
-                  ? 'h-8 w-8 rounded-kb-sm bg-brand-faint p-0 text-brand'
-                  : 'h-8 w-8 rounded-kb-sm p-0 text-ink-secondary'
+                showInfoPanel ? 'bg-fill-muted text-ink' : 'text-ink-secondary hover:bg-fill-muted'
               "
-              title="AI 助手"
-              @click="void switchSidePanel('ai')"
-              ><UiIcon icon="i-lucide-sparkles" class="h-[1.2em] w-[1.2em] shrink-0" />
-            </el-button>
-          </template>
-          <EditorMoreMenu v-if="!isReadingMode" :items="moreMenuItems">
-            <el-button
-              text
-              size="small"
-              class="h-8 w-8 rounded-kb-sm p-0 text-ink-secondary aspect-square p-0"
-              title="更多操作"
-              ><UiIcon icon="i-lucide-more-horizontal" class="h-[1.2em] w-[1.2em] shrink-0" />
-            </el-button>
-          </EditorMoreMenu>
+              title="操作与信息"
+              @click="switchSidePanel('info')"
+            >
+              <UiIcon icon="i-lucide-book-open" class="h-4 w-4 shrink-0" />
+            </button>
+          </div>
+
+          <!-- AI 独立框开关：竖条形态，激活为品牌蓝（对齐语雀「打开AI独立框」） -->
+          <button
+            type="button"
+            class="ml-0.5 flex h-6 w-[14px] shrink-0 items-center justify-center rounded-[4px] border transition"
+            :class="
+              aiPanelOpen
+                ? 'border-brand-lighter bg-brand-faint'
+                : 'border-line bg-surface hover:border-brand-lighter'
+            "
+            title="打开AI独立框"
+            aria-label="打开AI独立框"
+            @click="switchSidePanel('ai')"
+          >
+            <span
+              class="h-3 w-[3px] rounded-full"
+              :class="aiPanelOpen ? 'bg-brand' : 'bg-ink-quaternary'"
+            />
+          </button>
         </div>
       </div>
     </header>
@@ -3049,6 +3063,7 @@ onBeforeUnmount(() => {
           <h1 class="doc-hero-title">{{ title || "无标题文档" }}</h1>
         </div>
         <YuqueDocEditor
+          ref="lakeEditorRef"
           :key="docId"
           v-model="content"
           :content-type="editorContentType"
@@ -3205,6 +3220,14 @@ onBeforeUnmount(() => {
                 <span class="mr-auto text-[11px] text-ink-quaternary">⌘ Enter 发布</span>
                 <button
                   type="button"
+                  class="inline-flex h-7 items-center rounded-kb-md border border-line-input bg-surface px-2.5 text-[12px] text-ink-secondary transition hover:border-brand-lighter hover:text-brand"
+                  title="提及成员（@）"
+                  @click="openMentionPicker($event)"
+                >
+                  <AppIcon name="i-lucide-at-sign" class="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
                   class="inline-flex h-7 items-center rounded-kb-md bg-brand px-3 text-[12px] font-medium text-on-brand! transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-55"
                   :disabled="!readingCommentDraft.trim() || submittingComment"
                   @click="submitReadingComment"
@@ -3333,6 +3356,85 @@ onBeforeUnmount(() => {
       />
     </div>
 
+    <!-- 统计详情（对齐语雀真机 2026-09-21）：字数/历史版本/更新时间/创建时间 + 创建者/编辑者 + 阅读数据 -->
+    <el-dialog
+      :model-value="showStatsDialog"
+      title="统计详情"
+      width="440px"
+      close-on-click-modal
+      close-on-press-escape
+      @update:model-value="(value) => !value && (showStatsDialog = false)"
+    >
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-kb-xl bg-muted px-4 py-3">
+          <p class="text-[11px] text-ink-tertiary">字数</p>
+          <p class="mt-1 text-[18px] font-semibold text-ink">{{ plainTextContent.length }}</p>
+        </div>
+        <button
+          type="button"
+          class="rounded-kb-xl bg-muted px-4 py-3 text-left transition hover:bg-brand-faint/40"
+          @click="
+            showStatsDialog = false
+            openVersions()
+          "
+        >
+          <p class="text-[11px] text-ink-tertiary">历史版本</p>
+          <p class="mt-1 flex items-center gap-1 text-[18px] font-semibold text-ink">
+            {{ versions.length
+            }}<AppIcon name="i-lucide-chevron-right" class="h-4 w-4 text-ink-quaternary" />
+          </p>
+        </button>
+        <div class="rounded-kb-xl bg-muted px-4 py-3">
+          <p class="text-[11px] text-ink-tertiary">更新时间</p>
+          <p class="mt-1 text-[13px] font-medium text-ink">
+            {{ snapshot?.updatedAt ? formatDateTime(snapshot.updatedAt) : "—" }}
+          </p>
+        </div>
+        <div class="rounded-kb-xl bg-muted px-4 py-3">
+          <p class="text-[11px] text-ink-tertiary">创建时间</p>
+          <p class="mt-1 text-[13px] font-medium text-ink">
+            {{ docCreatedAt ? formatDateTime(docCreatedAt) : "—" }}
+          </p>
+        </div>
+      </div>
+      <div
+        class="mt-3 flex items-center justify-between rounded-kb-xl border border-line px-4 py-3"
+      >
+        <div>
+          <p class="text-[11px] text-ink-tertiary">创建者</p>
+          <p class="mt-0.5 text-[13px] font-medium text-ink">{{ docCreatorLabel || "—" }}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-[11px] text-ink-tertiary">编辑者</p>
+          <p class="mt-0.5 text-[13px] font-medium text-ink">
+            {{ authStore.user?.displayName || "—" }}
+          </p>
+        </div>
+      </div>
+      <p class="mt-4 text-[12px] font-medium text-ink-secondary">阅读数据</p>
+      <div class="mt-2 grid grid-cols-3 gap-2">
+        <div class="rounded-kb-xl bg-muted px-3 py-3 text-center">
+          <p class="text-[11px] text-ink-tertiary">阅读数</p>
+          <p class="mt-1 text-[16px] font-semibold text-ink">—</p>
+        </div>
+        <div class="rounded-kb-xl bg-muted px-3 py-3 text-center">
+          <p class="text-[11px] text-ink-tertiary">评论数</p>
+          <p class="mt-1 text-[16px] font-semibold text-ink">{{ commentItems.length }}</p>
+        </div>
+        <div class="rounded-kb-xl bg-muted px-3 py-3 text-center">
+          <p class="text-[11px] text-ink-tertiary">点赞数</p>
+          <p class="mt-1 text-[16px] font-semibold text-ink">{{ likeInfo.count }}</p>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end">
+          <el-button plain class="py-2" @click="showStatsDialog = false"
+            ><span class="truncate">关闭</span></el-button
+          >
+        </div>
+      </template>
+    </el-dialog>
+
     <DocumentStyleSettingsDialog
       :open="showStyleSettings"
       :doc-style="docStyle"
@@ -3340,208 +3442,6 @@ onBeforeUnmount(() => {
       @update:doc-style="handleDocStyleUpdate"
     />
     <EditorShortcutPanel :open="showShortcutPanel" @close="showShortcutPanel = false" />
-
-    <!-- 协作者弹层：只读展示知识库成员与角色（对齐语雀协作者弹层的信息区；邀请/权限编辑属文档级协作者管理，另项跟进）
-         T9 起直用 el-dialog + useDialogBehavior（AppDialog 已解散） -->
-    <el-dialog
-      v-bind="collaboratorsDialog.elDialogBindings"
-      class="max-w-md"
-      :model-value="collaboratorsDialogOpen"
-      title="协作者"
-      close-on-click-modal
-      close-on-press-escape
-      @update:model-value="(value) => !value && (collaboratorsDialogOpen = false)"
-    >
-      <template #header>
-        <KbDialogHeader
-          title="协作者"
-          eyebrow="协作"
-          :description="`文档协作者（${docCollaborators.length} 人） · 知识库成员（${workspaceMembers.length} 人）`"
-          @close="collaboratorsDialogOpen = false"
-        />
-      </template>
-
-      <!-- 文档协作者段（B2f）：管理者可邀请/改角色/移除；升权语义见服务注释 -->
-      <div class="rounded-kb-xl border border-line p-3">
-        <p class="text-[12px] font-medium text-ink-secondary">文档协作者（仅对该文档生效）</p>
-
-        <form
-          v-if="canManageDocCollaborators"
-          class="mt-2.5 flex items-center gap-2"
-          @submit.prevent="handleAddDocCollaborator"
-        >
-          <el-input
-            v-model="inviteEmail"
-            type="email"
-            maxlength="120"
-            placeholder="输入对方邮箱，如 name@example.com"
-            class="h-8 min-w-0 flex-1"
-          />
-          <el-dropdown
-            trigger="click"
-            placement="bottom-end"
-            :show-arrow="false"
-            @command="(role: 'editor' | 'reader') => (inviteRole = role)"
-          >
-            <button
-              type="button"
-              class="inline-flex h-8 shrink-0 items-center gap-1 rounded-kb-md border border-line bg-surface px-2.5 text-[12px] text-ink-secondary transition hover:border-brand-lighter"
-            >
-              {{ docCollabRoleLabel[inviteRole] }}
-              <Icon icon="ph:caret-down" :width="12" :height="12" />
-            </button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="editor">可编辑</el-dropdown-item>
-                <el-dropdown-item command="reader">只读</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <button
-            type="submit"
-            class="inline-flex h-8 shrink-0 items-center rounded-kb-md bg-brand px-3 text-[12px] font-medium text-on-brand! transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-55"
-            :disabled="docCollabBusy || !inviteEmail.trim()"
-          >
-            {{ docCollabBusy ? "添加中…" : "添加" }}
-          </button>
-        </form>
-
-        <ul v-if="docCollaborators.length > 0 || docCollaboratorsLoading" class="mt-2 space-y-0.5">
-          <li
-            v-for="collaborator in docCollaborators"
-            :key="collaborator.id"
-            class="flex items-center gap-3 rounded-kb-xl px-2 py-1.5 hover:bg-fill-subtle"
-          >
-            <div
-              class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-fill-muted text-[11px] font-semibold text-ink-secondary dark:text-ink"
-            >
-              <img
-                v-if="collaborator.user.avatar"
-                :src="collaborator.user.avatar"
-                :alt="collaborator.user.displayName || collaborator.user.email"
-                class="h-full w-full object-cover"
-              />
-              <span v-else>{{
-                (collaborator.user.displayName || collaborator.user.email).slice(0, 1)
-              }}</span>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5">
-                <span class="truncate text-[13px] font-medium text-ink">
-                  {{ collaborator.user.displayName || collaborator.user.email }}
-                </span>
-                <span
-                  v-if="collaborator.user.id === authStore.user?.id"
-                  class="shrink-0 text-[11px] text-ink-quaternary"
-                  >（我）</span
-                >
-              </div>
-              <div class="truncate text-[12px] text-ink-tertiary">
-                {{ collaborator.user.email }}
-              </div>
-            </div>
-
-            <el-dropdown
-              v-if="canManageDocCollaborators"
-              trigger="click"
-              placement="bottom-end"
-              :show-arrow="false"
-              @command="
-                (role: 'editor' | 'reader') => handleDocCollaboratorRoleChange(collaborator, role)
-              "
-            >
-              <button
-                type="button"
-                class="inline-flex h-7 shrink-0 items-center gap-1 rounded-kb-md border border-line bg-surface px-2.5 text-[12px] text-ink-secondary transition hover:border-brand-lighter"
-              >
-                {{ docCollabRoleLabel[collaborator.role] }}
-                <Icon icon="ph:caret-down" :width="11" :height="11" />
-              </button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="editor" :disabled="collaborator.role === 'editor'"
-                    >可编辑</el-dropdown-item
-                  >
-                  <el-dropdown-item command="reader" :disabled="collaborator.role === 'reader'"
-                    >只读</el-dropdown-item
-                  >
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            <span
-              v-else
-              class="shrink-0 rounded-full bg-fill-subtle px-2 py-0.5 text-[11px] font-medium text-ink-tertiary dark:text-ink-secondary"
-            >
-              {{ docCollabRoleLabel[collaborator.role] }}
-            </span>
-
-            <button
-              v-if="canManageDocCollaborators"
-              type="button"
-              class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-kb-md text-ink-quaternary transition hover:bg-grey-200 hover:text-error"
-              title="移除协作者"
-              :disabled="docCollabBusy"
-              @click="handleRemoveDocCollaborator(collaborator)"
-            >
-              <Icon icon="ph:x" :width="14" :height="14" />
-            </button>
-          </li>
-        </ul>
-        <p v-else class="mt-2 px-1 text-[12px] text-ink-quaternary">
-          {{
-            canManageDocCollaborators ? "还没有文档协作者，通过上方邮箱邀请。" : "暂无文档协作者。"
-          }}
-        </p>
-      </div>
-
-      <p class="mt-4 px-1 text-[12px] font-medium text-ink-secondary">
-        知识库成员（{{ workspaceMembers.length }} 人，继承知识库权限）
-      </p>
-      <ul class="max-h-[240px] space-y-0.5 overflow-y-auto py-1">
-        <li
-          v-for="member in workspaceMembers"
-          :key="member.id"
-          class="flex items-center gap-3 rounded-kb-xl px-3 py-2 hover:bg-fill-subtle"
-        >
-          <div
-            class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-fill-muted text-[12px] font-semibold text-ink-secondary dark:text-ink"
-          >
-            <img
-              v-if="member.user.avatar"
-              :src="member.user.avatar"
-              :alt="member.user.displayName || member.user.email"
-              class="h-full w-full object-cover"
-            />
-            <span v-else>{{ getCollaboratorInitial(member) }}</span>
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-1.5">
-              <span class="truncate text-[13px] font-medium text-ink">
-                {{ member.user.displayName || member.user.email }}
-              </span>
-              <span
-                v-if="member.userId === authStore.user?.id"
-                class="shrink-0 text-[11px] text-ink-quaternary"
-                >（我）</span
-              >
-            </div>
-            <div class="truncate text-[12px] text-ink-tertiary">{{ member.user.email }}</div>
-          </div>
-          <span
-            class="shrink-0 rounded-full bg-fill-subtle px-2 py-0.5 text-[11px] font-medium text-ink-tertiary dark:text-ink-secondary"
-          >
-            {{ collaboratorRoleLabel[member.role] }}
-          </span>
-        </li>
-      </ul>
-      <template #footer>
-        <div class="flex justify-end">
-          <el-button plain class="py-2" @click="collaboratorsDialogOpen = false"
-            ><span class="truncate">关闭</span>
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
 
     <DocumentVersionsPanel
       v-if="versionsDialogOpen"
@@ -3580,6 +3480,11 @@ onBeforeUnmount(() => {
       v-if="showInfoPanel"
       :open="showInfoPanel"
       active-tab="info"
+      :available-tabs="['info', 'style']"
+      :doc-style="docStyle"
+      :doc-width-mode="docWidthMode"
+      :creator-label="docCreatorLabel"
+      :updated-at-label="snapshot?.updatedAt ? formatDateTime(snapshot.updatedAt) : ''"
       :document-title="title || '无标题文档'"
       :workspace-name="workspaceName"
       :document-mode-label="documentModeLabel"
@@ -3594,13 +3499,29 @@ onBeforeUnmount(() => {
       :visible-actions="[
         'open-knowledge-network',
         'enter-reading',
+        ...(canEdit && !isPreviewMode ? (['insert-emoji'] as const) : []),
         'copy-link',
+        'copy-markdown-link',
+        'open-in-browser',
         'open-template-library',
         'open-share',
         'open-history',
+        'print-doc',
+        'export-markdown',
+        'export-pdf',
+        'export-word',
+        'export-image',
+        'export-lake',
+        'save-doc',
+        'reload-doc',
+        'make-template',
+        'move-trash',
         'toggle-favorite',
       ]"
       :shortcuts="documentInfoShortcuts"
+      @open-stats="showStatsDialog = true"
+      @update:doc-style="handleDocStyleUpdate"
+      @update:doc-width-mode="handleDocWidthModeChange"
       @close="closeSidePanels(null)"
       @switch-tab="handleSidePanelSwitch"
       @jump-outline="jumpToOutlineItem"
@@ -3611,6 +3532,14 @@ onBeforeUnmount(() => {
       @open-history="openVersions"
       @open-template-library="handleRequestTemplateLibrary"
       @open-knowledge-network="openKnowledgeNetwork"
+      @insert-emoji="lakeEditorRef?.insertEmojiCard()"
+      @copy-markdown-link="copyCurrentDocumentMarkdownLink"
+      @open-in-browser="openCurrentDocumentInNewTab"
+      @export-action="handleInfoExportAction"
+      @save-doc="saveDocumentManually"
+      @reload-doc="reloadRemoteDocument()"
+      @make-template="toggleTemplate"
+      @move-trash="deleteDocument"
     />
     <ShareDialog
       v-if="docId && showShareDialog"

@@ -7,12 +7,25 @@
  */
 export type DocumentInfoAction =
   | "copy-link"
+  | "copy-markdown-link"
   | "enter-reading"
   | "open-share"
   | "open-history"
   | "toggle-favorite"
   | "open-template-library"
   | "open-knowledge-network"
+  | "open-in-browser"
+  | "insert-emoji"
+  | "print-doc"
+  | "export-markdown"
+  | "export-pdf"
+  | "export-word"
+  | "export-image"
+  | "export-lake"
+  | "save-doc"
+  | "reload-doc"
+  | "make-template"
+  | "move-trash"
 </script>
 
 <script setup lang="ts">

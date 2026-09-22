@@ -453,7 +453,7 @@ const confirmDeleteKb = async () => {
           <p class="mt-1.5 max-w-sm text-kb-xs leading-5 text-ink-tertiary">
             {{
               canEdit
-                ? "从左侧目录列的「+」新建第一篇文档或目录。"
+                ? "从左侧目录列的「+」新建第一篇文档或分组。"
                 : "待成员创建内容后可在这里浏览。"
             }}
           </p>

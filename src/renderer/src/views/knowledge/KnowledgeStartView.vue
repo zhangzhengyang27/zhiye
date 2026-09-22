@@ -6,7 +6,7 @@
  * 浏览过复用 recent-all；提到我/我点赞的暂无对应数据模型，不提供。
  */
 import { formatShortDate } from "@/utils/date-format"
-import { computed, onMounted, ref, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
 import KnowledgeCreateKbDialog from "@/components/knowledge/KnowledgeCreateKbDialog.vue"
@@ -213,45 +213,94 @@ const openDoc = (item: KnowledgeDashboardDocumentItem) => {
   )
 }
 
-const goCreateDocument = () => {
-  if (createDocTargetKbId.value) {
-    void router.push({
-      name: "knowledge-workspace-home",
-      params: { kbId: createDocTargetKbId.value },
-    })
+/** 新建/导入统一走侧栏同款路由意图：跳到目标库工作台首页，由布局壳消费（即时创建，无命名弹窗） */
+const navigateWithCreateIntent = (intent: string) => {
+  const kbId = createDocTargetKbId.value
+  if (!kbId) {
+    void router.push({ name: "knowledge" })
     return
   }
 
-  void router.push({ name: "knowledge" })
+  void router.push({
+    name: "knowledge-workspace-home",
+    params: { kbId },
+    query: { intent },
+  })
 }
 
-/** 模板中心 / AI 写作在项目内尚无独立页面，先落地到最近活跃知识库（可手动新建或后续接入）。 */
-const goToRecentWorkspace = () => {
-  if (createDocTargetKbId.value) {
-    void router.push({
-      name: "knowledge-workspace-home",
-      params: { kbId: createDocTargetKbId.value },
-    })
-    return
-  }
-
-  void router.push({ name: "knowledge" })
+/** AI 帮你写：直达 AI 写作页（功能页已上线） */
+const goAiWriting = () => {
+  void router.push({ name: "knowledge-ai-writing" })
 }
 
-/** 对齐语雀开始页：横向描边功能卡（新建文档▾ / 新建知识库 / 模板中心 / AI 帮你写） */
+/** 对齐语雀开始页（2026-09-21 真机截图实测）：横向白底描边功能卡，图标带彩色 + 徽标
+ * （文档卡墨色文档+蓝徽、知识库卡墨色本子+绿徽）；AI 帮你写是自有差异化入口，同款描边卡。 */
 type StartQuickItem = {
-  id: "doc" | "kb" | "template" | "ai"
+  id: "kb" | "template" | "ai"
   title: string
   subtitle: string
   icon: string
+  /** 图标角上的 + 徽标色（对齐语雀卡图标），空=无徽标 */
+  badgeClass?: string
+  badgePosition?: "top" | "bottom"
 }
 
 const startCards: StartQuickItem[] = [
-  { id: "doc", title: "新建文档", subtitle: "文档、表格、画板、数据表", icon: "ph:file-plus" },
-  { id: "kb", title: "新建知识库", subtitle: "使用知识库整理知识", icon: "ph:books" },
+  {
+    id: "kb",
+    title: "新建知识库",
+    subtitle: "使用知识库整理知识",
+    icon: "ph:books",
+    badgeClass: "text-brand!",
+    badgePosition: "top",
+  },
   { id: "template", title: "模板中心", subtitle: "从模板中获取灵感", icon: "ph:layout" },
   { id: "ai", title: "AI 帮你写", subtitle: "AI 助手帮你一键生成文档", icon: "ph:sparkle" },
 ]
+
+/** 新建文档卡下拉（对齐语雀真机截图：小记⌘⇧Y/文档/表格/画板/数据表 + 分隔线 + 导入…）。
+ * 图标色为语雀原版标识色（绿小记/蓝文档/绿表格/紫画板/青数据表），紫/青走
+ * --kb-accent-* 单点 token；`!` 后缀压过暗色 html.dark svg 的 color:inherit 劫持（坑 13）。 */
+type StartCreateMenuItem = {
+  key: "notes" | "doc" | "sheet" | "board" | "datatable"
+  label: string
+  icon: string
+  iconClass: string
+  shortcut?: string
+}
+
+const startCreateMenuItems: StartCreateMenuItem[] = [
+  { key: "notes", label: "新建小记", icon: "ph:leaf", iconClass: "text-brand!", shortcut: "⌘ ⇧ Y" },
+  { key: "doc", label: "新建文档", icon: "ph:file-text", iconClass: "text-accent-blue!" },
+  { key: "sheet", label: "新建表格", icon: "ph:rows", iconClass: "text-brand!" },
+  { key: "board", label: "新建画板", icon: "ph:shapes", iconClass: "text-accent-purple!" },
+  { key: "datatable", label: "新建数据表", icon: "ph:chart-bar", iconClass: "text-accent-cyan!" },
+]
+
+const docCreateMenuOpen = ref(false)
+
+const handleCreateMenuItem = (key: StartCreateMenuItem["key"] | "import") => {
+  docCreateMenuOpen.value = false
+
+  if (key === "notes") {
+    // 小记无「即时建空记」流程（小记页为输入框+列表形态），对齐侧栏直达小记页
+    void router.push({ name: "knowledge-notes" })
+    return
+  }
+
+  if (key === "import") {
+    navigateWithCreateIntent("import-any")
+    return
+  }
+
+  navigateWithCreateIntent(`create-${key}`)
+}
+
+const handleDocMenuKeydown = (event: KeyboardEvent) => {
+  if (event.key === "Escape") {
+    docCreateMenuOpen.value = false
+  }
+}
 
 /** 模板中心：进入最近活跃知识库的模板中心页（未识别到知识库时退回列表）。 */
 const goToTemplateCenter = () => {
@@ -268,11 +317,6 @@ const goToTemplateCenter = () => {
 
 const createKbDialogOpen = ref(false)
 const handleQuickSelect = (item: StartQuickItem) => {
-  if (item.id === "doc") {
-    goCreateDocument()
-    return
-  }
-
   if (item.id === "kb") {
     createKbDialogOpen.value = true
     return
@@ -283,7 +327,7 @@ const handleQuickSelect = (item: StartQuickItem) => {
     return
   }
 
-  goToRecentWorkspace()
+  goAiWriting()
 }
 
 const handleKbCreated = (kb: KnowledgeBaseItem) => {
@@ -328,6 +372,7 @@ watch(activeTab, () => {
 })
 
 onMounted(() => {
+  window.addEventListener("keydown", handleDocMenuKeydown)
   void load()
   void listKnowledgeBases()
     .then((bases) => {
@@ -336,6 +381,10 @@ onMounted(() => {
     .catch(() => {
       // 快捷卡的目标知识库仅为导航提效，加载失败时回退到知识库列表页
     })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleDocMenuKeydown)
 })
 </script>
 
@@ -347,14 +396,105 @@ onMounted(() => {
         <h1 class="text-[24px] font-semibold leading-8 text-ink">开始</h1>
 
         <div class="mt-4 grid max-w-[860px] gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- 新建文档卡：整卡为下拉触发器（语雀真机同款），面板与卡片同宽、左对齐、
+               上方 8px 间距；开合遮罩与面板的手写定位沿用侧栏/列头新建菜单的既有模式 -->
+          <div class="relative">
+            <button
+              type="button"
+              class="group flex h-full w-full items-center gap-3 rounded-kb-xl border border-line bg-surface px-4 py-3.5 text-left transition duration-150 hover:border-brand-lighter hover:shadow-[var(--kb-hover-shadow)]"
+              :aria-expanded="docCreateMenuOpen"
+              @click="docCreateMenuOpen = !docCreateMenuOpen"
+            >
+              <span class="relative flex h-8 w-8 shrink-0 items-center justify-center">
+                <Icon icon="ph:note" :width="24" :height="24" class="text-ink" />
+                <Icon
+                  icon="ph:plus-circle-fill"
+                  :width="13"
+                  :height="13"
+                  class="absolute -bottom-0.5 -right-1 text-accent-blue!"
+                />
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-[14px] font-medium text-ink">新建文档</span>
+                <span class="block truncate text-[12px] leading-4 text-ink-tertiary"
+                  >文档、表格、画板、数据表</span
+                >
+              </span>
+              <Icon
+                icon="ph:caret-down"
+                :width="14"
+                :height="14"
+                class="shrink-0 text-ink-quaternary transition duration-150"
+                :class="docCreateMenuOpen ? 'rotate-180' : ''"
+              />
+            </button>
+
+            <div
+              v-if="docCreateMenuOpen"
+              class="fixed inset-0 z-10"
+              @click="docCreateMenuOpen = false"
+            />
+            <div
+              v-if="docCreateMenuOpen"
+              class="absolute left-0 top-[calc(100%+8px)] z-20 w-full rounded-kb-xl border border-line bg-surface p-2 shadow-[var(--kb-float-shadow)]"
+            >
+              <button
+                v-for="menuItem in startCreateMenuItems"
+                :key="menuItem.key"
+                type="button"
+                class="flex h-10 w-full items-center gap-2.5 rounded-kb-md px-3 text-left text-[14px] text-ink transition duration-100 hover:bg-muted"
+                @click="handleCreateMenuItem(menuItem.key)"
+              >
+                <Icon
+                  :icon="menuItem.icon"
+                  :width="16"
+                  :height="16"
+                  class="shrink-0"
+                  :class="menuItem.iconClass"
+                />
+                <span class="min-w-0 flex-1 truncate">{{ menuItem.label }}</span>
+                <span v-if="menuItem.shortcut" class="shrink-0 text-[12px] text-ink-quaternary">
+                  {{ menuItem.shortcut }}
+                </span>
+              </button>
+              <div class="my-2 h-px bg-grey-200" />
+              <button
+                type="button"
+                class="flex h-10 w-full items-center gap-2.5 rounded-kb-md px-3 text-left text-[14px] text-ink transition duration-100 hover:bg-muted"
+                @click="handleCreateMenuItem('import')"
+              >
+                <Icon
+                  icon="ph:download-simple"
+                  :width="16"
+                  :height="16"
+                  class="shrink-0 text-ink-secondary"
+                />
+                <span class="min-w-0 flex-1 truncate">导入…</span>
+              </button>
+            </div>
+          </div>
+
           <button
             v-for="item in startCards"
             :key="item.id"
             type="button"
-            class="group flex items-center gap-3 rounded-[12px] border border-line bg-surface px-4 py-3.5 text-left transition duration-150 hover:border-brand-lighter hover:shadow-[var(--kb-panel-shadow)]"
+            class="group flex items-center gap-3 rounded-kb-xl border border-line bg-surface px-4 py-3.5 text-left transition duration-150 hover:border-brand-lighter hover:shadow-[var(--kb-hover-shadow)]"
             @click="handleQuickSelect(item)"
           >
-            <Icon :icon="item.icon" :width="22" :height="22" class="shrink-0 text-ink-secondary" />
+            <span class="relative flex h-8 w-8 shrink-0 items-center justify-center">
+              <Icon :icon="item.icon" :width="24" :height="24" class="text-ink" />
+              <Icon
+                v-if="item.badgeClass"
+                icon="ph:plus-circle-fill"
+                :width="13"
+                :height="13"
+                class="absolute"
+                :class="[
+                  item.badgeClass,
+                  item.badgePosition === 'top' ? '-top-0.5 -right-1' : '-bottom-0.5 -right-1',
+                ]"
+              />
+            </span>
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[14px] font-medium text-ink" :title="item.title">{{
                 item.title
@@ -365,13 +505,6 @@ onMounted(() => {
                 >{{ item.subtitle }}</span
               >
             </span>
-            <Icon
-              v-if="item.id === 'doc'"
-              icon="ph:caret-down"
-              :width="14"
-              :height="14"
-              class="shrink-0 text-ink-quaternary"
-            />
           </button>
         </div>
 

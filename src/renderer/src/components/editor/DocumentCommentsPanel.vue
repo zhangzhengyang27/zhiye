@@ -51,7 +51,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   close: []
-  "switch-tab": [tab: "search" | "comments" | "versions" | "info" | "ai"]
+  "switch-tab": [tab: "search" | "comments" | "versions" | "info" | "style" | "ai"]
   submit: [content: string]
   "cancel-compose": []
   resolve: [id: string]

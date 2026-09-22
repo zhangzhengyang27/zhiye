@@ -152,7 +152,7 @@ const insertToEnd = () => {
       <div class="flex items-center justify-between">
         <h2 class="flex items-center gap-1.5 text-base font-semibold text-ink">
           <AppIcon name="i-lucide-sparkles" class="h-4 w-4 text-brand" />
-          AI 助手
+          AI 写作
         </h2>
         <button
           type="button"

@@ -8,12 +8,16 @@ import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
 export const normalizeNodeIds = (nodeIds: string[]) =>
   Array.from(new Set(nodeIds.filter((nodeId) => nodeId.trim().length > 0)))
 
+/** 可展开容器：分组，或挂了子级的文档（批次 B 文档嵌套文档）。 */
+const isExpandableContainer = (node: KnowledgeDocumentTreeNode): boolean =>
+  node.type === "folder" || node.children.length > 0
+
 export const collectFolderIds = (nodes: KnowledgeDocumentTreeNode[]) => {
   const folderIds: string[] = []
 
   const walk = (list: KnowledgeDocumentTreeNode[]) => {
     list.forEach((node) => {
-      if (node.type === "folder") {
+      if (isExpandableContainer(node)) {
         folderIds.push(node.id)
       }
 
@@ -29,9 +33,9 @@ export const collectFolderIds = (nodes: KnowledgeDocumentTreeNode[]) => {
 }
 
 /**
- * 收集深度 < maxDepth 的目录 id（根层为 1 级），用于 KB 偏好「默认展开级别」（#16）：
- * level=1 展开根层目录、2 再展开其子目录，以此类推。非目录节点不参与，
- * level 非法（<=0）时返回空数组（不展开任何目录）。
+ * 收集深度 < maxDepth 的可展开容器 id（分组或挂子级的文档；根层为 1 级），
+ * 用于 KB 偏好「默认展开级别」（#16）：level=1 展开根层、2 再展开其子层，以此类推。
+ * level 非法（<=0）时返回空数组（不展开任何层）。
  */
 export const collectFolderIdsUpToDepth = (nodes: KnowledgeDocumentTreeNode[], maxDepth: number) => {
   const folderIds: string[] = []
@@ -42,7 +46,7 @@ export const collectFolderIdsUpToDepth = (nodes: KnowledgeDocumentTreeNode[], ma
 
   const walk = (list: KnowledgeDocumentTreeNode[], depth: number) => {
     list.forEach((node) => {
-      if (node.type === "folder" && depth < maxDepth) {
+      if (isExpandableContainer(node) && depth < maxDepth) {
         folderIds.push(node.id)
       }
 
@@ -145,12 +149,17 @@ const isInSubtree = (subtree: KnowledgeDocumentTreeNode | null, nodeId: string):
 }
 
 /**
- * 纯函数版拖拽合法性判定（与 use-tree-drag 的运行时判定同口径，供单测与复用）：
+ * 纯函数版拖拽合法性判定（与 use-tree-drag 的运行时判定同口径，供单测与复用）。
+ * 规则与后端 documents.service 的 parentRuleViolation 三路收口同源（批次 B，
+ * 对齐语雀「分组 > 文档 > 文档」），以「有效父级」统一 inside 与 before/after：
  * 1. 不能拖到自身；
- * 2. inside 仅目录（目标不是 folder 一律拒绝）；
- * 3. 目录不可进入自身或自身后代（新父级为自身 id，或新父级落在自身子树内；
- *    inside 的新父级即 nodeId，before/after 的新父级是 parentId）。
- * 非目录节点（文档/外链）只要前两条通过即可放置。
+ * 2. 有效父级（inside = 目标行自身；before/after = 目标行父级；根级 = null）
+ *    必须是分组或文档——外链/模板行不能挂子级；
+ * 3. 分组不能挂到文档下；
+ * 4. 文档挂文档最多两级：有效父级是文档时，源不得自带 doc 子级
+ *    （否则「移动带子级文档」会拼出三级文档链）；
+ * 5. 不可进入自身或自身后代（防环；inside 的新父级即 nodeId，
+ *    before/after 的新父级是 parentId）。
  */
 export const canDropTreeNode = (
   nodes: KnowledgeDocumentTreeNode[],
@@ -163,19 +172,30 @@ export const canDropTreeNode = (
   }
 
   const targetNode = findTreeNode(nodes, target.nodeId)
+  void targetNode
 
-  // 规则 2：inside 仅目录
-  if (target.position === "inside" && targetNode?.type !== "folder") {
+  // 规则 2：解析有效父级并校验其类型
+  const effectiveParentId = target.position === "inside" ? target.nodeId : target.parentId
+  const effectiveParentType = effectiveParentId
+    ? (findTreeNode(nodes, effectiveParentId)?.type ?? null)
+    : null
+
+  if (effectiveParentType && effectiveParentType !== "folder" && effectiveParentType !== "doc") {
     return false
   }
 
-  if (sourceNode.type !== "folder") {
-    return true
+  // 规则 3/4：分组不进文档；文档挂文档最多两级（源不得自带 doc 子级）
+  if (effectiveParentType === "doc") {
+    if (sourceNode.type === "folder") {
+      return false
+    }
+
+    if (sourceNode.children.some((child) => child.type === "doc")) {
+      return false
+    }
   }
 
-  // 规则 3：目录不可入自身或自身后代（按落点解析出的「新父级」判定）
-  const effectiveParentId = target.position === "inside" ? target.nodeId : target.parentId
-
+  // 规则 5：不可入自身或自身后代（防环）
   if (!effectiveParentId) {
     return true
   }

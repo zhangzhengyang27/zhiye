@@ -256,8 +256,10 @@ const switchShareSidePanel = (tab: ShareSidePanelTab | null) => {
   openShareSidePanel(tab)
 }
 
-const handleShareSidePanelSwitch = (tab: "search" | "comments" | "versions" | "info" | "ai") => {
-  if (tab === "versions" || tab === "ai") {
+const handleShareSidePanelSwitch = (
+  tab: "search" | "comments" | "versions" | "info" | "style" | "ai",
+) => {
+  if (tab === "versions" || tab === "ai" || tab === "style") {
     return
   }
 

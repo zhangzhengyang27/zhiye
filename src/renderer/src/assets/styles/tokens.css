@@ -121,6 +121,15 @@
   /* 文件类型标识色：与状态色区分开，避免「视频文件」被误读成告警 */
   --kb-file-video: #c026d3;
 
+  /* 单点标识色三件（刻意不扩整族色板）：KB 蓝（侧栏/列表页 KB 书本图标）、画板紫 /
+     数据表青（开始页与各新建菜单下拉的图标标识色；紫 #7e5ed0 / 青 #28b0d3 取自
+     2026-09-21 语雀真机截图采样）。消费端写 text-accent-*!——暗色 html.dark svg 的
+     color:inherit 劫持必须 ! 后缀赢回（坑 13），utility 由 style.css @theme 的
+     --color-accent-* 映射生成 */
+  --kb-accent-blue: var(--kb-blue-500);
+  --kb-accent-purple: #7e5ed0;
+  --kb-accent-cyan: #28b0d3;
+
   /* ---------- 2. 语义层：表面 / 边框 / 文字 ---------- */
   --kb-surface-bg: #ffffff;
   --kb-surface-soft-bg: var(--kb-grey-100);
@@ -364,6 +373,11 @@
 
   /* 暗底上的紫需要提亮才能维持对比度 */
   --kb-file-video: #e879f9;
+
+  /* 单点标识色暗侧提亮（同 --kb-file-video 的「暗底上的彩需提亮」口径；蓝走 blue-600） */
+  --kb-accent-blue: var(--kb-blue-600);
+  --kb-accent-purple: #9d85e0;
+  --kb-accent-cyan: #4cc3e3;
 
   /* 暗色文字四档——真实语雀暗色实测值（2026-09-19，html[data-kumuhana=pouli]）：
      text-primary #e2e2e2 / text-body #b3b3b3 / text-caption #848484 / text-disable #505050。

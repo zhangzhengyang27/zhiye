@@ -113,7 +113,12 @@ export const useTreeDrag = (options: {
         continue
       }
 
-      const position = resolveDropPositionByRect(clientY, rect, row.type === "folder")
+      // 分组与文档（挂子级，批次 B）都可进入 inside 命中带
+      const position = resolveDropPositionByRect(
+        clientY,
+        rect,
+        row.type === "folder" || row.type === "doc",
+      )
 
       if (position === "inside") {
         return {
@@ -209,19 +214,41 @@ export const useTreeDrag = (options: {
     return findTreeNode(treeNodes.value, target.parentId)
   }
 
+  /** 计算「有效父级」类型：inside = 目标行自身；before/after = 目标行父级；根级 = null。
+   *  与后端 parentRuleViolation 同源的深度/父级类型规则都以此为准。 */
+  const resolveEffectiveParentType = (
+    target: TreeDropTarget,
+    targetNode: KnowledgeDocumentTreeNode | null,
+  ) => {
+    if (target.position === "inside") {
+      return targetNode?.type ?? null
+    }
+
+    return target.parentId ? (findTreeNode(treeNodes.value, target.parentId)?.type ?? null) : null
+  }
+
   const canDropTreeNode = (sourceNode: KnowledgeDocumentTreeNode, target: TreeDropTarget) => {
     const targetNode = getTreeDropTargetNode(target)
+    const effectiveParentType = resolveEffectiveParentType(target, targetNode)
 
     if (targetNode && sourceNode.id === targetNode.id) {
       return false
     }
 
-    if (target.position === "inside" && targetNode?.type !== "folder") {
+    // 有效父级必须是分组或文档——外链/模板行不能挂子级
+    if (effectiveParentType && effectiveParentType !== "folder" && effectiveParentType !== "doc") {
       return false
     }
 
-    if (sourceNode.type !== "folder") {
-      return true
+    // 分组不能挂到文档下；文档挂文档最多两级（源不得自带 doc 子级）
+    if (effectiveParentType === "doc") {
+      if (sourceNode.type === "folder") {
+        return false
+      }
+
+      if (sourceNode.children.some((child) => child.type === "doc")) {
+        return false
+      }
     }
 
     if (!target.parentId) {
@@ -242,25 +269,36 @@ export const useTreeDrag = (options: {
     const targetNode = getTreeDropTargetNode(target)
     const targetParentNode = getTreeDropTargetParentNode(target)
     const targetLabel = targetNode?.title.trim() || targetParentNode?.title.trim() || "当前位置"
+    const sourceLabel = sourceNode.type === "folder" ? "分组" : "文档"
+    const effectiveParentType = resolveEffectiveParentType(target, targetNode)
 
     if (targetNode && sourceNode.id === targetNode.id) {
       return "不能把当前节点拖到自己本身，请换到其他节点附近。"
     }
 
-    if (target.position === "inside" && targetNode?.type !== "folder") {
-      return `「${targetLabel}」不是文件夹，只能插入到它的上方或下方。`
+    if (effectiveParentType && effectiveParentType !== "folder" && effectiveParentType !== "doc") {
+      return `「${targetLabel}」不能挂子级，请拖到它的上下边缘，或拖到分组中部。`
     }
 
-    if (sourceNode.type === "folder") {
-      if (
-        target.parentId === sourceNode.id ||
-        (target.parentId && isDescendantNode(sourceNode.id, target.parentId))
-      ) {
-        return "文件夹不能拖入自己的子级目录，请改放到同级或父级附近。"
-      }
+    if (effectiveParentType === "doc" && sourceNode.type === "folder") {
+      return "分组不能挂到文档下，请拖到分组或根级附近。"
     }
 
-    return "当前位置不可放置，请拖到节点上下边缘，或拖到文件夹中部。"
+    if (
+      effectiveParentType === "doc" &&
+      sourceNode.children.some((child) => child.type === "doc")
+    ) {
+      return "文档嵌套最多两级（分组 > 文档 > 文档），请先移走它的子文档。"
+    }
+
+    if (
+      target.parentId === sourceNode.id ||
+      (target.parentId && isDescendantNode(sourceNode.id, target.parentId))
+    ) {
+      return `${sourceLabel}不能拖入自己或自己的子级，请改放到同级或父级附近。`
+    }
+
+    return "当前位置不可放置，请拖到节点上下边缘，或拖到分组中部。"
   }
 
   const clearTreeDragHoverExpand = () => {
@@ -321,7 +359,9 @@ export const useTreeDrag = (options: {
     if (
       inputMode === "touch" ||
       position !== "inside" ||
-      node.type !== "folder" ||
+      (node.type !== "folder" && node.type !== "doc") ||
+      // 无子级的文档没有可展开内容，不写展开集合
+      (node.type === "doc" && node.children.length === 0) ||
       expandedFolderIds.value.includes(node.id)
     ) {
       clearTreeDragHoverExpand()
@@ -449,7 +489,8 @@ export const useTreeDrag = (options: {
 
     const parentNode = findTreeNode(treeNodes.value, parentId)
 
-    if (!parentNode || parentNode.type !== "folder") {
+    // 分组与文档（挂子级，批次 B）都能作为拖拽落点的父级容器
+    if (!parentNode || (parentNode.type !== "folder" && parentNode.type !== "doc")) {
       return null
     }
 

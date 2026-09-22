@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** 标签组件，负责文档Side面板视图切换。 */
-type DocumentSidePanelTab = "search" | "comments" | "versions" | "info" | "ai"
+type DocumentSidePanelTab = "search" | "comments" | "versions" | "info" | "style" | "ai"
 
 const props = withDefaults(
   defineProps<{
@@ -24,7 +24,8 @@ const tabItems: Array<{ id: DocumentSidePanelTab; label: string; icon: string }>
   { id: "search", label: "搜索", icon: "i-lucide-search" },
   { id: "comments", label: "讨论", icon: "i-lucide-message-circle" },
   { id: "versions", label: "历史", icon: "i-lucide-history" },
-  { id: "info", label: "信息", icon: "i-lucide-panel-right-open" },
+  { id: "info", label: "操作与信息", icon: "i-lucide-panel-right-open" },
+  { id: "style", label: "样式设置", icon: "i-lucide-settings-2" },
   { id: "ai", label: "AI", icon: "i-lucide-sparkles" },
 ]
 </script>

@@ -69,11 +69,8 @@ export const useTreeFocus = (options: {
           depth,
         })
 
-        if (
-          node.type === "folder" &&
-          expandedFolderIds.value.includes(node.id) &&
-          node.children.length > 0
-        ) {
+        // 展开的容器（分组与挂子级的文档，批次 B）才下钻
+        if (node.children.length > 0 && expandedFolderIds.value.includes(node.id)) {
           walk(node.children, depth + 1)
         }
       })
@@ -97,7 +94,8 @@ export const useTreeFocus = (options: {
     while (currentParentId) {
       const parentNode = findTreeNode(treeNodes.value, currentParentId)
 
-      if (!parentNode || parentNode.type !== "folder") {
+      // 分组与文档（挂子级，批次 B）都是容器；父级是外链等叶子类型时到顶
+      if (!parentNode || (parentNode.type !== "folder" && parentNode.type !== "doc")) {
         break
       }
 
@@ -264,7 +262,11 @@ export const useTreeFocus = (options: {
     if (event.key === "ArrowLeft") {
       event.preventDefault()
 
-      if (targetNode.type === "folder" && expandedFolderIds.value.includes(targetNode.id)) {
+      // 分组与挂子级的文档（批次 B）都可折叠
+      if (
+        (targetNode.type === "folder" || targetNode.children.length > 0) &&
+        expandedFolderIds.value.includes(targetNode.id)
+      ) {
         options.toggleFolder(targetNode.id)
         return true
       }
@@ -283,7 +285,8 @@ export const useTreeFocus = (options: {
     if (event.key === "ArrowRight") {
       event.preventDefault()
 
-      if (targetNode.type !== "folder") {
+      // 叶子行（无子级的文档/外链等）不响应右键展开
+      if (targetNode.type !== "folder" && targetNode.children.length === 0) {
         return true
       }
 

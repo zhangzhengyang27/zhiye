@@ -120,7 +120,11 @@ const unregisterRow = (payload: { nodeId: string }) => {
         @unregister-row="unregisterRow($event)"
       />
 
-      <div v-if="node.type === 'folder' && expandedIds.includes(node.id)" role="group">
+      <!-- 分组与挂子级的文档（批次 B 文档嵌套文档）都可展开子级 -->
+      <div
+        v-if="expandedIds.includes(node.id) && (node.type === 'folder' || node.children.length > 0)"
+        role="group"
+      >
         <KnowledgeTreeBranch
           :nodes="node.children"
           :depth="depth + 1"

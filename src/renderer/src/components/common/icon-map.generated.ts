@@ -18,6 +18,7 @@ import { PhCaretLeft } from "@phosphor-icons/vue"
 import { PhCaretRight } from "@phosphor-icons/vue"
 import { PhCaretUp } from "@phosphor-icons/vue"
 import { PhCaretUpDown } from "@phosphor-icons/vue"
+import { PhChartBar } from "@phosphor-icons/vue"
 import { PhCheck } from "@phosphor-icons/vue"
 import { PhCheckCircle } from "@phosphor-icons/vue"
 import { PhCheckSquare } from "@phosphor-icons/vue"
@@ -52,6 +53,7 @@ import { PhHouseSimple } from "@phosphor-icons/vue"
 import { PhImage } from "@phosphor-icons/vue"
 import { PhInfo } from "@phosphor-icons/vue"
 import { PhLayout } from "@phosphor-icons/vue"
+import { PhLeaf } from "@phosphor-icons/vue"
 import { PhLinkSimple } from "@phosphor-icons/vue"
 import { PhListChecks } from "@phosphor-icons/vue"
 import { PhListDashes } from "@phosphor-icons/vue"
@@ -59,16 +61,21 @@ import { PhLock } from "@phosphor-icons/vue"
 import { PhMagnifyingGlass } from "@phosphor-icons/vue"
 import { PhMonitor } from "@phosphor-icons/vue"
 import { PhMoon } from "@phosphor-icons/vue"
+import { PhNote } from "@phosphor-icons/vue"
 import { PhNoteBlank } from "@phosphor-icons/vue"
 import { PhNotePencil } from "@phosphor-icons/vue"
+import { PhNotebook } from "@phosphor-icons/vue"
 import { PhPalette } from "@phosphor-icons/vue"
 import { PhPaperclip } from "@phosphor-icons/vue"
 import { PhPencilSimple } from "@phosphor-icons/vue"
 import { PhPlus } from "@phosphor-icons/vue"
+import { PhPlusCircle } from "@phosphor-icons/vue"
 import { PhPushPin } from "@phosphor-icons/vue"
 import { PhPushPinSimple } from "@phosphor-icons/vue"
 import { PhPushPinSlash } from "@phosphor-icons/vue"
 import { PhRocketLaunch } from "@phosphor-icons/vue"
+import { PhRows } from "@phosphor-icons/vue"
+import { PhShapes } from "@phosphor-icons/vue"
 import { PhShareFat } from "@phosphor-icons/vue"
 import { PhShieldCheck } from "@phosphor-icons/vue"
 import { PhSignOut } from "@phosphor-icons/vue"
@@ -93,43 +100,31 @@ import { ArrowLeft } from "lucide-vue-next"
 import { AtSign } from "lucide-vue-next"
 import { BadgeCheck } from "lucide-vue-next"
 import { Ban } from "lucide-vue-next"
-import { BookCopy } from "lucide-vue-next"
 import { BookMarked } from "lucide-vue-next"
 import { BookOpen } from "lucide-vue-next"
-import { BookOpenText } from "lucide-vue-next"
-import { Brackets } from "lucide-vue-next"
 import { Calendar } from "lucide-vue-next"
 import { Check } from "lucide-vue-next"
 import { ChevronDown } from "lucide-vue-next"
 import { ChevronRight } from "lucide-vue-next"
 import { CircleAlert } from "lucide-vue-next"
 import { CircleCheckBig } from "lucide-vue-next"
-import { ClipboardType } from "lucide-vue-next"
 import { Clock } from "lucide-vue-next"
 import { Cloud } from "lucide-vue-next"
 import { CloudAlert } from "lucide-vue-next"
-import { CloudOff } from "lucide-vue-next"
-import { CloudUpload } from "lucide-vue-next"
 import { Copy } from "lucide-vue-next"
 import { CornerDownLeft } from "lucide-vue-next"
 import { CornerDownRight } from "lucide-vue-next"
 import { Database } from "lucide-vue-next"
-import { Download } from "lucide-vue-next"
 import { Eraser } from "lucide-vue-next"
 import { Eye } from "lucide-vue-next"
-import { FileDown } from "lucide-vue-next"
 import { FileEdit } from "lucide-vue-next"
-import { FileJson } from "lucide-vue-next"
 import { FileText } from "lucide-vue-next"
-import { FileType } from "lucide-vue-next"
 import { FlaskConical } from "lucide-vue-next"
 import { Folder } from "lucide-vue-next"
 import { GitCompare } from "lucide-vue-next"
-import { GitCompareArrows } from "lucide-vue-next"
 import { HardDrive } from "lucide-vue-next"
 import { Highlighter } from "lucide-vue-next"
 import { History } from "lucide-vue-next"
-import { House } from "lucide-vue-next"
 import { Image } from "lucide-vue-next"
 import { ImageUp } from "lucide-vue-next"
 import { Info } from "lucide-vue-next"
@@ -137,36 +132,26 @@ import { KeyRound } from "lucide-vue-next"
 import { Keyboard } from "lucide-vue-next"
 import { LayoutTemplate } from "lucide-vue-next"
 import { Link } from "lucide-vue-next"
-import { Link2 } from "lucide-vue-next"
 import { List } from "lucide-vue-next"
-import { ListTree } from "lucide-vue-next"
 import { Loader2 } from "lucide-vue-next"
 import { LoaderCircle } from "lucide-vue-next"
 import { Locate } from "lucide-vue-next"
 import { Lock } from "lucide-vue-next"
 import { LockOpen } from "lucide-vue-next"
 import { MessageCircle } from "lucide-vue-next"
-import { MoreHorizontal } from "lucide-vue-next"
+import { MessageSquareText } from "lucide-vue-next"
 import { Network } from "lucide-vue-next"
 import { OctagonAlert } from "lucide-vue-next"
 import { PanelLeftClose } from "lucide-vue-next"
-import { PanelRightClose } from "lucide-vue-next"
 import { PanelRightOpen } from "lucide-vue-next"
-import { PanelsTopLeft } from "lucide-vue-next"
 import { Plus } from "lucide-vue-next"
-import { Printer } from "lucide-vue-next"
 import { QrCode } from "lucide-vue-next"
 import { RefreshCw } from "lucide-vue-next"
-import { RotateCw } from "lucide-vue-next"
-import { Save } from "lucide-vue-next"
 import { Search } from "lucide-vue-next"
-import { Send } from "lucide-vue-next"
 import { Settings2 } from "lucide-vue-next"
 import { ShieldCheck } from "lucide-vue-next"
 import { Sparkles } from "lucide-vue-next"
-import { SquareArrowOutUpRight } from "lucide-vue-next"
 import { Star } from "lucide-vue-next"
-import { StarOff } from "lucide-vue-next"
 import { Table2 } from "lucide-vue-next"
 import { ThumbsUp } from "lucide-vue-next"
 import { Trash2 } from "lucide-vue-next"
@@ -203,6 +188,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:caret-right": { component: PhCaretRight },
   "ph:caret-up": { component: PhCaretUp },
   "ph:caret-up-down": { component: PhCaretUpDown },
+  "ph:chart-bar": { component: PhChartBar },
   "ph:check-bold": { component: PhCheck, attrs: { weight: "bold" } },
   "ph:check-circle": { component: PhCheckCircle },
   "ph:check-square": { component: PhCheckSquare },
@@ -237,6 +223,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:image": { component: PhImage },
   "ph:info": { component: PhInfo },
   "ph:layout": { component: PhLayout },
+  "ph:leaf": { component: PhLeaf },
   "ph:link-simple": { component: PhLinkSimple },
   "ph:list-checks": { component: PhListChecks },
   "ph:list-dashes": { component: PhListDashes },
@@ -244,16 +231,21 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:magnifying-glass": { component: PhMagnifyingGlass },
   "ph:monitor": { component: PhMonitor },
   "ph:moon": { component: PhMoon },
+  "ph:note": { component: PhNote },
   "ph:note-blank": { component: PhNoteBlank },
   "ph:note-pencil": { component: PhNotePencil },
+  "ph:notebook": { component: PhNotebook },
   "ph:palette": { component: PhPalette },
   "ph:paperclip": { component: PhPaperclip },
   "ph:pencil-simple": { component: PhPencilSimple },
   "ph:plus": { component: PhPlus },
+  "ph:plus-circle-fill": { component: PhPlusCircle, attrs: { weight: "fill" } },
   "ph:push-pin": { component: PhPushPin },
   "ph:push-pin-simple": { component: PhPushPinSimple },
   "ph:push-pin-slash": { component: PhPushPinSlash },
   "ph:rocket-launch": { component: PhRocketLaunch },
+  "ph:rows": { component: PhRows },
+  "ph:shapes": { component: PhShapes },
   "ph:share-fat": { component: PhShareFat },
   "ph:shield-check": { component: PhShieldCheck },
   "ph:sign-out": { component: PhSignOut },
@@ -278,43 +270,31 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-at-sign": { component: AtSign },
   "i-lucide-badge-check": { component: BadgeCheck },
   "i-lucide-ban": { component: Ban },
-  "i-lucide-book-copy": { component: BookCopy },
   "i-lucide-book-marked": { component: BookMarked },
   "i-lucide-book-open": { component: BookOpen },
-  "i-lucide-book-open-text": { component: BookOpenText },
-  "i-lucide-brackets": { component: Brackets },
   "i-lucide-calendar": { component: Calendar },
   "i-lucide-check": { component: Check },
   "i-lucide-chevron-down": { component: ChevronDown },
   "i-lucide-chevron-right": { component: ChevronRight },
   "i-lucide-circle-alert": { component: CircleAlert },
   "i-lucide-circle-check-big": { component: CircleCheckBig },
-  "i-lucide-clipboard-type": { component: ClipboardType },
   "i-lucide-clock": { component: Clock },
   "i-lucide-cloud": { component: Cloud },
   "i-lucide-cloud-alert": { component: CloudAlert },
-  "i-lucide-cloud-off": { component: CloudOff },
-  "i-lucide-cloud-upload": { component: CloudUpload },
   "i-lucide-copy": { component: Copy },
   "i-lucide-corner-down-left": { component: CornerDownLeft },
   "i-lucide-corner-down-right": { component: CornerDownRight },
   "i-lucide-database": { component: Database },
-  "i-lucide-download": { component: Download },
   "i-lucide-eraser": { component: Eraser },
   "i-lucide-eye": { component: Eye },
-  "i-lucide-file-down": { component: FileDown },
   "i-lucide-file-edit": { component: FileEdit },
-  "i-lucide-file-json": { component: FileJson },
   "i-lucide-file-text": { component: FileText },
-  "i-lucide-file-type": { component: FileType },
   "i-lucide-flask-conical": { component: FlaskConical },
   "i-lucide-folder": { component: Folder },
   "i-lucide-git-compare": { component: GitCompare },
-  "i-lucide-git-compare-arrows": { component: GitCompareArrows },
   "i-lucide-hard-drive": { component: HardDrive },
   "i-lucide-highlighter": { component: Highlighter },
   "i-lucide-history": { component: History },
-  "i-lucide-house": { component: House },
   "i-lucide-image": { component: Image },
   "i-lucide-image-up": { component: ImageUp },
   "i-lucide-info": { component: Info },
@@ -322,36 +302,26 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-keyboard": { component: Keyboard },
   "i-lucide-layout-template": { component: LayoutTemplate },
   "i-lucide-link": { component: Link },
-  "i-lucide-link-2": { component: Link2 },
   "i-lucide-list": { component: List },
-  "i-lucide-list-tree": { component: ListTree },
   "i-lucide-loader-2": { component: Loader2 },
   "i-lucide-loader-circle": { component: LoaderCircle },
   "i-lucide-locate": { component: Locate },
   "i-lucide-lock": { component: Lock },
   "i-lucide-lock-open": { component: LockOpen },
   "i-lucide-message-circle": { component: MessageCircle },
-  "i-lucide-more-horizontal": { component: MoreHorizontal },
+  "i-lucide-message-square-text": { component: MessageSquareText },
   "i-lucide-network": { component: Network },
   "i-lucide-octagon-alert": { component: OctagonAlert },
   "i-lucide-panel-left-close": { component: PanelLeftClose },
-  "i-lucide-panel-right-close": { component: PanelRightClose },
   "i-lucide-panel-right-open": { component: PanelRightOpen },
-  "i-lucide-panels-top-left": { component: PanelsTopLeft },
   "i-lucide-plus": { component: Plus },
-  "i-lucide-printer": { component: Printer },
   "i-lucide-qr-code": { component: QrCode },
   "i-lucide-refresh-cw": { component: RefreshCw },
-  "i-lucide-rotate-cw": { component: RotateCw },
-  "i-lucide-save": { component: Save },
   "i-lucide-search": { component: Search },
-  "i-lucide-send": { component: Send },
   "i-lucide-settings-2": { component: Settings2 },
   "i-lucide-shield-check": { component: ShieldCheck },
   "i-lucide-sparkles": { component: Sparkles },
-  "i-lucide-square-arrow-out-up-right": { component: SquareArrowOutUpRight },
   "i-lucide-star": { component: Star },
-  "i-lucide-star-off": { component: StarOff },
   "i-lucide-table-2": { component: Table2 },
   "i-lucide-thumbs-up": { component: ThumbsUp },
   "i-lucide-trash-2": { component: Trash2 },

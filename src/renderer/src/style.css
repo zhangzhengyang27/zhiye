@@ -144,6 +144,11 @@
   /* 文件类型标识色 */
   --color-file-video: var(--kb-file-video);
 
+  /* 单点标识色（KB 蓝 / 画板紫 / 数据表青，亮暗两档见 tokens.css --kb-accent-*） */
+  --color-accent-blue: var(--kb-accent-blue);
+  --color-accent-purple: var(--kb-accent-purple);
+  --color-accent-cyan: var(--kb-accent-cyan);
+
   /* 结构层 token 的 utility 映射（语雀排版 / 圆角）。
      用 kb- 前缀避免覆盖 Tailwind 默认的 text-sm / rounded-md，
      现有页面的硬编码值不受影响，新代码统一走这套 */

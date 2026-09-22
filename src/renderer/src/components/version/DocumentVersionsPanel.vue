@@ -54,7 +54,7 @@ const emit = defineEmits<{
   /** 本地快照：恢复到该快照内容 / 清空当前文档全部快照 */
   "restore-snapshot": [snapshot: DocumentLocalSnapshot]
   "clear-snapshots": []
-  "switch-tab": [tab: "search" | "comments" | "versions" | "info" | "ai"]
+  "switch-tab": [tab: "search" | "comments" | "versions" | "info" | "style" | "ai"]
 }>()
 
 const historyTab = ref<HistoryTab>("records")

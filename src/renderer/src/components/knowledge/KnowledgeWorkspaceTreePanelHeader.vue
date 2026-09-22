@@ -136,7 +136,7 @@ defineExpose({
               class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
               @click="handleCreateAction('doc')"
             >
-              <Icon icon="ph:file-plus" :width="15" :height="15" class="text-ink-tertiary" />
+              <Icon icon="ph:file-plus" :width="15" :height="15" class="text-accent-blue!" />
               <span>新建文档</span>
             </button>
             <button
@@ -157,7 +157,7 @@ defineExpose({
               class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
               @click="handleCreateAction('board')"
             >
-              <Icon icon="ph:frame-corners" :width="15" :height="15" class="text-ink-tertiary" />
+              <Icon icon="ph:frame-corners" :width="15" :height="15" class="text-accent-purple!" />
               <span>新建画板</span>
             </button>
             <button
@@ -165,7 +165,7 @@ defineExpose({
               class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
               @click="handleCreateAction('datatable')"
             >
-              <Icon icon="ph:table" :width="15" :height="15" class="text-ink-tertiary" />
+              <Icon icon="ph:table" :width="15" :height="15" class="text-accent-cyan!" />
               <span>新建数据表</span>
             </button>
             <button
@@ -173,7 +173,7 @@ defineExpose({
               class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
               @click="handleCreateAction('sheet')"
             >
-              <Icon icon="ph:grid-nine" :width="15" :height="15" class="text-ink-tertiary" />
+              <Icon icon="ph:grid-nine" :width="15" :height="15" class="text-brand!" />
               <span>新建表格</span>
             </button>
             <button
@@ -181,7 +181,7 @@ defineExpose({
               class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
               @click="handleCreateAction('mindmap')"
             >
-              <Icon icon="ph:tree-structure" :width="15" :height="15" class="text-ink-tertiary" />
+              <Icon icon="ph:tree-structure" :width="15" :height="15" class="text-warning!" />
               <span>新建思维导图</span>
             </button>
             <button

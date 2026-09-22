@@ -30,8 +30,12 @@ async function shoot(page, name, route, options = {}) {
     if (message.type() === "error") errorsByPage[name].push(message.text())
   }
   const onPageError = (error) => errorsByPage[name].push(`pageerror: ${error.message}`)
+  const onResponse = (response) => {
+    if (response.status() === 404) errorsByPage[name].push(`404: ${response.url()}`)
+  }
   page.on("console", onConsole)
   page.on("pageerror", onPageError)
+  page.on("response", onResponse)
 
   try {
     await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 })
@@ -49,6 +53,7 @@ async function shoot(page, name, route, options = {}) {
   }
   await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: false })
   logStep(prefix, `✓ ${name} (${route})`)
+  page.off("response", onResponse)
   page.off("console", onConsole)
   page.off("pageerror", onPageError)
 }
@@ -60,7 +65,11 @@ const { browser, page } = await createBrowserPage({
 
 await loginThroughUi(page, prefix)
 const accessToken = await readAccessToken(page)
-const kb = await ensureKnowledgeBase(accessToken, prefix)
+const kb = await ensureKnowledgeBase(
+  accessToken,
+  prefix,
+  `B1 验收库 ${new Date().toISOString().slice(5, 16).replace("T", " ")}`,
+)
 const doc = await ensureDocument(kb.id, accessToken)
 logStep(prefix, `使用知识库 ${kb.id} / 文档 ${doc.id}`)
 

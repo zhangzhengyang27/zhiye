@@ -29,6 +29,7 @@ import {
 } from "@/types/knowledge-document"
 import { createKnowledgeBoardDocument } from "@/utils/knowledge-board"
 import { getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
+import { findTreeNode } from "@/components/knowledge/tree-utils"
 import type {
   TreeNodeMenuGroup,
   TreeNodeMenuItem,
@@ -248,31 +249,44 @@ export const useTreeNodeActions = (options: {
       return
     }
 
-    // 对齐语雀新建弹窗：根目录 + 各级目录（带路径缩进 label）
+    // 对齐语雀新建弹窗：根目录 + 各级容器（带路径缩进 label）。
+    // 选项按子级类型过滤（评审 I2）：新建分组只能选分组作父级；新建文档类不能选
+    // 「已挂在文档下的文档」——否则后端深度规则必拒，绿灯选项变成 403
+    const isFolderCreate = type === "folder"
     const folders: Array<{ id: string; label: string }> = [{ id: "", label: "根目录" }]
 
-    const walkFolders = (nodes: KnowledgeDocumentTreeNode[], prefix: string) => {
+    const walkFolders = (
+      nodes: KnowledgeDocumentTreeNode[],
+      prefix: string,
+      parentType: string | null,
+    ) => {
       nodes.forEach((item) => {
-        if (item.type !== "folder") {
+        if (item.type !== "folder" && item.type !== "doc") {
           return
         }
 
         const path = prefix ? `${prefix} / ${item.title}` : item.title
-        folders.push({ id: item.id, label: path })
-        walkFolders(item.children, path)
+
+        if (
+          isFolderCreate ? item.type === "folder" : item.type === "folder" || parentType !== "doc"
+        ) {
+          folders.push({ id: item.id, label: path })
+        }
+
+        walkFolders(item.children, path, item.type)
       })
     }
 
-    walkFolders(options.treeNodes.value, "")
+    walkFolders(options.treeNodes.value, "", null)
 
     const specializedMeta = isSpecializedCreateType(type) ? SPECIALIZED_CREATE_META[type] : null
     const isFolder = type === "folder"
 
     inputDialog.value = {
       open: true,
-      title: isFolder ? "新建文件夹" : specializedMeta ? specializedMeta.dialogTitle : "新建文档",
+      title: isFolder ? "新建分组" : specializedMeta ? specializedMeta.dialogTitle : "新建文档",
       defaultValue: isFolder
-        ? "新建文件夹"
+        ? "新建分组"
         : specializedMeta
           ? specializedMeta.dialogDefault
           : "新建文档",
@@ -297,7 +311,7 @@ export const useTreeNodeActions = (options: {
           })
           options.showToastMessage(
             isFolder
-              ? "文件夹已创建。"
+              ? "分组已创建。"
               : `${specializedMeta?.label ?? "文档"}「${normalizedTitle}」已创建。`,
             "success",
           )
@@ -472,8 +486,20 @@ export const useTreeNodeActions = (options: {
 
     const actionNode = targetNode ?? resolveActionNode()
 
-    if (!actionNode || actionNode.type !== "folder") {
+    // 分组与文档（批次 B）都可作新建子级的父级；但挂在文档下的文档不行
+    // （分组 > 文档 > 文档 深度规则，与菜单 disabled 同口径，评审 I2）
+    if (!actionNode || (actionNode.type !== "folder" && actionNode.type !== "doc")) {
       return
+    }
+
+    if (actionNode.type === "doc") {
+      const parentType = actionNode.parentId
+        ? (findTreeNode(options.treeNodes.value, actionNode.parentId)?.type ?? null)
+        : null
+
+      if (parentType === "doc") {
+        return
+      }
     }
 
     options.closeNodeMenu()
@@ -820,6 +846,12 @@ export const useTreeNodeActions = (options: {
     }
 
     const groups: TreeNodeMenuGroup[] = []
+    const menuNodeParentType = menu.node.parentId
+      ? (findTreeNode(options.treeNodes.value, menu.node.parentId)?.type ?? null)
+      : null
+    // 分组恒可挂子文档；文档只有不挂在文档下时才能再挂子文档（分组 > 文档 > 文档，评审 I2）
+    const canTakeDocChildren =
+      menu.node.type === "folder" || (menu.node.type === "doc" && menuNodeParentType !== "doc")
     const createItems: TreeNodeMenuItem[] = [
       {
         id: "create-doc",
@@ -827,12 +859,12 @@ export const useTreeNodeActions = (options: {
         shortcut: "N",
         ariaKeyshortcuts: "N",
         icon: "ph:file-plus",
-        disabled: menu.node.type !== "folder" || !options.canEdit(),
+        disabled: !canTakeDocChildren || !options.canEdit(),
         onClick: () => void handleNodeMenuCreateChild("doc"),
       },
       {
         id: "create-folder",
-        label: "新建子文件夹",
+        label: "新建子分组",
         shortcut: "Shift+N",
         ariaKeyshortcuts: "Shift+N",
         icon: "ph:folder-simple-plus",
@@ -845,7 +877,7 @@ export const useTreeNodeActions = (options: {
         shortcut: "B",
         ariaKeyshortcuts: "B",
         icon: "ph:clipboard-text",
-        disabled: menu.node.type !== "folder" || !options.canEdit(),
+        disabled: !canTakeDocChildren || !options.canEdit(),
         onClick: () => void handleNodeMenuCreateChild("board"),
       },
     ]
@@ -1034,14 +1066,26 @@ export const useTreeNodeActions = (options: {
       return
     }
 
-    if (!withModifier && !event.altKey && normalizedKey === "n" && targetNode.type === "folder") {
+    const shortcutParentType = targetNode.parentId
+      ? (findTreeNode(options.treeNodes.value, targetNode.parentId)?.type ?? null)
+      : null
+    // 与菜单 disabled 同口径：挂在文档下的文档不能再挂子文档（评审 I2）
+    const shortcutCanTakeDocChildren =
+      targetNode.type === "folder" || (targetNode.type === "doc" && shortcutParentType !== "doc")
+
+    if (!withModifier && !event.altKey && normalizedKey === "n" && shortcutCanTakeDocChildren) {
       if (!options.canEdit()) {
         return
       }
 
       event.preventDefault()
 
+      // Shift+N 新建子分组仍仅限分组节点；N 在分组与文档上都是新建子文档
       if (event.shiftKey) {
+        if (targetNode.type !== "folder") {
+          return
+        }
+
         void handleNodeMenuCreateChild("folder", targetNode)
         return
       }
@@ -1050,7 +1094,7 @@ export const useTreeNodeActions = (options: {
       return
     }
 
-    if (!withModifier && !event.altKey && normalizedKey === "b" && targetNode.type === "folder") {
+    if (!withModifier && !event.altKey && normalizedKey === "b" && shortcutCanTakeDocChildren) {
       if (!options.canEdit()) {
         return
       }

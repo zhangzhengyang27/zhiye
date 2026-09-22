@@ -9,7 +9,7 @@ import DocumentInfoOverviewCard from "./info/DocumentInfoOverviewCard.vue"
 import DocumentInfoQuickActionsCard from "./info/DocumentInfoQuickActionsCard.vue"
 import type { DocumentInfoAction } from "./info/DocumentInfoQuickActionsCard.vue"
 
-type DocumentSidePanelTab = "search" | "comments" | "versions" | "info" | "ai"
+type DocumentSidePanelTab = "search" | "comments" | "versions" | "info" | "style" | "ai"
 
 type OutlineItem = {
   id: string
@@ -34,7 +34,7 @@ type ShortcutItem = {
 const props = withDefaults(
   defineProps<{
     open: boolean
-    activeTab: "info"
+    activeTab: "info" | "style"
     documentTitle: string
     workspaceName: string
     documentModeLabel: string
@@ -51,6 +51,11 @@ const props = withDefaults(
     shortcuts?: ShortcutItem[]
     /** 创建者 / 创建时间 / 更新时间等元信息行（对齐语雀信息面板） */
     meta?: Array<{ label: string; value: string }>
+    /** 语雀「样式设置」tab：正文样式与页面尺寸 */
+    docStyle?: { fontSize: number; paragraphSpacing: "default" | "relax" }
+    docWidthMode?: "standard" | "wide"
+    creatorLabel?: string
+    updatedAtLabel?: string
   }>(),
   {
     availableTabs: () => ["versions", "info"],
@@ -59,6 +64,10 @@ const props = withDefaults(
     saveStatusLabel: undefined,
     shortcuts: () => [],
     meta: () => [],
+    docStyle: undefined,
+    docWidthMode: undefined,
+    creatorLabel: "",
+    updatedAtLabel: "",
   },
 )
 
@@ -74,6 +83,24 @@ const emit = defineEmits<{
   "open-knowledge-network": []
   "insert-emoji": []
   "enter-reading": []
+  "copy-markdown-link": []
+  "open-in-browser": []
+  "export-action": [
+    action:
+      | "print-doc"
+      | "export-markdown"
+      | "export-pdf"
+      | "export-word"
+      | "export-image"
+      | "export-lake",
+  ]
+  "save-doc": []
+  "reload-doc": []
+  "make-template": []
+  "move-trash": []
+  "open-stats": []
+  "update:doc-style": [style: { fontSize: number; paragraphSpacing: "default" | "relax" }]
+  "update:doc-width-mode": [mode: "standard" | "wide"]
 }>()
 
 /** 打开期间按 Esc 关闭（遮罩点击之外的第二关闭路径）；对话框压顶时让位 */
@@ -103,11 +130,26 @@ const quickActions = computed(() => {
   const actionMap: Array<{ id: DocumentInfoAction; label: string }> = [
     { id: "open-knowledge-network", label: "知识网络" },
     { id: "enter-reading", label: "进入阅读模式" },
+    // Lake 原生 unicodeEmoji：光标处插入 emoji 卡（卡片自带分类/搜索面板）；编辑态可见
+    { id: "insert-emoji", label: "插入表情" },
     { id: "copy-link", label: "复制链接" },
     { id: "open-share", label: "打开分享" },
-    { id: "open-history", label: "历史版本" },
+    { id: "open-history", label: "查看历史版本" },
     { id: "open-template-library", label: "模板库" },
     { id: "toggle-favorite", label: props.favorite ? "取消收藏" : "收藏文档" },
+    // 顶栏收编的原「更多菜单」能力(对齐语雀操作与信息列表的 导出…/复制…/移动…/删除)
+    { id: "copy-markdown-link", label: "复制标题链接" },
+    { id: "open-in-browser", label: "在浏览器打开" },
+    { id: "print-doc", label: "打印文档" },
+    { id: "export-markdown", label: "导出为 Markdown" },
+    { id: "export-pdf", label: "导出为 PDF" },
+    { id: "export-word", label: "导出为 Word" },
+    { id: "export-image", label: "导出为图片" },
+    { id: "export-lake", label: "导出为语雀文档 (.lake)" },
+    { id: "save-doc", label: "保存文档" },
+    { id: "reload-doc", label: "重新加载文档" },
+    { id: "make-template", label: "设为模板" },
+    { id: "move-trash", label: "移入回收站" },
   ]
 
   return actionMap.filter((action) => props.visibleActions.includes(action.id))
@@ -177,6 +219,53 @@ const handleQuickAction = (action: DocumentInfoAction) => {
     return
   }
 
+  if (action === "copy-markdown-link") {
+    emit("copy-markdown-link")
+    return
+  }
+
+  if (action === "open-in-browser") {
+    emit("open-in-browser")
+    return
+  }
+
+  if (action === "insert-emoji") {
+    emit("insert-emoji")
+    return
+  }
+
+  if (
+    action === "print-doc" ||
+    action === "export-markdown" ||
+    action === "export-pdf" ||
+    action === "export-word" ||
+    action === "export-image" ||
+    action === "export-lake"
+  ) {
+    emit("export-action", action)
+    return
+  }
+
+  if (action === "save-doc") {
+    emit("save-doc")
+    return
+  }
+
+  if (action === "reload-doc") {
+    emit("reload-doc")
+    return
+  }
+
+  if (action === "make-template") {
+    emit("make-template")
+    return
+  }
+
+  if (action === "move-trash") {
+    emit("move-trash")
+    return
+  }
+
   emit("toggle-favorite")
 }
 </script>
@@ -238,143 +327,249 @@ const handleQuickAction = (action: DocumentInfoAction) => {
       </div>
 
       <div class="flex-1 overflow-y-auto bg-surface-soft px-4 py-4">
-        <DocumentInfoQuickActionsCard
-          v-if="quickActions.length > 0"
-          :quick-actions="quickActions"
-          :badge="quickActionsBadge"
-          @trigger-action="handleQuickAction"
-        />
-
-        <DocumentInfoOverviewCard class="mt-4" :stats="stats" :meta="meta" />
-
-        <section class="mt-4 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium text-ink">内容大纲</p>
-              <p class="mt-1 text-xs text-ink-quaternary">快速跳到对应标题附近。</p>
-            </div>
-            <span
-              class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
-            >
-              {{ outlineItems.length }} 个标题
-            </span>
-          </div>
-
-          <div
-            v-if="outlineItems.length === 0"
-            class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center"
-          >
-            <p class="text-sm font-medium text-ink-tertiary">还没有可用的大纲</p>
+        <!-- 样式设置 tab（对齐语雀：页面尺寸双卡 + 正文大小 + 段间距） -->
+        <template v-if="activeTab === 'style'">
+          <section class="rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
+            <p class="text-sm font-medium text-ink">文档样式</p>
             <p class="mt-1 text-xs leading-5 text-ink-quaternary">
-              插入 H1-H4 标题后，这里会自动生成结构。
+              以下设置仅对当前文档生效；页面尺寸跟随知识库「更多设置」。
             </p>
-          </div>
 
-          <div v-else class="mt-4 space-y-1.5">
-            <button
-              v-for="item in outlineItems"
-              :key="item.id"
-              type="button"
-              class="flex h-7 w-full items-center gap-2 rounded-kb-sm px-2 text-left text-kb-sm text-ink-secondary transition-colors hover:bg-grey-200 hover:text-brand"
-              :style="{ paddingLeft: `${12 + item.depth * 14}px` }"
-              @click="emit('jump-outline', item.id)"
-            >
-              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-60" />
-              <span class="truncate">{{ item.text }}</span>
-            </button>
-          </div>
-        </section>
-
-        <section class="mt-4 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium text-ink">协作成员</p>
-              <p class="mt-1 text-xs text-ink-quaternary">当前工作区里最近会参与这篇文档的成员。</p>
-            </div>
-            <span
-              class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
-            >
-              {{ collaborators.length }} 人
-            </span>
-          </div>
-
-          <div
-            v-if="collaborators.length === 0"
-            class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center"
-          >
-            <p class="text-sm font-medium text-ink-tertiary">还没有协作成员信息</p>
-          </div>
-
-          <div v-else class="mt-4 space-y-2">
-            <div
-              v-for="member in collaborators"
-              :key="member.id"
-              class="flex items-center gap-3 rounded-kb-2xl bg-muted px-3 py-3"
-            >
-              <div
-                class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-fill-muted text-[12px] font-semibold text-ink-secondary"
+            <p class="mt-4 text-[13px] font-medium text-ink">页面尺寸</p>
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <button
+                v-for="mode in [
+                  { value: 'standard', label: '标宽模式' },
+                  { value: 'wide', label: '超宽模式' },
+                ]"
+                :key="mode.value"
+                type="button"
+                class="flex flex-col items-center gap-2 rounded-kb-xl border px-3 py-4 transition"
+                :class="
+                  docWidthMode === mode.value
+                    ? 'border-brand bg-brand-faint/40 text-brand'
+                    : 'border-line bg-muted text-ink-secondary hover:border-brand-lighter'
+                "
+                @click="emit('update:doc-width-mode', mode.value as 'standard' | 'wide')"
               >
-                <img
-                  v-if="member.avatar"
-                  :src="member.avatar"
-                  :alt="member.label"
-                  class="h-full w-full object-cover"
-                />
-                <span v-else>{{ member.label.slice(0, 1).toUpperCase() }}</span>
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-[13px] font-medium text-ink">{{ member.label }}</p>
-                <p class="mt-0.5 text-[11px] text-ink-tertiary">{{ member.role }}</p>
-              </div>
+                <span
+                  class="flex h-8 w-12 flex-col justify-center gap-1 rounded-kb-md border border-current opacity-70"
+                >
+                  <span class="mx-auto block h-1 w-8 rounded-full bg-current"></span>
+                  <span class="mx-auto block h-1 w-6 rounded-full bg-current"></span>
+                </span>
+                <span class="text-[12px] font-medium">{{ mode.label }}</span>
+              </button>
             </div>
-          </div>
-        </section>
 
-        <section
-          v-if="shortcuts.length > 0"
-          class="mt-4 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]"
-        >
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium text-ink">快捷键</p>
-              <p class="mt-1 text-xs text-ink-quaternary">把高频操作保持在稳定的按键路径里。</p>
+            <p class="mt-4 text-[13px] font-medium text-ink">正文大小</p>
+            <div class="mt-1 flex items-center gap-3">
+              <el-slider
+                class="flex-1"
+                :min="12"
+                :max="20"
+                :step="1"
+                :model-value="docStyle?.fontSize ?? 15"
+                @change="
+                  (value: number | number[]) =>
+                    emit('update:doc-style', {
+                      fontSize: Number(value),
+                      paragraphSpacing: docStyle?.paragraphSpacing ?? 'default',
+                    })
+                "
+              />
+              <span class="w-10 shrink-0 text-right text-[12px] text-ink-tertiary"
+                >{{ docStyle?.fontSize ?? 15 }}px</span
+              >
             </div>
+
+            <div class="mt-4 flex items-center justify-between">
+              <p class="text-[13px] font-medium text-ink">段间距</p>
+              <el-radio-group
+                :model-value="docStyle?.paragraphSpacing ?? 'default'"
+                @update:model-value="
+                  (value) =>
+                    emit('update:doc-style', {
+                      fontSize: docStyle?.fontSize ?? 15,
+                      paragraphSpacing: value === 'relax' ? 'relax' : 'default',
+                    })
+                "
+              >
+                <el-radio value="default">常规</el-radio>
+                <el-radio value="relax">宽松</el-radio>
+              </el-radio-group>
+            </div>
+          </section>
+        </template>
+
+        <template v-else>
+          <!-- 文档信息卡（对齐语雀：作者 + 更新时间，点击开「统计详情」） -->
+          <section
+            v-if="creatorLabel || updatedAtLabel"
+            class="flex cursor-pointer items-center gap-3 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)] transition hover:bg-brand-faint/30"
+            @click="emit('open-stats')"
+          >
             <span
-              class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-kb-xl bg-fill-muted text-ink-secondary"
             >
-              {{ shortcuts.length }} 项
+              <Icon icon="ph:notebook" :width="18" :height="18" />
             </span>
-          </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[13px] font-medium text-ink">文档信息</p>
+              <p class="mt-0.5 truncate text-[11px] text-ink-tertiary">
+                {{ creatorLabel
+                }}<template v-if="updatedAtLabel"> · 更新于 {{ updatedAtLabel }}</template>
+              </p>
+            </div>
+            <Icon
+              icon="ph:caret-right"
+              :width="14"
+              :height="14"
+              class="shrink-0 text-ink-quaternary"
+            />
+          </section>
+          <!-- 内容大纲置顶：信息面板首屏即见大纲（此前排快捷操作/概览之后需滚动才见） -->
+          <section class="rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium text-ink">内容大纲</p>
+                <p class="mt-1 text-xs text-ink-quaternary">快速跳到对应标题附近。</p>
+              </div>
+              <span
+                class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
+              >
+                {{ outlineItems.length }} 个标题
+              </span>
+            </div>
 
-          <div class="mt-4 space-y-2">
             <div
-              v-for="shortcut in shortcuts"
-              :key="shortcut.id"
-              class="rounded-kb-2xl border border-line bg-muted px-3 py-3"
+              v-if="outlineItems.length === 0"
+              class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center"
             >
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <p class="text-[13px] font-medium text-ink">{{ shortcut.label }}</p>
-                  <p
-                    v-if="shortcut.description"
-                    class="mt-1 text-[11px] leading-5 text-ink-tertiary"
-                  >
-                    {{ shortcut.description }}
-                  </p>
+              <p class="text-sm font-medium text-ink-tertiary">还没有可用的大纲</p>
+              <p class="mt-1 text-xs leading-5 text-ink-quaternary">
+                插入 H1-H4 标题后，这里会自动生成结构。
+              </p>
+            </div>
+
+            <div v-else class="mt-4 space-y-1.5">
+              <button
+                v-for="item in outlineItems"
+                :key="item.id"
+                type="button"
+                class="flex h-7 w-full items-center gap-2 rounded-kb-sm px-2 text-left text-kb-sm text-ink-secondary transition-colors hover:bg-grey-200 hover:text-brand"
+                :style="{ paddingLeft: `${12 + item.depth * 14}px` }"
+                @click="emit('jump-outline', item.id)"
+              >
+                <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-60" />
+                <span class="truncate">{{ item.text }}</span>
+              </button>
+            </div>
+          </section>
+
+          <DocumentInfoQuickActionsCard
+            v-if="quickActions.length > 0"
+            class="mt-4"
+            :quick-actions="quickActions"
+            :badge="quickActionsBadge"
+            @trigger-action="handleQuickAction"
+          />
+
+          <DocumentInfoOverviewCard class="mt-4" :stats="stats" :meta="meta" />
+
+          <section class="mt-4 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium text-ink">协作成员</p>
+                <p class="mt-1 text-xs text-ink-quaternary">
+                  当前工作区里最近会参与这篇文档的成员。
+                </p>
+              </div>
+              <span
+                class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
+              >
+                {{ collaborators.length }} 人
+              </span>
+            </div>
+
+            <div
+              v-if="collaborators.length === 0"
+              class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center"
+            >
+              <p class="text-sm font-medium text-ink-tertiary">还没有协作成员信息</p>
+            </div>
+
+            <div v-else class="mt-4 space-y-2">
+              <div
+                v-for="member in collaborators"
+                :key="member.id"
+                class="flex items-center gap-3 rounded-kb-2xl bg-muted px-3 py-3"
+              >
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-fill-muted text-[12px] font-semibold text-ink-secondary"
+                >
+                  <img
+                    v-if="member.avatar"
+                    :src="member.avatar"
+                    :alt="member.label"
+                    class="h-full w-full object-cover"
+                  />
+                  <span v-else>{{ member.label.slice(0, 1).toUpperCase() }}</span>
                 </div>
-                <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
-                  <span
-                    v-for="key in shortcut.keys"
-                    :key="key"
-                    class="inline-flex items-center rounded-kb-lg border border-line-input bg-surface px-2 py-1 text-[11px] font-medium text-ink-tertiary"
-                  >
-                    {{ key }}
-                  </span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13px] font-medium text-ink">{{ member.label }}</p>
+                  <p class="mt-0.5 text-[11px] text-ink-tertiary">{{ member.role }}</p>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section
+            v-if="shortcuts.length > 0"
+            class="mt-4 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium text-ink">快捷键</p>
+                <p class="mt-1 text-xs text-ink-quaternary">把高频操作保持在稳定的按键路径里。</p>
+              </div>
+              <span
+                class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
+              >
+                {{ shortcuts.length }} 项
+              </span>
+            </div>
+
+            <div class="mt-4 space-y-2">
+              <div
+                v-for="shortcut in shortcuts"
+                :key="shortcut.id"
+                class="rounded-kb-2xl border border-line bg-muted px-3 py-3"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-[13px] font-medium text-ink">{{ shortcut.label }}</p>
+                    <p
+                      v-if="shortcut.description"
+                      class="mt-1 text-[11px] leading-5 text-ink-tertiary"
+                    >
+                      {{ shortcut.description }}
+                    </p>
+                  </div>
+                  <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
+                    <span
+                      v-for="key in shortcut.keys"
+                      :key="key"
+                      class="inline-flex items-center rounded-kb-lg border border-line-input bg-surface px-2 py-1 text-[11px] font-medium text-ink-tertiary"
+                    >
+                      {{ key }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </template>
       </div>
     </div>
   </Transition>

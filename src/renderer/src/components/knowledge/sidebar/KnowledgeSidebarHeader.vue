@@ -137,7 +137,7 @@ const fallbackInitial = (label?: string) => {
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleOpenNotes"
           >
-            <Icon icon="ph:feather" :width="15" :height="15" class="text-ink-tertiary" />
+            <Icon icon="ph:feather" :width="15" :height="15" class="text-brand!" />
             <span>小记</span>
           </button>
           <button
@@ -145,7 +145,7 @@ const fallbackInitial = (label?: string) => {
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleCreateAction('doc')"
           >
-            <Icon icon="ph:file-plus" :width="15" :height="15" class="text-ink-tertiary" />
+            <Icon icon="ph:file-plus" :width="15" :height="15" class="text-accent-blue!" />
             <span class="flex-1">新建文档</span>
             <span class="shrink-0 text-[11px] text-ink-quaternary">⌘ N</span>
           </button>
@@ -154,7 +154,7 @@ const fallbackInitial = (label?: string) => {
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleCreateAction('sheet')"
           >
-            <Icon icon="ph:grid-nine" :width="15" :height="15" class="text-ink-tertiary" />
+            <Icon icon="ph:grid-nine" :width="15" :height="15" class="text-brand!" />
             <span>新建表格</span>
           </button>
           <button
@@ -162,7 +162,7 @@ const fallbackInitial = (label?: string) => {
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleCreateAction('board')"
           >
-            <Icon icon="ph:frame-corners" :width="15" :height="15" class="text-ink-tertiary" />
+            <Icon icon="ph:frame-corners" :width="15" :height="15" class="text-accent-purple!" />
             <span>新建画板</span>
           </button>
           <button
@@ -170,7 +170,7 @@ const fallbackInitial = (label?: string) => {
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleCreateAction('datatable')"
           >
-            <Icon icon="ph:table" :width="15" :height="15" class="text-ink-tertiary" />
+            <Icon icon="ph:table" :width="15" :height="15" class="text-accent-cyan!" />
             <span>新建数据表</span>
           </button>
           <button
@@ -178,7 +178,7 @@ const fallbackInitial = (label?: string) => {
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleCreateAction('mindmap')"
           >
-            <Icon icon="ph:tree-structure" :width="15" :height="15" class="text-ink-tertiary" />
+            <Icon icon="ph:tree-structure" :width="15" :height="15" class="text-warning!" />
             <span>新建思维导图</span>
           </button>
           <button
@@ -186,7 +186,7 @@ const fallbackInitial = (label?: string) => {
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
             @click="handleCreateKb"
           >
-            <Icon icon="ph:book-open-text" :width="15" :height="15" class="text-ink-tertiary" />
+            <Icon icon="ph:book-open-text" :width="15" :height="15" class="text-accent-blue!" />
             <span>新建知识库</span>
           </button>
 

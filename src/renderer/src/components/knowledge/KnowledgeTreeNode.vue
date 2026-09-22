@@ -64,6 +64,8 @@ const emit = defineEmits<{
 const rowRef = ref<HTMLElement | null>(null)
 
 const isFolder = computed(() => props.node.type === "folder")
+// 可展开行：分组，或挂了子级的文档（批次 B 文档嵌套文档；箭头才承担展开/收起）
+const canExpand = computed(() => props.node.type === "folder" || props.node.children.length > 0)
 const isLink = computed(() => props.node.type === "link")
 const isExpanded = computed(() => props.expandedIds.includes(props.node.id))
 const isActiveDoc = computed(() => props.node.type === "doc" && props.activeDocId === props.node.id)
@@ -289,7 +291,7 @@ onBeforeUnmount(() => {
       :aria-level="depth + 1"
       :aria-selected="isSelectedNode"
       :aria-current="isActiveDoc ? 'page' : undefined"
-      :aria-expanded="isFolder ? isExpanded : undefined"
+      :aria-expanded="canExpand ? isExpanded : undefined"
       :tabindex="isSelectedNode ? 0 : -1"
       :data-knowledge-node-id="node.id"
       data-knowledge-tree-row
@@ -305,10 +307,10 @@ onBeforeUnmount(() => {
       @contextmenu="handleRowContextMenu"
     >
       <button
-        v-if="isFolder"
+        v-if="canExpand"
         type="button"
         class="rounded-kb-xs p-0.5 text-ink-quaternary transition duration-150 hover:bg-grey-200 hover:text-ink-secondary"
-        :aria-label="isExpanded ? '折叠目录' : '展开目录'"
+        :aria-label="isExpanded ? '折叠子级' : '展开子级'"
         @click="emit('toggle-folder', node.id)"
       >
         <Icon v-if="isExpanded" icon="ph:caret-down" :width="12" :height="12" />

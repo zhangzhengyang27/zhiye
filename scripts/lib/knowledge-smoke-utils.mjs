@@ -37,6 +37,11 @@ export function createDiagnostics() {
 
 /** 挂接 page 的 console/pageerror 监听，写入诊断桶。 */
 export function attachPageDiagnostics(page, diagnostics) {
+  page.on("response", (response) => {
+    if (response.status() >= 400) {
+      diagnostics.consoleErrors.push(`[dbg ${response.status()}] ${response.url()}`)
+    }
+  })
   page.on("console", (message) => {
     if (message.type() === "error") {
       diagnostics.consoleErrors.push(message.text())
