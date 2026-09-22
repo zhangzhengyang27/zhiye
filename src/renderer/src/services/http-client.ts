@@ -1,6 +1,7 @@
 /**
  * 封装知识库后端的统一请求入口、鉴权头组装与错误处理。
  */
+import { dispatchUnauthorizedEvent } from "./auth-events"
 import { resolveApiBaseUrl } from "./desktop-bridge"
 
 /**
@@ -119,12 +120,42 @@ export const buildApiUrl = (path: string) => {
   return `${API_BASE_URL}/${path}`
 }
 
+/** 这些端点的 401 有自己的语义（凭据错误/匿名访问/登出本身），不派发登出事件。 */
+const UNAUTHORIZED_EXEMPT_PATTERNS = ["/auth/login", "/auth/refresh", "/auth/logout"]
+
+/**
+ * 判断该响应的 401 是否代表登录态失效：公开分享等 /public/ 匿名端点与认证
+ * 端点豁免，其余路径派发全局登出事件，使裸 fetch 通道与 kb-drive-http 的
+ * 401 行为一致（App.vue 按空 token 去重，重复派发无副作用）。
+ */
+const isUnauthorizedSessionExpired = (url: string): boolean => {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  try {
+    const pathname = new URL(url, window.location.origin).pathname.toLowerCase()
+    if (UNAUTHORIZED_EXEMPT_PATTERNS.some((pattern) => pathname.includes(pattern))) {
+      return false
+    }
+    return !pathname.includes("/public/")
+  } catch {
+    return false
+  }
+}
+
 /**
  * 在响应失败时抛出统一的接口错误。
  */
 export const ensureApiResponseOk = async (response: Response, fallbackMessage: string) => {
   if (response.ok) {
     return
+  }
+
+  // 401 → 派发全局未授权事件统一跳转登录（刷新层已派发过一次的路径由
+  // App.vue 去重；此处补齐不经刷新链的裸 fetch 通道）
+  if (response.status === 401 && isUnauthorizedSessionExpired(response.url)) {
+    dispatchUnauthorizedEvent()
   }
 
   const bodyText = await response.text()

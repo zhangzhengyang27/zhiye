@@ -5,7 +5,7 @@ import { formatClockTime, formatDateTime } from "@/utils/date-format"
 import { isImeComposing } from "@/utils/keyboard"
 import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from "vue-router"
-import { onClickOutside } from "@vueuse/core"
+import { onClickOutside, refDebounced } from "@vueuse/core"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import { getApiErrorStatus } from "@/services/http-client"
 import { resolveWebBaseUrl } from "@/services/desktop-bridge"
@@ -27,6 +27,7 @@ import {
   deleteKnowledgeDocumentVersion,
   getDocumentLike,
   getKnowledgeDocument,
+  getKnowledgeDocumentVersion,
   likeDocument as likeDocumentApi,
   listKnowledgeDocumentVersions,
   recordKnowledgeDocumentView,
@@ -88,7 +89,10 @@ const YuqueDocEditor = defineAsyncComponent(() => import("@/components/editor/Yu
 
 /** Lake 编辑器组件实例：阅读态进出时经它开关内核原生大纲侧栏（toggleTocView）
  *  defineAsyncComponent 的 InstanceType 不透出 defineExpose 成员，这里以结构类型承接 */
-const lakeEditorRef = ref<{ toggleToc?: () => void; insertEmojiCard?: (...args: unknown[]) => unknown } | null>(null)
+const lakeEditorRef = ref<{
+  toggleToc?: () => void
+  insertEmojiCard?: (...args: unknown[]) => unknown
+} | null>(null)
 
 /** 对齐语雀桌面端工具栏的可见项，保留常用格式化工具。 */
 const EDITOR_TOOLBAR_ITEMS = [
@@ -120,6 +124,7 @@ const EDITOR_TOOLBAR_ITEMS = [
   // Lake 内置查找替换（⇧⌘F 唤起面板；内核 search 插件提供 search/replaceText/replaceAll 命令）
   "search",
 ]
+import type { DocumentInfoAction } from "@/components/editor/info/DocumentInfoQuickActionsCard.vue"
 const DocumentInfoPanel = defineAsyncComponent(
   () => import("@/components/editor/DocumentInfoPanel.vue"),
 )
@@ -274,35 +279,14 @@ const versionsDialogOpen = ref(false)
 const versionsLoading = ref(false)
 const versions = ref<KnowledgeDocumentVersionItem[]>([])
 const deletingVersionId = ref<string | null>(null)
-const selectedVersionIds = ref<string[]>([])
-const batchDeletingVersions = ref(false)
+/** 历史记录面板当前选中行（对齐语雀：单选，无勾选框/批量） */
+type VersionSelection = { kind: "version"; id: string } | { kind: "local"; at: number } | null
+const versionSelection = ref<VersionSelection>(null)
+const versionPreview = ref<{ loading: boolean; scheme: string; value: string } | null>(null)
+const versionsPanelRef = ref<{ closeSaveForm: () => void } | null>(null)
 const favorited = ref(false)
 
 /** 版本面板「本地缓存」分区：展示未保存改动 / 保存失败等仅存在于本地的状态 */
-const versionsLocalCacheItems = computed(() => {
-  const items: Array<{ key: string; title: string; detail: string; tone?: "default" | "warning" }> =
-    []
-
-  if (saveError.value) {
-    items.push({
-      key: "save-error",
-      title: "上次保存失败",
-      detail: `${saveError.value} 内容仍保留在当前编辑器中，可重试保存。`,
-      tone: "warning",
-    })
-  }
-
-  if (isDirty.value) {
-    items.push({
-      key: "dirty",
-      title: "未保存的改动",
-      detail: "最新编辑暂存在当前编辑器中，保存后写入服务端并生成历史记录。",
-      tone: "warning",
-    })
-  }
-
-  return items
-})
 const togglingFavorite = ref(false)
 const docType = ref<string>("doc")
 
@@ -897,17 +881,7 @@ watch(isReadingMode, (reading) => {
 const workspaceName = computed(() => workspaceContext.knowledgeBase.value?.name || "知识库")
 const schemeLabel = computed(() => (scheme.value === "text/html" ? "HTML" : "Markdown"))
 const documentModeLabel = computed(() => (canEdit.value ? "编辑态" : "只读态"))
-const selectedVersionCount = computed(() => selectedVersionIds.value.length)
-const allVersionsSelected = computed(() => {
-  if (versions.value.length === 0) {
-    return false
-  }
-
-  return versions.value.every((version) => selectedVersionIds.value.includes(version.id))
-})
-const versionDeleteBusy = computed(
-  () => batchDeletingVersions.value || deletingVersionId.value !== null,
-)
+const versionDeleteBusy = computed(() => deletingVersionId.value !== null)
 // 顶栏协作者头像堆叠：对齐语雀心智，仅展示“其他协作者”（自己在右上角全局头像体现）
 const collaboratorsDialogOpen = ref(false)
 // P-C1 协作感知：WS 房间在线成员与本人保存广播
@@ -1099,12 +1073,15 @@ const loadedStateLabel = computed(() =>
   hasSavedInSession.value ? `已保存 ${formatClockTime(lastSavedAt.value)}` : "已加载最新版本",
 )
 
+/** D22：内容防抖镜像（400ms）——大纲与字数属展示统计，走镜像避免逐键重算/闪跳 */
+const contentMirror = refDebounced(content, 400)
+
 const outlineItems = computed<DocumentOutlineItem[]>(() => {
-  return extractDocumentOutline(content.value, scheme.value)
+  return extractDocumentOutline(contentMirror.value, scheme.value)
 })
 
 const plainTextContent = computed(() => {
-  return extractDocumentPlainText(content.value, scheme.value)
+  return extractDocumentPlainText(contentMirror.value, scheme.value)
 })
 
 const editorWordCountLabel = computed(() => `${plainTextContent.value.length} 字`)
@@ -1163,6 +1140,30 @@ const documentInfoMeta = computed(() => [
     label: "更新时间",
     value: snapshot.value?.updatedAt ? formatDateTime(snapshot.value.updatedAt) : "—",
   },
+])
+
+const infoPanelVisibleActions = computed<DocumentInfoAction[]>(() => [
+  "open-knowledge-network",
+  "enter-reading",
+  // Lake 原生 unicodeEmoji：光标处插入 emoji 卡（卡片自带分类/搜索面板）；编辑态可见
+  ...(canEdit.value && !isPreviewMode.value ? (["insert-emoji"] as const) : []),
+  "copy-link",
+  "copy-markdown-link",
+  "open-in-browser",
+  "open-template-library",
+  "open-share",
+  "open-history",
+  "print-doc",
+  "export-markdown",
+  "export-pdf",
+  "export-word",
+  "export-image",
+  "export-lake",
+  "save-doc",
+  "reload-doc",
+  "make-template",
+  "move-trash",
+  "toggle-favorite",
 ])
 
 const documentInfoShortcuts = computed(() => {
@@ -1330,35 +1331,96 @@ const clearRemoteCheckTimer = () => {
 }
 
 const clearVersionSelection = () => {
-  selectedVersionIds.value = []
+  versionSelection.value = null
+  versionPreview.value = null
 }
 
-const syncSelectedVersions = () => {
-  const validVersionIds = new Set(versions.value.map((version) => version.id))
-  selectedVersionIds.value = selectedVersionIds.value.filter((id) => validVersionIds.has(id))
-}
+/** 行选中（对齐语雀：点行即选中并预览该版本） */
+const handleVersionSelectionChange = async (selection: VersionSelection) => {
+  versionSelection.value = selection
 
-const toggleVersionSelection = (versionId: string) => {
-  if (versionDeleteBusy.value) {
+  if (!selection || selection.kind === "local") {
+    if (selection?.kind === "local") {
+      const snapshot = localSnapshots.value.find((item) => item.at === selection.at)
+      versionPreview.value = snapshot
+        ? { loading: false, scheme: scheme.value, value: snapshot.content }
+        : null
+    } else {
+      versionPreview.value = null
+    }
     return
   }
 
-  if (selectedVersionIds.value.includes(versionId)) {
-    selectedVersionIds.value = selectedVersionIds.value.filter((id) => id !== versionId)
-    return
-  }
+  const requestedDocId = docId.value
+  const requestedVersionId = selection.id
+  versionPreview.value = { loading: true, scheme: "text/markdown", value: "" }
 
-  selectedVersionIds.value = [...selectedVersionIds.value, versionId]
+  try {
+    const detail = await getKnowledgeDocumentVersion(requestedDocId, requestedVersionId)
+    if (
+      docId.value !== requestedDocId ||
+      versionSelection.value?.kind !== "version" ||
+      versionSelection.value.id !== requestedVersionId
+    ) {
+      return
+    }
+    const versionScheme = detail.content?.scheme === "text/html" ? "text/html" : "text/markdown"
+    versionPreview.value = {
+      loading: false,
+      scheme: versionScheme,
+      value: typeof detail.content?.value === "string" ? detail.content.value : "",
+    }
+  } catch {
+    if (
+      docId.value === requestedDocId &&
+      versionSelection.value?.kind === "version" &&
+      versionSelection.value.id === requestedVersionId
+    ) {
+      versionPreview.value = null
+      showToastMessage("加载版本预览失败。", "error")
+    }
+  }
 }
 
-const toggleAllVersions = () => {
-  if (versionDeleteBusy.value) {
+/** 头部「恢复此{N}」：作用于当前选中行（版本走回滚接口，本地快照走本地恢复） */
+const handleRestoreSelected = () => {
+  const selection = versionSelection.value
+
+  if (!selection || versionDeleteBusy.value) {
     return
   }
 
-  selectedVersionIds.value = allVersionsSelected.value
-    ? []
-    : versions.value.map((version) => version.id)
+  if (selection.kind === "version") {
+    rollbackVersion(selection.id)
+    return
+  }
+
+  const snapshot = localSnapshots.value.find((item) => item.at === selection.at)
+  if (snapshot) {
+    handleRestoreSnapshot(snapshot)
+  }
+}
+
+/** 保存为版本：把当前正文以命名版本沉淀（PATCH versionName 触发版本记录） */
+const handleSaveAsVersion = async (name: string) => {
+  if (!docId.value) {
+    return
+  }
+
+  try {
+    const updated = await updateKnowledgeDocument(docId.value, {
+      content: { scheme: scheme.value, value: content.value },
+      versionName: name,
+      message: `保存为版本 ${name}`,
+    })
+    versionsPanelRef.value?.closeSaveForm()
+    normalizeDocument(updated)
+    showToastMessage(`已存为版本「${name}」。`, "success")
+    await loadVersions()
+  } catch (error) {
+    versionsPanelRef.value?.closeSaveForm()
+    showToastMessage(error instanceof Error ? error.message : "保存版本失败。", "error")
+  }
 }
 
 const normalizeDocument = (document: KnowledgeDocumentItem) => {
@@ -1845,6 +1907,12 @@ const openVersions = async () => {
   await openSidePanel("versions")
 }
 
+/** 统计详情「历史版本」卡点击：关统计弹窗并打开版本面板（内联多语句会踩模板表达式语法） */
+const openVersionsFromStatsDialog = () => {
+  showStatsDialog.value = false
+  void openVersions()
+}
+
 let versionsLoadSeq = 0
 
 const loadVersions = async () => {
@@ -1863,7 +1931,6 @@ const loadVersions = async () => {
       return false
     }
     versions.value = loaded
-    syncSelectedVersions()
     return true
   } catch (error) {
     if (seq === versionsLoadSeq && docId.value === requestedDocId) {
@@ -1915,7 +1982,7 @@ const deleteVersion = (versionId: string) => {
 
   confirmDialog.value = {
     open: true,
-    message: "确认删除此历史版本吗？该操作不可恢复。",
+    message: "是否要删除该历史版本？删除后不可恢复。",
     onConfirm: async () => {
       if (!docId.value) {
         return
@@ -1927,11 +1994,15 @@ const deleteVersion = (versionId: string) => {
         await deleteKnowledgeDocumentVersion(docId.value, versionId)
         await loadVersions()
 
+        if (versionSelection.value?.kind === "version" && versionSelection.value.id === versionId) {
+          clearVersionSelection()
+        }
+
         if (versions.value.length < 2) {
           showVersionCompare.value = false
         }
 
-        showToastMessage("历史版本已删除。", "success")
+        showToastMessage("该历史版本已删除。", "success")
       } catch (error) {
         showToastMessage(error instanceof Error ? error.message : "删除历史版本失败。", "error")
       } finally {
@@ -1941,75 +2012,21 @@ const deleteVersion = (versionId: string) => {
   }
 }
 
-const deleteSelectedVersions = () => {
-  if (!docId.value || selectedVersionIds.value.length === 0 || versionDeleteBusy.value) {
-    return
-  }
-
-  const targetVersionIds = [...selectedVersionIds.value]
-
-  confirmDialog.value = {
-    open: true,
-    message: `确认删除选中的 ${targetVersionIds.length} 个历史版本吗？该操作不可恢复。`,
-    onConfirm: async () => {
-      if (!docId.value) {
-        return
-      }
-
-      batchDeletingVersions.value = true
-      let deletedCount = 0
-
-      try {
-        for (const versionId of targetVersionIds) {
-          deletingVersionId.value = versionId
-          await deleteKnowledgeDocumentVersion(docId.value, versionId)
-          deletedCount += 1
-        }
-
-        await loadVersions()
-        clearVersionSelection()
-
-        if (versions.value.length < 2) {
-          showVersionCompare.value = false
-        }
-
-        showToastMessage(`已删除 ${deletedCount} 个历史版本。`, "success")
-      } catch (error) {
-        await loadVersions()
-
-        if (versions.value.length < 2) {
-          showVersionCompare.value = false
-        }
-
-        const fallbackMessage = error instanceof Error ? error.message : "批量删除历史版本失败。"
-        showToastMessage(
-          deletedCount > 0
-            ? `已删除 ${deletedCount} 个历史版本，剩余删除失败：${fallbackMessage}`
-            : fallbackMessage,
-          deletedCount > 0 ? "info" : "error",
-        )
-      } finally {
-        deletingVersionId.value = null
-        batchDeletingVersions.value = false
-      }
-    },
-  }
-}
-
 const rollbackVersion = (versionId: string) => {
   if (!docId.value || versionDeleteBusy.value) return
   confirmDialog.value = {
     open: true,
-    message: "确认回滚到此版本吗？当前未保存内容将丢失。",
+    message: "回退到历史版本会导致当前正在编辑的未保存内容丢失，请确认操作。",
     onConfirm: async () => {
       try {
         const updated = await rollbackKnowledgeDocumentVersion(docId.value, versionId)
         normalizeDocument(updated)
         await workspaceContext.refreshTree()
+        clearVersionSelection()
         closeSidePanels(null)
-        showToastMessage("已回滚到选中版本。", "success")
+        showToastMessage("已恢复到此版本。", "success")
       } catch (error) {
-        showToastMessage(error instanceof Error ? error.message : "回滚失败。", "error")
+        showToastMessage(error instanceof Error ? error.message : "恢复失败。", "error")
       }
     },
   }
@@ -2369,7 +2386,8 @@ const jumpToOutlineItem = async (itemId: string) => {
   requestAnimationFrame(() => {
     const headings = Array.from(
       document.querySelectorAll<HTMLElement>(
-        ".yuque-doc-editor__surface h1, .yuque-doc-editor__surface h2, .yuque-doc-editor__surface h3, .yuque-doc-editor__surface h4",
+        // Lake 渲染标题为自定义元素 ne-h1..ne-h4（非 h1-h6 标签，DOM 调试实证）
+        ".yuque-doc-editor__surface ne-h1, .yuque-doc-editor__surface ne-h2, .yuque-doc-editor__surface ne-h3, .yuque-doc-editor__surface ne-h4",
       ),
     )
 
@@ -2496,7 +2514,6 @@ watch(
     versionsLoadSeq++
     versionsLoading.value = false
     deletingVersionId.value = null
-    batchDeletingVersions.value = false
     pendingSaveRequest.value = null
     retryAttempt.value = 0
     remoteConflict.value = null
@@ -2620,7 +2637,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 flex-col bg-surface">
+  <div
+    class="flex h-full min-h-0 flex-col bg-surface"
+    :class="docWidthMode === 'wide' ? 'kb-doc-width-wide' : ''"
+  >
     <header class="sticky top-0 z-30 shrink-0 border-b border-line bg-surface">
       <div class="grid h-12 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-4">
         <!-- 对齐语雀桌面端：左侧文档标题（可编辑）、居中同步状态、右侧动作区；
@@ -2975,10 +2995,19 @@ onBeforeUnmount(() => {
             ><span class="truncate">编辑</span>
           </el-button>
 
-          <!-- 胶囊组：划词评论 | 操作与信息（对齐语雀右侧面板 tab 快捷开关，互斥） -->
+          <!-- 胶囊组：目录 | 划词评论 | 操作与信息（目录开关走 Lake 原生大纲侧栏 toggleTocView） -->
           <div
             class="flex shrink-0 items-center gap-0.5 rounded-kb-md border border-line bg-surface p-0.5"
           >
+            <button
+              type="button"
+              class="flex h-7 w-7 items-center justify-center rounded-kb-sm transition"
+              title="目录"
+              aria-label="目录"
+              @click="lakeEditorRef?.toggleToc?.()"
+            >
+              <UiIcon icon="i-lucide-book-open" class="h-4 w-4 shrink-0" />
+            </button>
             <button
               type="button"
               class="flex h-7 w-7 items-center justify-center rounded-kb-sm transition"
@@ -3074,6 +3103,7 @@ onBeforeUnmount(() => {
           :on-audio-upload="handleAudioUpload"
           :show-toolbar="canEdit && !isReadingMode"
           :show-code-block-button="canEdit && !isReadingMode"
+          show-toc
           :auto-height="isReadingMode"
           :toolbar-items="EDITOR_TOOLBAR_ITEMS"
           :default-font-size="docStyle.fontSize"
@@ -3134,7 +3164,7 @@ onBeforeUnmount(() => {
         <div
           v-if="isReadingMode"
           ref="readingCommentsAnchor"
-          class="mx-auto w-full max-w-[820px] px-8 pb-16 pt-10 sm:px-12"
+          class="kb-doc-reading-tail mx-auto w-full max-w-[820px] px-8 pb-16 pt-10 sm:px-12"
         >
           <div
             class="flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-line pt-5 text-[12px] text-ink-tertiary"
@@ -3373,7 +3403,7 @@ onBeforeUnmount(() => {
         <button
           type="button"
           class="rounded-kb-xl bg-muted px-4 py-3 text-left transition hover:bg-brand-faint/40"
-          @click="showStatsDialog = false; openVersions()"
+          @click="openVersionsFromStatsDialog"
         >
           <p class="text-[11px] text-ink-tertiary">历史版本</p>
           <p class="mt-1 flex items-center gap-1 text-[18px] font-semibold text-ink">
@@ -3442,35 +3472,25 @@ onBeforeUnmount(() => {
 
     <DocumentVersionsPanel
       v-if="versionsDialogOpen"
+      ref="versionsPanelRef"
       :open="versionsDialogOpen"
       active-tab="versions"
-      :document-title="title || '无标题文档'"
-      :workspace-name="workspaceName"
-      :document-mode-label="documentModeLabel"
-      :document-scheme-label="schemeLabel"
-      :document-status-label="statusMeta.label"
-      :save-status-label="saveStatusLabel"
       :versions-loading="versionsLoading"
       :versions="versions"
-      :local-cache-items="versionsLocalCacheItems"
       :local-snapshots="localSnapshots"
-      :selected-version-ids="selectedVersionIds"
-      :selected-version-count="selectedVersionCount"
-      :all-versions-selected="allVersionsSelected"
-      :version-delete-busy="versionDeleteBusy"
       :deleting-version-id="deletingVersionId"
-      :batch-deleting-versions="batchDeletingVersions"
+      :selection="versionSelection"
+      :restore-busy="false"
+      :preview="versionPreview"
       @close="closeSidePanels(null)"
-      @open-compare="openVersionCompare"
-      @toggle-all="toggleAllVersions"
-      @delete-selected="deleteSelectedVersions"
-      @clear-selection="clearVersionSelection"
-      @toggle-version="toggleVersionSelection"
+      @selection-change="handleVersionSelectionChange"
+      @restore-selected="handleRestoreSelected"
       @delete-version="deleteVersion"
-      @rollback-version="rollbackVersion"
-      @switch-tab="handleSidePanelSwitch"
+      @compare-version="openVersionCompare"
+      @save-as-version="handleSaveAsVersion"
       @restore-snapshot="handleRestoreSnapshot"
       @clear-snapshots="handleClearSnapshots"
+      @switch-tab="handleSidePanelSwitch"
     />
 
     <DocumentInfoPanel
@@ -3493,28 +3513,7 @@ onBeforeUnmount(() => {
       :stats="documentInfoStats"
       :meta="documentInfoMeta"
       :favorite="favorited"
-      :visible-actions="[
-        'open-knowledge-network',
-        'enter-reading',
-        ...(canEdit && !isPreviewMode ? (['insert-emoji'] as const) : []),
-        'copy-link',
-        'copy-markdown-link',
-        'open-in-browser',
-        'open-template-library',
-        'open-share',
-        'open-history',
-        'print-doc',
-        'export-markdown',
-        'export-pdf',
-        'export-word',
-        'export-image',
-        'export-lake',
-        'save-doc',
-        'reload-doc',
-        'make-template',
-        'move-trash',
-        'toggle-favorite',
-      ]"
+      :visible-actions="infoPanelVisibleActions"
       :shortcuts="documentInfoShortcuts"
       @open-stats="showStatsDialog = true"
       @update:doc-style="handleDocStyleUpdate"
@@ -3561,7 +3560,7 @@ onBeforeUnmount(() => {
       :document-status-label="statusMeta.label"
       :save-status-label="saveStatusLabel"
       :versions="versions"
-      :deleting-version-id="deletingVersionId || (batchDeletingVersions ? '__batch__' : null)"
+      :deleting-version-id="deletingVersionId"
       :visible="showVersionCompare"
       @delete-version="deleteVersion"
       @close="showVersionCompare = false"
@@ -3622,5 +3621,17 @@ aside button.truncate {
 .doc-hero-title::placeholder {
   color: var(--kb-text-quaternary);
   font-weight: 500;
+}
+
+/* 超宽页宽（更多设置→文档设置→超宽显示）：放开标准页宽档的上限——
+   编辑正文列（.ne-engine 及其内容）与文档大标题（.doc-title-host）不再压在
+   848px 档、文末阅读区同步放开 820px 上限，改随容器自适应；
+   标准档不挂容器类，行为零变化。选择器经 kb 容器四级祖先拉高特异性，
+   unlayered 对 unlayered 拼特异性压过 YuqueDocEditor 的限宽段 */
+.kb-doc-width-wide .yuque-doc-editor .yuque-doc-editor__surface .ne-editor .ne-engine,
+.kb-doc-width-wide .yuque-doc-editor .yuque-doc-editor__surface .ne-editor .ne-engine > *,
+.kb-doc-width-wide .yuque-doc-editor .yuque-doc-editor__surface .ne-editor .doc-title-host,
+.kb-doc-width-wide .kb-doc-reading-tail {
+  max-width: none;
 }
 </style>

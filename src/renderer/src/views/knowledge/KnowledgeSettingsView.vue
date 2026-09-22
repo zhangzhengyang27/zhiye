@@ -33,6 +33,12 @@ import {
   type KnowledgeBaseMember,
 } from "@/services/knowledge-permissions"
 import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
+import {
+  updateKnowledgeBasePreferences,
+  type KnowledgeBaseSettings,
+} from "@/services/knowledge-base"
+import { useAuthStore } from "@/stores/auth"
+import { exportKnowledgeBaseZip } from "@/utils/kb-export"
 import { knowledgeWorkspaceContextKey } from "./workspace-context"
 
 type EditableMemberRole = "admin" | "editor" | "reader"
@@ -44,8 +50,8 @@ if (!workspaceContext) {
   throw new Error("KnowledgeWorkspaceContext is missing")
 }
 
-/** 对齐语雀桌面端：管理页左侧子导航在五个分区之间切换 */
-type SettingsSection = "summary" | "docs" | "members" | "history" | "settings"
+/** 对齐语雀桌面端：管理页左侧子导航在六个分区之间切换 */
+type SettingsSection = "summary" | "docs" | "members" | "history" | "settings" | "more"
 
 const activeSection = ref<SettingsSection>("summary")
 
@@ -55,12 +61,18 @@ const sectionItems = [
   { key: "members" as SettingsSection, label: "成员", icon: "ph:users-three" },
   { key: "history" as SettingsSection, label: "目录历史", icon: "ph:clock-counter-clockwise" },
   { key: "settings" as SettingsSection, label: "设置", icon: "ph:gear" },
+  { key: "more" as SettingsSection, label: "更多设置", icon: "ph:sliders-horizontal" },
 ]
 
 const sectionTitle = computed(
   () => sectionItems.find((item) => item.key === activeSection.value)?.label ?? "概要",
 )
 
+/**
+ * 「返回」退出设置页。独立设置窗（/kb-settings/:kbId，只含设置功能的窗口）
+ * 同样渲染本页：它注入的上下文只有 kbId/详情/权限，没有工作台壳，
+ * 关闭即 replace 到工作台首页，由完整工作台布局接管该窗口。
+ */
 const closeSettings = () => {
   router.replace({
     name: "knowledge-workspace-home",
@@ -234,6 +246,143 @@ const canChangeVisibility = computed(() => currentUserRole.value === "owner")
 const syncVisibilityFromWorkspace = () => {
   visibility.value =
     workspaceContext.knowledgeBase.value?.visibility === "public" ? "public" : "private"
+}
+
+// ==================== 更多设置（对齐语雀「更多设置」页） ====================
+const authStore = useAuthStore()
+
+/** 页宽：standard=固定页宽，wide=超宽自适应 */
+const docWidthMode = ref<"standard" | "wide">("standard")
+/** 评论开关：缺省开启 */
+const commentsEnabled = ref(true)
+/** 自动发布：缺省关闭 */
+const autoPublish = ref(false)
+/** 文档新建位置：缺省顶部新增 */
+const docCreatePosition = ref<"top" | "bottom">("top")
+
+const moreSettingsSaving = ref(false)
+const exportingKb = ref(false)
+/** 保存进行中攒下的后续改动：当前请求完成后合并补发一次 */
+let pendingMoreSettingsPatch: Partial<KnowledgeBaseSettings> | null = null
+
+/** 服务端 settings → 控件状态；缺省项走语雀默认（标宽/开评论/关自动发布/顶部新增） */
+const applyMoreSettingsRefs = (settings: KnowledgeBaseSettings | null | undefined) => {
+  docWidthMode.value = settings?.docWidthMode === "wide" ? "wide" : "standard"
+  commentsEnabled.value = settings?.commentsEnabled !== false
+  autoPublish.value = settings?.autoPublish === true
+  docCreatePosition.value = settings?.docCreatePosition === "bottom" ? "bottom" : "top"
+}
+
+const syncMoreSettingsFromWorkspace = () => {
+  applyMoreSettingsRefs(workspaceContext.knowledgeBase.value?.settings)
+}
+
+/** 回包只合并 settings，不覆盖详情接口回填的 stats/creator 等字段 */
+const mergeSettingsIntoWorkspace = (settings: KnowledgeBaseSettings) => {
+  const current = workspaceContext.knowledgeBase.value
+  if (!current) {
+    return
+  }
+
+  workspaceContext.knowledgeBase.value = { ...current, settings }
+}
+
+/**
+ * 「更多设置」统一保存通道：任一控件改动即存；保存进行中时后续改动并入
+ * pending 合并补发；失败回滚到发起保存前的 settings 并重同步控件。
+ */
+const saveMorePreference = async (patch: Partial<KnowledgeBaseSettings>) => {
+  const kb = workspaceContext.knowledgeBase.value
+  if (!kb || !canManage.value) {
+    return
+  }
+
+  if (moreSettingsSaving.value) {
+    pendingMoreSettingsPatch = { ...pendingMoreSettingsPatch, ...patch }
+    return
+  }
+
+  // 回滚基线：发起保存前的 settings 快照
+  const previousSettings: KnowledgeBaseSettings = { ...(kb.settings ?? {}) }
+  mergeSettingsIntoWorkspace({ ...previousSettings, ...patch })
+
+  moreSettingsSaving.value = true
+  try {
+    let outgoing: Partial<KnowledgeBaseSettings> | null = patch
+    while (outgoing) {
+      pendingMoreSettingsPatch = null
+      const payload: KnowledgeBaseSettings = {
+        ...(workspaceContext.knowledgeBase.value?.settings ?? {}),
+        ...outgoing,
+      }
+      const updated = await updateKnowledgeBasePreferences(kb.id, payload, authStore.accessToken)
+      if (updated.settings) {
+        mergeSettingsIntoWorkspace(updated.settings)
+      }
+      outgoing = pendingMoreSettingsPatch
+    }
+  } catch (error) {
+    mergeSettingsIntoWorkspace(previousSettings)
+    syncMoreSettingsFromWorkspace()
+    showToastMessage(error instanceof Error ? error.message : "设置保存失败，请稍后重试。", "error")
+  } finally {
+    moreSettingsSaving.value = false
+  }
+}
+
+const handleDocWidthModeChange = (value: string | number | boolean | undefined | null) => {
+  if (value !== "standard" && value !== "wide") {
+    return
+  }
+
+  docWidthMode.value = value
+  void saveMorePreference({ docWidthMode: value })
+}
+
+const handleCommentsEnabledChange = (value: string | number | boolean | undefined | null) => {
+  const enabled = value === true
+  commentsEnabled.value = enabled
+  void saveMorePreference({ commentsEnabled: enabled })
+}
+
+const handleAutoPublishChange = (value: string | number | boolean | undefined | null) => {
+  const enabled = value === true
+  autoPublish.value = enabled
+  void saveMorePreference({ autoPublish: enabled })
+}
+
+const handleDocCreatePositionChange = (value: string | number | boolean | undefined | null) => {
+  if (value !== "top" && value !== "bottom") {
+    return
+  }
+
+  docCreatePosition.value = value
+  void saveMorePreference({ docCreatePosition: value })
+}
+
+/** 整库导出：目录树逐文档转 Markdown 打包 zip，经浏览器下载通道产出「KB名.zip」 */
+const handleExportKnowledgeBase = async () => {
+  const kb = workspaceContext.knowledgeBase.value
+  if (!kb || exportingKb.value) {
+    return
+  }
+
+  exportingKb.value = true
+  try {
+    const result = await exportKnowledgeBaseZip(kb, workspaceContext.treeNodes.value)
+    showToastMessage(
+      result.exported > 0
+        ? `已导出 ${result.exported} 个文档${
+            result.skipped > 0 ? `，${result.skipped} 个不支持导出的节点已跳过` : ""
+          }。`
+        : "没有可导出的文档。",
+      result.exported > 0 ? "success" : "info",
+    )
+  } catch (error) {
+    showToastMessage(error instanceof Error ? error.message : "导出失败，请稍后重试。", "error")
+  } finally {
+    exportingKb.value = false
+  }
 }
 
 /** 概要统计：文档 / 字数来自详情接口的 stats，缺失时回退目录树计数 */
@@ -433,6 +582,7 @@ watch(
   () => workspaceContext.kbId.value,
   () => {
     syncVisibilityFromWorkspace()
+    syncMoreSettingsFromWorkspace()
     void loadMembers()
   },
   { immediate: true },
@@ -442,6 +592,16 @@ watch(
   () => workspaceContext.knowledgeBase.value?.visibility,
   () => {
     syncVisibilityFromWorkspace()
+  },
+)
+
+// settings 数据晚到（详情接口回包晚于首屏渲染、切库刷新）时重新同步控件；
+// 注意 watcher 必须放在 syncMoreSettingsFromWorkspace 等定义之后——immediate
+// 首拍若引用尚未初始化的 const 会 TDZ 崩掉整窗
+watch(
+  () => workspaceContext.knowledgeBase.value?.settings,
+  () => {
+    syncMoreSettingsFromWorkspace()
   },
 )
 
@@ -736,7 +896,98 @@ onMounted(() => {
           />
         </div>
 
-        <div v-else class="mt-4">
+        <!-- 更多设置（对齐语雀「更多设置」页）：文档设置 / 高级选项 / 知识库设置 -->
+        <div v-else-if="activeSection === 'more'" class="mt-4 space-y-5">
+          <div class="rounded-[12px] border border-line bg-surface-soft p-4">
+            <h3 class="text-[14px] font-semibold text-ink">文档设置</h3>
+            <el-radio-group
+              class="mt-3 flex flex-col items-stretch gap-3"
+              :model-value="docWidthMode"
+              :disabled="!canManage"
+              @update:model-value="handleDocWidthModeChange"
+            >
+              <el-radio value="standard">
+                <span class="block text-[13px] font-medium text-ink">标准页宽</span>
+                <span class="mt-0.5 block text-[12px] leading-5 text-ink-tertiary">
+                  文档展示宽度固定，不随浏览器宽度变化，适合以文字为主的文档
+                </span>
+              </el-radio>
+              <el-radio value="wide">
+                <span class="block text-[13px] font-medium text-ink">超宽显示</span>
+                <span class="mt-0.5 block text-[12px] leading-5 text-ink-tertiary">
+                  文档展示宽度根据浏览器自适应，适合含有超宽表格的文档
+                </span>
+              </el-radio>
+            </el-radio-group>
+          </div>
+
+          <div class="rounded-[12px] border border-line bg-surface-soft p-4">
+            <h3 class="text-[14px] font-semibold text-ink">高级选项</h3>
+            <div class="mt-3 space-y-4">
+              <el-checkbox
+                :model-value="commentsEnabled"
+                :disabled="!canManage"
+                @update:model-value="handleCommentsEnabledChange"
+              >
+                <span class="block text-[13px] font-medium text-ink">开启评论功能</span>
+                <span class="mt-0.5 block text-[12px] leading-5 text-ink-tertiary">
+                  知识库默认开启评论功能，取消勾选后所有用户都无法评论。
+                </span>
+              </el-checkbox>
+
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-[13px] font-medium text-ink">开启自动发布</p>
+                  <p class="mt-0.5 max-w-[560px] text-[12px] leading-5 text-ink-tertiary">
+                    文档保存时，自动将内容更新至阅读页。自动发布不会发送动态或消息。注意：打开开关并不会发布已有的文档
+                  </p>
+                </div>
+                <el-switch
+                  class="mt-0.5 shrink-0"
+                  :model-value="autoPublish"
+                  :disabled="!canManage"
+                  @update:model-value="handleAutoPublishChange"
+                />
+              </div>
+
+              <div class="flex items-start justify-between gap-4">
+                <div>
+                  <p class="text-[13px] font-medium text-ink">文档新建位置</p>
+                  <p class="mt-0.5 text-[12px] leading-5 text-ink-tertiary">
+                    新建文档时，系统会根据该设置将其置于层级的顶部或底部
+                  </p>
+                </div>
+                <el-select
+                  class="w-[136px] shrink-0"
+                  :model-value="docCreatePosition"
+                  :disabled="!canManage"
+                  @update:model-value="handleDocCreatePositionChange"
+                >
+                  <el-option label="顶部新增" value="top" />
+                  <el-option label="底部新增" value="bottom" />
+                </el-select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 知识库设置：仅管理角色可见（导出依赖成员管理权限语义） -->
+          <div v-if="canManage" class="rounded-[12px] border border-line bg-surface-soft p-4">
+            <div class="flex items-center justify-between gap-4">
+              <p class="text-[13px] font-medium text-ink">导出知识库</p>
+              <el-button
+                plain
+                size="small"
+                class="h-8 border-line-input bg-surface px-4 py-0 text-[13px] font-semibold text-ink [line-height:inherit] hover:bg-muted"
+                :loading="exportingKb"
+                @click="handleExportKnowledgeBase"
+              >
+                <span class="truncate">导出</span>
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="activeSection === 'settings'" class="mt-4">
           <KnowledgeSettingsInfoCard
             v-if="canManage && workspaceContext.knowledgeBase.value"
             :knowledge-base="workspaceContext.knowledgeBase.value"

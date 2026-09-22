@@ -60,6 +60,15 @@ const router = createRouter({
       },
     },
     {
+      // KB 设置独立窗口（⋯ 菜单「更多设置」落点）：只含设置功能，无工作台外壳
+      path: "/kb-settings/:kbId",
+      name: "kb-settings-standalone",
+      component: () => import("@/views/knowledge/KnowledgeSettingsStandaloneView.vue"),
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
       path: "/knowledge",
       name: "knowledge",
       component: () => import("@/views/knowledge/KnowledgeBasesView.vue"),
@@ -184,6 +193,24 @@ const router = createRouter({
   ],
 })
 
+/**
+ * 解析登录后重定向地址：只接受站内路径（单斜杠开头），拒绝协议相对
+ * （// 外站）与 /auth 前缀（已登录不应再回认证页），非法时回落工作台。
+ */
+const resolveSafeRedirect = (value: unknown): string => {
+  if (typeof value !== "string") {
+    return "/knowledge"
+  }
+
+  const trimmed = value.trim()
+
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//") || trimmed.startsWith("/auth")) {
+    return "/knowledge"
+  }
+
+  return trimmed
+}
+
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   await authStore.ensureHydrated()
@@ -198,7 +225,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.requiresGuest && authStore.isLoggedIn) {
-    return typeof to.query.redirect === "string" ? to.query.redirect : "/knowledge"
+    return resolveSafeRedirect(to.query.redirect)
   }
 
   return true

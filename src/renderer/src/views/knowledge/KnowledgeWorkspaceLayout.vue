@@ -741,43 +741,70 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
                   />
                 </div>
 
-                <!-- 加载失败（如知识库不存在）时不展示空态引导，避免与错误提示矛盾 -->
+                <!-- 语雀空态：淡彩插画 + 居中单行文案（编辑者可点「新建文档」直达创建）。
+                     加载失败（如知识库不存在）时不展示空态，避免与错误提示矛盾 -->
                 <div
                   v-else-if="treeNodes.length === 0 && !errorMessage"
-                  class="rounded-kb-lg border border-dashed border-line-input bg-surface px-4 py-10 text-center"
+                  class="flex flex-col items-center pt-[104px] text-center"
                 >
-                  <Icon
-                    icon="ph:folder"
-                    :width="32"
-                    :height="32"
-                    class="mx-auto text-ink-quaternary"
-                  />
-                  <p class="mt-3 text-sm font-medium text-ink-secondary">当前空间还没有目录内容</p>
-                  <p class="mt-2 text-xs leading-5 text-ink-tertiary">
-                    {{
-                      canEdit
-                        ? "可以先从顶部新增文档或文件夹，逐步搭出稳定的知识结构。"
-                        : "当前角色没有创建权限，但仍可以浏览已有内容。"
-                    }}
-                  </p>
-                  <div v-if="canEdit" class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  <svg
+                    width="96"
+                    height="57"
+                    viewBox="0 0 96 57"
+                    fill="none"
+                    aria-hidden="true"
+                    class="shrink-0"
+                  >
+                    <!-- 文件夹背板（淡青） -->
+                    <path
+                      d="M8 18a4 4 0 0 1 4-4h17a4 4 0 0 1 2.8 1.2L36 19h46a4 4 0 0 1 4 4v26a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V18Z"
+                      fill="var(--kb-green-200)"
+                    />
+                    <!-- 白纸灰线 -->
+                    <rect
+                      x="35"
+                      y="3"
+                      width="28"
+                      height="39"
+                      rx="3"
+                      fill="var(--kb-surface-bg)"
+                      stroke="var(--kb-border)"
+                    />
+                    <path
+                      d="M41 12h16M41 18h16M41 24h10"
+                      stroke="var(--kb-border)"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <!-- 文件夹前板 + 黄便签 + 绿点 -->
+                    <path
+                      d="M8 27h80v22a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V27Z"
+                      fill="var(--kb-green-300)"
+                    />
+                    <rect
+                      x="52"
+                      y="30"
+                      width="24"
+                      height="19"
+                      rx="2"
+                      fill="var(--kb-yellow-100)"
+                      transform="rotate(-3 64 39.5)"
+                    />
+                    <circle cx="86.5" cy="8.5" r="4" fill="var(--kb-green-300)" />
+                  </svg>
+                  <p v-if="canEdit" class="mt-4 text-[13px] text-ink-tertiary">
+                    知识库为空，你可以
                     <button
                       type="button"
-                      class="inline-flex items-center gap-2 rounded-kb-md bg-brand px-4 py-2 text-xs font-medium text-white transition hover:bg-brand-hover"
+                      class="text-info transition hover:text-info-hover"
                       @click="createNode('doc')"
                     >
-                      <Icon icon="ph:file-text" :width="14" :height="14" />
                       新建文档
                     </button>
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-2 rounded-kb-md border border-line bg-surface px-4 py-2 text-xs font-medium text-ink-secondary transition hover:border-brand-lighter hover:text-brand"
-                      @click="createNode('folder')"
-                    >
-                      <Icon icon="ph:folder" :width="14" :height="14" />
-                      新建文件夹
-                    </button>
-                  </div>
+                  </p>
+                  <p v-else class="mt-4 text-[13px] text-ink-tertiary">
+                    当前角色没有创建权限，但仍可以浏览已有内容。
+                  </p>
                 </div>
 
                 <!-- 对齐语雀「全部文档」视图：标题+摘要平铺卡片、选中灰底、hover 行尾 ⋮（摘要行空不渲染） -->
