@@ -6,7 +6,7 @@
  * 浏览过复用 recent-all；提到我/我点赞的暂无对应数据模型，不提供。
  */
 import { formatShortDate } from "@/utils/date-format"
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
 import KnowledgeCreateKbDialog from "@/components/knowledge/KnowledgeCreateKbDialog.vue"
@@ -18,9 +18,15 @@ import {
   listRecentKnowledgeDocumentsAll,
   type KnowledgeDashboardDocumentItem,
   type KnowledgeDashboardSource,
+  type KnowledgeDocumentItem,
 } from "@/services/knowledge-documents"
 import { useAuthStore } from "@/stores/auth"
 import { getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
+
+// 模板中心（语雀 5.3 双栏弹窗形态）在开始页与工作台共用同一对话框
+const TemplateSelectDialog = defineAsyncComponent(
+  () => import("@/components/knowledge/TemplateSelectDialog.vue"),
+)
 
 const LAST_ACTIVE_KB_STORAGE_KEY = "knowledge:last-active-kb-id"
 
@@ -302,17 +308,27 @@ const handleDocMenuKeydown = (event: KeyboardEvent) => {
   }
 }
 
-/** 模板中心：进入最近活跃知识库的模板中心页（未识别到知识库时退回列表）。 */
-const goToTemplateCenter = () => {
-  if (createDocTargetKbId.value) {
-    void router.push({
-      name: "knowledge-templates",
-      params: { kbId: createDocTargetKbId.value },
-    })
+/** 模板中心（对齐语雀：开始页卡片直达双栏弹窗，不跳独立页）：落最近活跃知识库；
+ * 无可用知识库时退回知识库列表页（弹窗创建需要落库目标） */
+const templateDialogOpen = ref(false)
+
+const openTemplateCenter = () => {
+  if (!createDocTargetKbId.value) {
+    void router.push({ name: "knowledge" })
     return
   }
+  templateDialogOpen.value = true
+}
 
-  void router.push({ name: "knowledge" })
+/** 从模板创建成功：与工作台同款跳转，进新文档编辑器 */
+const handleTemplateCreated = (document: KnowledgeDocumentItem) => {
+  void router.push(
+    getKnowledgeDocumentRouteTarget({
+      kbId: createDocTargetKbId.value,
+      docId: document.id,
+      editorType: document.editorType,
+    }),
+  )
 }
 
 const createKbDialogOpen = ref(false)
@@ -323,7 +339,7 @@ const handleQuickSelect = (item: StartQuickItem) => {
   }
 
   if (item.id === "template") {
-    goToTemplateCenter()
+    openTemplateCenter()
     return
   }
 
@@ -699,4 +715,12 @@ onBeforeUnmount(() => {
   </KnowledgePageShell>
 
   <KnowledgeCreateKbDialog v-model:open="createKbDialogOpen" @created="handleKbCreated" />
+
+  <!-- 模板中心（语雀双栏弹窗形态）：创建成功进新文档编辑器 -->
+  <TemplateSelectDialog
+    v-if="createDocTargetKbId"
+    v-model:open="templateDialogOpen"
+    :kb-id="createDocTargetKbId"
+    @created="handleTemplateCreated"
+  />
 </template>

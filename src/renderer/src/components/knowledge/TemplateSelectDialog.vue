@@ -1,11 +1,13 @@
-<!-- 从模板创建文档对话框（B3d 对齐语雀模板中心：来源 tab + 实时预览） -->
+<!-- 模板中心（B3d 对齐语雀模板中心：来源 tab + 实时预览；2026-09-22 按需求梳理 5.3
+     实测补齐分类树：团队协作 11 类 + 个人管理折叠组，「使用此模板」主钮移至右栏顶部） -->
 <script setup lang="ts">
 /**
- * 对话框组件：模板中心形态——左侧模板实时预览，右侧来源 tab
- * （推荐（官方）/ 本知识库）+ 模板列表 + 「使用此模板」。
+ * 对话框组件：语雀模板中心形态——左侧模板实时预览，右栏自上而下为
+ * 「使用此模板」按钮 + 来源 tab（推荐（官方）/ 本知识库 / 我的）+ 分类树 + 模板列表。
  *
  * - 官方模板为前端内置 Markdown 集（utils/official-templates），创建即
- *   以 markdown scheme 新建文档；
+ *   以 markdown scheme 新建文档；分类树仅作用于官方 tab（分类是官方模板的分类法），
+ *   本知识库/我的两 tab 平铺展示；
  * - 本知识库模板沿用 create-from-template 接口；
  * - 预览用 markdown-it 渲染（默认关闭内嵌 HTML，安全）。
  * T9 起内脏为裸 el-dialog + useDialogBehavior；头部走 KbDialogHeader。
@@ -63,6 +65,38 @@ const creating = ref(false)
 const loadError = ref("")
 const selectedKey = ref("")
 
+/** 分类树选中态：all=全部；仅官方 tab 展示分类树（5.3 实测：分类树挂在推荐来源下） */
+const selectedCategory = ref("all")
+/** 分类树分组展开态（5.3 实测：个人管理组默认折叠） */
+const expandedGroups = ref<Record<string, boolean>>({
+  团队协作: true,
+  个人管理: false,
+})
+
+/** 分类树（5.3 实测：团队协作 11 类；个人管理组默认折叠，内容为自有官方模板分类） */
+const categoryTree = [
+  {
+    label: "团队协作",
+    categories: [
+      "会议记录",
+      "工作汇报",
+      "项目立项",
+      "用研报告",
+      "需求文档",
+      "需求管理",
+      "系分文档",
+      "缺陷管理",
+      "故障复盘",
+      "接口文档",
+      "项目复盘",
+    ],
+  },
+  {
+    label: "个人管理",
+    categories: ["个人计划", "读书笔记"],
+  },
+]
+
 const markdown = new MarkdownIt({ html: false, breaks: true })
 
 const officialOptions: TemplateOption[] = OFFICIAL_TEMPLATES.map((template) => ({
@@ -75,9 +109,17 @@ const officialOptions: TemplateOption[] = OFFICIAL_TEMPLATES.map((template) => (
   source: "official" as const,
 }))
 
+/** 官方 tab 的模板列表：按分类树选中项过滤（分组折叠只收起树导航，不影响「全部」列表） */
+const officialListedOptions = computed(() => {
+  if (selectedCategory.value === "all") {
+    return officialOptions
+  }
+  return officialOptions.filter((option) => option.category === selectedCategory.value)
+})
+
 const sourceOptions = computed(() => {
   if (sourceTab.value === "official") {
-    return officialOptions
+    return officialListedOptions.value
   }
   return sourceTab.value === "mine" ? myTemplates.value : kbTemplates.value
 })
@@ -111,6 +153,8 @@ watch(
     if (!val) return
     selectedKey.value = officialOptions[0]?.key ?? ""
     sourceTab.value = "official"
+    selectedCategory.value = "all"
+    expandedGroups.value = { 团队协作: true, 个人管理: false }
     if (kbTemplates.value.length === 0) {
       loading.value = true
       loadError.value = ""
@@ -147,14 +191,20 @@ watch(sourceTab, (tab) => {
   if (tab === "mine") {
     void loadMyTemplates()
   }
+  selectedCategory.value = "all"
   const first =
     tab === "official"
-      ? officialOptions[0]
+      ? officialListedOptions.value[0]
       : tab === "mine"
         ? myTemplates.value[0]
         : kbTemplates.value[0]
   selectedKey.value = first?.key ?? ""
 })
+
+const handleSelectCategory = (category: string) => {
+  selectedCategory.value = category
+  selectedKey.value = officialListedOptions.value[0]?.key ?? ""
+}
 
 /** 「我的」模板懒加载（B4 #14）：只拉一次；失败静默（空态可重进 tab 重试不再拉） */
 const loadMyTemplates = async () => {
@@ -228,28 +278,32 @@ const dialog = useDialogBehavior({
     v-bind="dialog.elDialogBindings"
     class="max-w-4xl"
     :model-value="open"
-    title="从模板创建文档"
+    title="模板中心"
     close-on-click-modal
     close-on-press-escape
     @update:model-value="(value) => !value && emit('update:open', false)"
   >
     <template #header>
       <KbDialogHeader
-        title="从模板创建文档"
+        title="模板中心"
         description="左侧实时预览，选择模板后一键生成文档副本。"
         @close="emit('update:open', false)"
       />
     </template>
 
-    <div class="flex min-h-[420px] gap-4">
+    <div class="flex h-[min(640px,80vh)] gap-4">
       <!-- 左：实时预览 -->
-      <div class="min-w-0 flex-1 overflow-hidden rounded-kb-xl border border-line bg-surface">
-        <p class="border-b border-line px-4 py-2.5 text-[12px] font-medium text-ink-tertiary">
+      <div
+        class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-kb-xl border border-line bg-surface"
+      >
+        <p
+          class="shrink-0 border-b border-line px-4 py-2.5 text-[12px] font-medium text-ink-tertiary"
+        >
           {{ selectedTemplate ? `模板预览 · ${selectedTemplate.title}` : "模板预览" }}
         </p>
         <div
           v-if="selectedTemplate"
-          class="template-preview max-h-[430px] overflow-y-auto px-5 py-4 text-[13px] leading-6 text-ink-secondary"
+          class="template-preview min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[13px] leading-6 text-ink-secondary"
           v-html="previewHtml"
         />
         <p v-else class="px-5 py-16 text-center text-[13px] text-ink-quaternary">
@@ -257,9 +311,21 @@ const dialog = useDialogBehavior({
         </p>
       </div>
 
-      <!-- 右：来源 tab + 模板列表 -->
-      <div class="flex w-72 shrink-0 flex-col">
-        <div class="flex rounded-kb-lg bg-grey-200 p-0.5">
+      <!-- 右栏（5.3 实测形态）：使用此模板主钮 → 来源 tab → 分类树 → 模板列表 -->
+      <div class="flex w-80 shrink-0 flex-col">
+        <el-button
+          type="primary"
+          class="w-full py-2"
+          :disabled="!selectedTemplate"
+          :loading="creating"
+          @click="handleUseTemplate"
+          ><template #loading
+            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
+          <span class="truncate">使用此模板</span>
+        </el-button>
+
+        <div class="mt-3 flex rounded-kb-lg bg-grey-200 p-0.5">
           <button
             v-for="tab in [
               { key: 'official' as const, label: '推荐（官方）' },
@@ -278,6 +344,56 @@ const dialog = useDialogBehavior({
           >
             {{ tab.label }}
           </button>
+        </div>
+
+        <!-- 分类树：仅官方 tab 展示（分类是官方模板的分类法）；分组可折叠，个人管理默认折叠。
+             树取自然高度不内滚（全部+两组 15 行约 420px，右栏总高 640 内放得下；内滚会藏住尾部分类） -->
+        <div v-if="sourceTab === 'official'" class="mt-2 shrink-0 space-y-0.5">
+          <button
+            type="button"
+            class="flex h-7 w-full items-center rounded-kb-md px-2 text-left text-[13px] transition"
+            :class="
+              selectedCategory === 'all'
+                ? 'bg-brand-faint font-medium text-brand'
+                : 'text-ink-secondary hover:bg-grey-100'
+            "
+            @click="handleSelectCategory('all')"
+          >
+            全部模板
+          </button>
+          <div v-for="group in categoryTree" :key="group.label">
+            <button
+              type="button"
+              class="flex h-7 w-full items-center gap-1 rounded-kb-md px-2 text-left text-[12px] font-medium text-ink-tertiary transition hover:bg-grey-100"
+              @click="expandedGroups[group.label] = !expandedGroups[group.label]"
+            >
+              <UiIcon
+                icon="ph:caret-right"
+                class="h-2.5 w-2.5 shrink-0 transition"
+                :class="expandedGroups[group.label] ? 'rotate-90' : ''"
+              />
+              {{ group.label }}
+            </button>
+            <template v-if="expandedGroups[group.label]">
+              <button
+                v-for="category in group.categories"
+                :key="category"
+                type="button"
+                class="flex h-7 w-full items-center rounded-kb-md pl-7 pr-2 text-left text-[13px] transition"
+                :class="
+                  selectedCategory === category
+                    ? 'bg-brand-faint font-medium text-brand'
+                    : 'text-ink-secondary hover:bg-grey-100'
+                "
+                @click="handleSelectCategory(category)"
+              >
+                <span class="min-w-0 flex-1 truncate">{{ category }}</span>
+                <span class="shrink-0 text-[11px] text-ink-quaternary">
+                  {{ officialOptions.filter((option) => option.category === category).length }}
+                </span>
+              </button>
+            </template>
+          </div>
         </div>
 
         <div class="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-0.5">
@@ -302,12 +418,17 @@ const dialog = useDialogBehavior({
                 ? "本知识库暂无模板，可先将文档设为模板。"
                 : sourceTab === "mine"
                   ? "暂无我的模板，可在文档「更多」中将文档设为模板。"
-                  : "暂无官方模板"
+                  : "该分类暂无模板"
             }}
           </p>
 
           <template v-for="[category, options] in groupedOptions" :key="category">
-            <p class="px-1 pt-2 text-[11px] font-medium text-ink-quaternary">{{ category }}</p>
+            <p
+              v-if="selectedCategory === 'all'"
+              class="px-1 pt-2 text-[11px] font-medium text-ink-quaternary"
+            >
+              {{ category }}
+            </p>
             <button
               v-for="option in options"
               :key="option.key"
@@ -353,28 +474,6 @@ const dialog = useDialogBehavior({
         </div>
       </div>
     </div>
-
-    <template #footer>
-      <div class="flex justify-end gap-3">
-        <el-button
-          plain
-          class="border-line bg-surface py-2 text-ink-secondary"
-          @click="emit('update:open', false)"
-          ><span class="truncate">取消</span>
-        </el-button>
-        <el-button
-          type="primary"
-          class="py-2"
-          :disabled="!selectedTemplate"
-          :loading="creating"
-          @click="handleUseTemplate"
-          ><template #loading
-            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
-          /></template>
-          <span class="truncate">使用此模板</span>
-        </el-button>
-      </div>
-    </template>
   </el-dialog>
 </template>
 
