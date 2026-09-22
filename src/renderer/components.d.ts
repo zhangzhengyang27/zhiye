@@ -43,7 +43,6 @@ declare module 'vue' {
     DocumentStyleSettingsDialog: typeof import('./src/components/editor/DocumentStyleSettingsDialog.vue')['default']
     DocumentSurfaceContextCard: typeof import('./src/components/editor/DocumentSurfaceContextCard.vue')['default']
     DocumentVersionRow: typeof import('./src/components/version/DocumentVersionRow.vue')['default']
-    DocumentVersionsBatchActions: typeof import('./src/components/version/DocumentVersionsBatchActions.vue')['default']
     DocumentVersionsPanel: typeof import('./src/components/version/DocumentVersionsPanel.vue')['default']
     EditorMoreMenu: typeof import('./src/components/editor/EditorMoreMenu.vue')['default']
     EditorSelectionToolbar: typeof import('./src/components/editor/EditorSelectionToolbar.vue')['default']

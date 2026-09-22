@@ -94,27 +94,9 @@ async function openWorkspace(page, kbId) {
 
 async function openDocumentAndVerifyEditor(page, kbId, docId) {
   logStep(STEP_PREFIX, "打开文档编辑页，验证语雀编辑器挂载")
-  // 09-21 认证加固后 token 仅存内存：page.goto 整页刷新会丢登录态被踢回登录页，
-  // 改为 SPA 内导航——回工作台首页后在树上点开目标文档
-  await page.evaluate((targetDocId) => {
-    const link = [...document.querySelectorAll("a, [role=treeitem], button")].find(
-      (el) =>
-        (el.getAttribute("href") || "").includes(targetDocId) ||
-        el.getAttribute("data-node-id") === targetDocId,
-    )
-    if (link) {
-      link.click()
-      return
-    }
-    // 兜底：走 vue-router 历史栈（SPA 内导航不刷新页面）
-    window.history.pushState(
-      {},
-      "",
-      "/knowledge/" + location.pathname.split("/")[2] + "/doc/" + targetDocId,
-    )
-    window.dispatchEvent(new window.PopStateEvent("popstate"))
-  }, docId)
-  await page.waitForTimeout(600)
+  await page.goto(buildDocumentUrl(kbId, docId), {
+    waitUntil: "domcontentloaded",
+  })
 
   const titleInput = page.locator('input[placeholder="无标题文档"]').first()
   await titleInput.waitFor({ state: "visible", timeout: smokeConfig.timeout })
@@ -334,10 +316,11 @@ function assertItemOrder(payload, idsInExpectedOrder) {
 }
 
 function clearExpectedReorderFailureConsoleErrors(diagnostics) {
+  // 匹配全部已知形态：浏览器资源错误行、[dbg 500] 响应插桩行（含 ← 响应体后缀）
   diagnostics.consoleErrors = diagnostics.consoleErrors.filter(
     (message) =>
-      message.trim() !==
-      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+      !message.includes("500 (Internal Server Error)") &&
+      !(message.includes("/knowledge/documents/reorder") && !message.includes("回滚后仍失败")),
   )
 }
 

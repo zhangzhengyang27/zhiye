@@ -1,89 +1,104 @@
 <script setup lang="ts">
-/** 行组件，负责文档版本单项展示与行内操作。 */
-import type { KnowledgeDocumentVersionItem } from "@/services/knowledge-documents"
+/**
+ * 行组件：历史记录列表的单行（对齐语雀真机行结构）。
+ *
+ * 语雀行极简：版本名（如有）为主行文本，次行为 时间 + 状态标签 + 作者；
+ * 无勾选框；行可点选中；行尾 hover 浮现 ⋯ 菜单（对比… / 删除该版本）。
+ */
+import { computed } from "vue"
+import type { HistoryRowVm } from "./DocumentVersionsPanel.vue"
 
 const props = defineProps<{
-  version: KnowledgeDocumentVersionItem
+  row: HistoryRowVm
   selected: boolean
-  versionDeleteBusy: boolean
   deleting: boolean
-  formatDateTime: (input: string) => string
+  menuOpen: boolean
 }>()
 
 const emit = defineEmits<{
-  "toggle-version": [versionId: string]
-  "delete-version": [versionId: string]
-  "rollback-version": [versionId: string]
+  select: []
+  "toggle-menu": []
+  compare: []
+  delete: []
 }>()
+
+const rowStateClass = computed(() =>
+  props.selected
+    ? "bg-grey-300 text-ink dark:bg-grey-400"
+    : "text-ink-secondary hover:bg-grey-200 dark:hover:bg-grey-400",
+)
 </script>
 
 <template>
   <div
-    class="group rounded-kb-3xl bg-surface px-4 py-3 shadow-[var(--kb-surface-shadow)] transition hover:shadow-[var(--kb-float-shadow)]"
+    role="radio"
+    :aria-checked="selected"
+    tabindex="0"
+    class="group relative flex cursor-pointer items-start gap-2 rounded-kb-lg px-3 py-2.5 text-left outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-lighter"
+    :class="rowStateClass"
+    @click="emit('select')"
+    @keydown.enter.prevent="emit('select')"
+    @keydown.space.prevent="emit('select')"
   >
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0 flex flex-1 items-start gap-3">
-        <!-- 直用 el-checkbox（T2 解散 AppCheckbox）：语雀观感由全局校准层
-             element-plus-calibration.css 提供，mt-1 经 fallthrough 落根 label -->
-        <el-checkbox
-          :model-value="props.selected"
-          :disabled="props.versionDeleteBusy"
-          :aria-label="`选择版本 ${props.version.versionName || props.version.message || '自动保存版本'}`"
-          class="mt-1"
-          @update:model-value="emit('toggle-version', props.version.id)"
-        />
-
-        <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <p class="truncate text-sm font-medium text-ink">
-              {{ props.version.versionName || props.version.message || "自动保存版本" }}
-            </p>
-            <!-- 基线保真（T4 评审 I-1）：壳时代 AppBadge 的 sizeClass text-[11px] 与本处
-                 text-[10px] 同层冲突、CSS 顺序偶然让 11px 胜出（实测行高
-                 17.2865px=1.5715×11 互证），为基线渲染真值；解散后冲突消失、10px
-                 生效导致文字变窄（versions 屏 pixdiff 404/473 major），按基线恢复 11px。
-                 批 16 起 11px 已是 .el-tag 默认档，该保真由校准层承担，无需调用点声明 -->
-            <el-tag disable-transitions>
-              {{ props.version.author.name || props.version.author.email }}
-            </el-tag>
-          </div>
-          <p
-            v-if="props.version.message && props.version.message !== props.version.versionName"
-            class="mt-2 line-clamp-2 rounded-kb-2xl bg-muted px-3 py-2 text-xs leading-5 text-ink-tertiary"
-          >
-            {{ props.version.message }}
-          </p>
-          <div class="mt-2 flex items-center gap-2 text-xs text-ink-tertiary">
-            <span>{{ props.formatDateTime(props.version.createdAt) }}</span>
-            <span>·</span>
-            <span>支持回滚与对比</span>
-          </div>
-        </div>
-      </div>
-
-      <div
-        class="flex translate-x-1 items-center gap-2 opacity-0 transition duration-200 group-hover:translate-x-0 group-hover:opacity-100"
+    <div class="min-w-0 flex-1">
+      <p
+        v-if="row.versionName"
+        class="truncate text-[13px] font-medium leading-5 text-ink"
+        :title="row.versionName"
       >
-        <el-button
-          type="danger"
-          text
-          size="small"
-          class="rounded-kb-xl"
-          :loading="props.deleting"
-          :disabled="props.versionDeleteBusy"
-          @click="emit('delete-version', props.version.id)"
-          ><template #loading
-            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
-          /></template>
-          <span class="truncate">删除</span>
-        </el-button>
-        <el-button
-          size="small"
-          class="rounded-kb-xl bg-brand-faint text-brand hover:bg-brand-light kb-btn-soft"
-          :disabled="props.versionDeleteBusy"
-          @click="emit('rollback-version', props.version.id)"
-          ><span class="truncate">回滚</span>
-        </el-button>
+        {{ row.versionName }}
+      </p>
+      <div
+        class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-4 text-ink-tertiary"
+      >
+        <span>{{ row.timeText }}</span>
+        <span
+          class="inline-flex items-center rounded-kb-sm bg-fill-muted px-1.5 py-0.5 text-[11px] leading-4 text-ink-tertiary"
+          >{{ row.statusLabel }}</span
+        >
+        <span class="truncate">{{ row.author }}</span>
+      </div>
+    </div>
+
+    <!-- 行尾 ⋯：仅版本行有（本地快照行不提供对比/删除） -->
+    <div v-if="row.kind === 'version'" class="relative shrink-0" data-version-row-menu>
+      <button
+        type="button"
+        class="inline-flex h-6 w-6 items-center justify-center rounded-kb-sm text-ink-quaternary opacity-0 transition group-hover:opacity-100 hover:text-ink-secondary focus-visible:opacity-100"
+        :class="menuOpen ? 'opacity-100' : ''"
+        title="更多操作"
+        :aria-label="`版本 ${row.timeText} 更多操作`"
+        @click.stop="emit('toggle-menu')"
+      >
+        <UiIcon icon="ph:dots-three-bold" :width="13" :height="13" />
+      </button>
+      <div
+        v-if="menuOpen"
+        class="absolute right-0 top-[calc(100%+4px)] z-30 w-32 rounded-kb-lg border border-line bg-surface p-1 shadow-[var(--kb-float-shadow)]"
+        @click.stop
+      >
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 rounded-kb-md px-2.5 py-1.5 text-left text-[13px] text-ink-secondary transition hover:bg-muted hover:text-ink"
+          @click="emit('compare')"
+        >
+          <UiIcon
+            icon="i-lucide-git-compare"
+            :width="13"
+            :height="13"
+            class="shrink-0 text-ink-tertiary"
+          />
+          <span>对比…</span>
+        </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 rounded-kb-md px-2.5 py-1.5 text-left text-[13px] text-error transition hover:bg-muted"
+          :disabled="deleting"
+          @click="emit('delete')"
+        >
+          <UiIcon icon="ph:trash-simple" :width="13" :height="13" class="shrink-0" />
+          <span>{{ deleting ? "删除中…" : "删除该版本" }}</span>
+        </button>
       </div>
     </div>
   </div>

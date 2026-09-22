@@ -95,7 +95,6 @@ import { PhX } from "@phosphor-icons/vue"
 
 import { AlertCircle } from "lucide-vue-next"
 import { Archive } from "lucide-vue-next"
-import { ArrowLeft } from "lucide-vue-next"
 import { AtSign } from "lucide-vue-next"
 import { BadgeCheck } from "lucide-vue-next"
 import { Ban } from "lucide-vue-next"
@@ -263,7 +262,6 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:x": { component: PhX },
   "i-lucide-alert-circle": { component: AlertCircle },
   "i-lucide-archive": { component: Archive },
-  "i-lucide-arrow-left": { component: ArrowLeft },
   "i-lucide-at-sign": { component: AtSign },
   "i-lucide-badge-check": { component: BadgeCheck },
   "i-lucide-ban": { component: Ban },

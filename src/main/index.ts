@@ -36,6 +36,7 @@ import {
 } from "./desktop-settings"
 import {
   attachAutoLockWindow,
+  isLockWindow,
   lockNow,
   registerDesktopLockIpc,
   teardownDesktopLock,
@@ -586,9 +587,15 @@ const openSettingsWindow = () => {
 
 /**
  * 向全部渲染层窗口广播事件（托盘菜单等主进程动作）。
+ *
+ * 锁定窗不接收命令广播：锁定期间托盘导航/全局快捷键（navigate-start 等）
+ * 不能借广播把锁定页换成内容页——渲染层有路由名守卫，这里按窗口标识再挡一道。
  */
 const broadcastToRenderer = (channel: string, payload?: unknown) => {
   for (const win of BrowserWindow.getAllWindows()) {
+    if (isLockWindow(win)) {
+      continue
+    }
     win.webContents.send(channel, payload)
   }
 }
@@ -653,6 +660,16 @@ const setTrayVisible = (visible: boolean): boolean => {
 }
 
 /**
+ * 自启是否带 `--hideWindow`（desktop-settings 写入登录项的启动参数）：
+ * 开机自启静默启动时不抢前台——主窗口暂缓创建，托盘与菜单照常就绪，
+ * 用户首次唤起（托盘/全局快捷键/Dock，均走 focusMainWindow）时再建。
+ */
+const shouldDeferMainWindow = (): boolean => {
+  const argv = process.argv ?? []
+  return argv.some((arg) => arg === "--hideWindow" || arg.startsWith("--hideWindow="))
+}
+
+/**
  * 应用启动引导：协议注册、IPC、菜单与窗口。
  */
 const bootstrap = () => {
@@ -682,7 +699,16 @@ const bootstrap = () => {
       return { opened: false, reason: "invalid-path" }
     }
 
-    createWindow({ targetPath })
+    // KB 设置页子窗用语雀真机固定尺寸（1139×768），不随主窗几何走；
+    // 小屏按工作区夹取避免超出屏幕。其余子窗维持既有分档默认不变。
+    const size = targetPath.startsWith("/kb-settings/")
+      ? (() => {
+          const { width, height } = screen.getPrimaryDisplay().workAreaSize
+          return { width: Math.min(1139, width), height: Math.min(768, height) }
+        })()
+      : undefined
+
+    createWindow({ targetPath, size })
     return { opened: true }
   })
 
@@ -718,13 +744,8 @@ const bootstrap = () => {
   registerDesktopLockIpc()
 
   app.on("second-instance", () => {
-    const win = BrowserWindow.getAllWindows()[0]
-    if (win) {
-      if (win.isMinimized()) {
-        win.restore()
-      }
-      win.focus()
-    }
+    // 重复启动唤起主窗（--hideWindow 暂缓期同样在此时补建窗口）
+    focusMainWindow()
   })
 
   // protocol.handle 与 session 均要求在 app ready 之后调用
@@ -738,7 +759,13 @@ const bootstrap = () => {
     if (isTrayVisibleRequested()) {
       createTray()
     }
-    createWindow()
+
+    if (shouldDeferMainWindow()) {
+      // 自启静默（--hideWindow）：托盘与菜单已就绪，主窗等首次唤起再建
+      console.log("[xiaoye] 自启静默启动（--hideWindow），主窗口暂缓创建")
+    } else {
+      createWindow()
+    }
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {

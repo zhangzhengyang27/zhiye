@@ -25,6 +25,8 @@ const props = withDefaults(
     showToolbar?: boolean
     /** 是否在工具栏末尾注入「代码块」插入按钮 */
     showCodeBlockButton?: boolean
+    /** Lake 原生大纲（TOC 侧栏）插件开关；运行期经 toggleToc() 开合 */
+    showToc?: boolean
     /** 阅读态自适应高度：不约束表面高度，滚动交给外层容器 */
     autoHeight?: boolean
     /** 工具栏白名单（不传用内核默认项） */
@@ -47,6 +49,7 @@ const props = withDefaults(
     editable: true,
     showToolbar: true,
     showCodeBlockButton: false,
+    showToc: false,
     autoHeight: false,
     toolbarItems: undefined,
     defaultFontSize: undefined,
@@ -65,6 +68,27 @@ const emit = defineEmits<{
   /** 表面根节点就绪，评论系统、划词浮动条以它为容器锚 */
   surfaceReady: [surface: HTMLElement]
 }>()
+
+/**
+ * Lake 原生大纲（TOC 侧栏）运行时开关：showToc 启用插件后内核注册
+ * toggleTocView 命令（ne-ui-sidebar，右侧 305px，与语雀产品一致），
+ * 由宿主「目录」按钮与阅读态自动展开逻辑调用。
+ */
+const toggleToc = () => {
+  const richText = editorComponentRef.value as YuqueEditorRef | null
+  richText?.execCommand?.("toggleTocView")
+}
+
+/**
+ * Lake 原生表情：光标处插入 unicodeEmoji 卡（卡片自带分类/搜索选择面板）。
+ * 注意：当前内核三方接入下该命令静默无效（见 docs/编辑器内核能力盘点-2026-09-21.md），
+ * 入口先行保留，待内核开放后自动生效。
+ */
+const insertEmojiCard = () => {
+  editorApi.value?.execCommand("unicodeEmoji")
+}
+
+defineExpose({ toggleToc, insertEmojiCard })
 
 /** 表面根节点：Lake 的 DOM（.ne-editor 等）挂载其内，经 surfaceReady 抛给宿主 */
 const surfaceRef = ref<HTMLElement | null>(null)
@@ -235,6 +259,7 @@ const uploadAudio = bridgeUpload(() => props.onAudioUpload)
         :scheme="scheme"
         :read-only="!editable"
         :show-toolbar="showToolbar"
+        :show-toc="showToc"
         :toolbar-items="toolbarItems"
         :default-font-size="defaultFontSize"
         :paragraph-spacing="paragraphSpacing"

@@ -37,9 +37,20 @@ export function createDiagnostics() {
 
 /** 挂接 page 的 console/pageerror 监听，写入诊断桶。 */
 export function attachPageDiagnostics(page, diagnostics) {
-  page.on("response", (response) => {
+  page.on("response", async (response) => {
     if (response.status() >= 400) {
-      diagnostics.consoleErrors.push(`[dbg ${response.status()}] ${response.url()}`)
+      // 5xx 额外抓响应体定位服务端真因（复原期临时插桩）
+      let bodyText = ""
+      if (response.status() >= 500) {
+        try {
+          bodyText = (await response.text()).slice(0, 400)
+        } catch {
+          bodyText = "(响应体不可读)"
+        }
+      }
+      diagnostics.consoleErrors.push(
+        `[dbg ${response.status()}] ${response.url()}${bodyText ? ` ← ${bodyText}` : ""}`,
+      )
     }
   })
   page.on("console", (message) => {
@@ -161,7 +172,7 @@ export function flattenTree(nodes, depth = 0) {
 }
 
 /** 按名确保知识库存在（复用同名，避免冒烟残留堆积）。 */
-export async function ensureKnowledgeBase(token, prefix, name) {
+export async function ensureKnowledgeBase(token, prefix, name = `${prefix} KB`) {
   const kbs = await apiRequest("/knowledge/knowledge-bases", {
     token,
     errorMessage: "读取知识库列表失败",
