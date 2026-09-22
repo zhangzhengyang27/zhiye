@@ -46,14 +46,16 @@ async function main() {
   const distStat = await stat(distEntryFile).catch(() => null)
   if (distStat) {
     if (!Number.isFinite(generatedAtMs)) {
-      console.error("[perf:budget] ❌ 画像数据缺少 generatedAt（旧版 profile 落盘），请重跑 pnpm perf:budget")
+      console.error(
+        "[perf:budget] ❌ 画像数据缺少 generatedAt（旧版 profile 落盘），请重跑 pnpm perf:budget",
+      )
       globalThis.process.exitCode = 1
       return
     }
     if (generatedAtMs < distStat.mtimeMs) {
       console.error(
         `[perf:budget] ❌ 画像数据(${summary.generatedAt})早于当前 dist 构建(${distStat.mtime.toISOString()})，` +
-          "断言对象是旧包——请重跑 pnpm perf:budget 再校验"
+          "断言对象是旧包——请重跑 pnpm perf:budget 再校验",
       )
       globalThis.process.exitCode = 1
       return
@@ -79,11 +81,15 @@ async function main() {
 
   console.log("\n[perf:budget] 性能预算核对")
   for (const [name, value, limit, status] of rows) {
-    console.log(`  ${status.padEnd(6)} ${name.padEnd(28)} 实测 ${String(value).padEnd(10)} 预算 ${limit}`)
+    console.log(
+      `  ${status.padEnd(6)} ${name.padEnd(28)} 实测 ${String(value).padEnd(10)} 预算 ${limit}`,
+    )
   }
 
   if (violations.length > 0) {
-    console.error(`\n[perf:budget] ❌ ${violations.length} 项超预算：\n  ${violations.join("\n  ")}`)
+    console.error(
+      `\n[perf:budget] ❌ ${violations.length} 项超预算：\n  ${violations.join("\n  ")}`,
+    )
     globalThis.process.exitCode = 1
     return
   }
@@ -91,7 +97,7 @@ async function main() {
   console.log("\n[perf:budget] ✅ 全部指标在预算内")
 }
 
-main().catch(error => {
+main().catch((error) => {
   console.error("[perf:budget] 失败", error)
   globalThis.process.exitCode = 1
 })

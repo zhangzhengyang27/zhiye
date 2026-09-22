@@ -195,7 +195,7 @@ const submit = async () => {
   } catch (error) {
     errorMessage.value = getApiErrorMessage(
       error,
-      isRegister.value ? "注册失败，请稍后重试。" : "登录失败，请稍后重试。"
+      isRegister.value ? "注册失败，请稍后重试。" : "登录失败，请稍后重试。",
     )
   } finally {
     submitting.value = false
@@ -225,7 +225,9 @@ onMounted(() => {
 <template>
   <section class="min-h-screen bg-[image:var(--kb-shell-bg)] px-4 py-10">
     <div class="mx-auto flex min-h-[calc(100vh-5rem)] max-w-[420px] items-center">
-      <div class="w-full rounded-kb-3xl border border-line bg-surface p-8 shadow-[var(--kb-elevated-shadow)] sm:p-10">
+      <div
+        class="w-full rounded-kb-3xl border border-line bg-surface p-8 shadow-[var(--kb-elevated-shadow)] sm:p-10"
+      >
         <div class="flex items-center gap-3">
           <span
             class="flex h-11 w-11 shrink-0 items-center justify-center rounded-kb-xl bg-brand text-[18px] font-semibold text-white"
@@ -346,7 +348,9 @@ onMounted(() => {
             native-type="submit"
             :loading="submitting"
             class="h-12 rounded-kb-2xl text-base shadow-[var(--kb-glow-brand-cta)] duration-200 hover:shadow-[var(--kb-glow-brand-cta-hover)] active:scale-[0.98] w-full py-0"
-            ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            ><template #loading
+              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+            /></template>
             <span class="truncate">{{ isRegister ? "注册并进入" : "登录并进入" }}</span>
           </el-button>
 

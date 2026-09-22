@@ -21,7 +21,8 @@ import {
 const shotDir = "/Users/xiaoye/Desktop/AI/知识库/xiaoye/output/playwright"
 fs.mkdirSync(shotDir, { recursive: true })
 
-const MARKDOWN_CONTENT = "# 导出验证\n\n**加粗文本** 与 [链接](https://example.com)\n\n- 列表项甲\n- 列表项乙\n"
+const MARKDOWN_CONTENT =
+  "# 导出验证\n\n**加粗文本** 与 [链接](https://example.com)\n\n- 列表项甲\n- 列表项乙\n"
 const HTML_CONTENT =
   "<h1>HTML 导出验证</h1><p>段落含 <strong>加粗</strong> 与 <a href='https://example.com'>链接</a>。</p><ul><li>项一</li><li>项二</li></ul>"
 
@@ -76,7 +77,10 @@ try {
   const htmlOut = await exportViaTreeMenu(kb.id, "导出验证-HTML")
   assert.ok(htmlOut.includes("# HTML 导出验证"), "html 文档导出应转换出标题")
   assert.ok(htmlOut.includes("**加粗**"), "html 文档导出应转换出加粗")
-  assert.ok(!htmlOut.includes("<h1>") && !htmlOut.includes("<strong>"), "html 文档导出不应残留 HTML 标签")
+  assert.ok(
+    !htmlOut.includes("<h1>") && !htmlOut.includes("<strong>"),
+    "html 文档导出不应残留 HTML 标签",
+  )
   logStep("[验证]", "✅ HTML 文档导出已转换为 Markdown")
 
   assertNoPageErrors(diagnostics)

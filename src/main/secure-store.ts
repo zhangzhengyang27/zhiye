@@ -85,6 +85,7 @@ const isValidStorageKey = (value: unknown): value is string =>
   typeof value === "string" &&
   value.length > 0 &&
   value.length <= MAX_STORAGE_KEY_LENGTH &&
+  // eslint-disable-next-line no-control-regex -- 刻意匹配控制字符：存储键禁止 \x00-\x1f
   !/[\u0000-\u001f\u007f]/.test(value)
 
 const isValidPlaintext = (value: unknown): value is string =>
@@ -99,23 +100,26 @@ const isValidPlaintext = (value: unknown): value is string =>
  * unavailable，由渲染层回退到本地混淆实现。
  */
 export const registerSecureStoreIpc = () => {
-  ipcMain.handle("xiaoye:secure-store:set", (_event, storageKey: unknown, plaintext: unknown): SecureStoreResult => {
-    if (!isValidStorageKey(storageKey) || !isValidPlaintext(plaintext)) {
-      return { ok: false, reason: "invalid" }
-    }
-    if (!safeStorage.isEncryptionAvailable()) {
-      return { ok: false, reason: "unavailable" }
-    }
-    try {
-      const records = readRecords()
-      records[storageKey] = safeStorage.encryptString(plaintext).toString("base64")
-      writeRecords(records)
-      return { ok: true }
-    } catch (error) {
-      console.warn(`[xiaoye] 安全存储写入失败（${storageKey}）：`, error)
-      return { ok: false, reason: "io-error" }
-    }
-  })
+  ipcMain.handle(
+    "xiaoye:secure-store:set",
+    (_event, storageKey: unknown, plaintext: unknown): SecureStoreResult => {
+      if (!isValidStorageKey(storageKey) || !isValidPlaintext(plaintext)) {
+        return { ok: false, reason: "invalid" }
+      }
+      if (!safeStorage.isEncryptionAvailable()) {
+        return { ok: false, reason: "unavailable" }
+      }
+      try {
+        const records = readRecords()
+        records[storageKey] = safeStorage.encryptString(plaintext).toString("base64")
+        writeRecords(records)
+        return { ok: true }
+      } catch (error) {
+        console.warn(`[xiaoye] 安全存储写入失败（${storageKey}）：`, error)
+        return { ok: false, reason: "io-error" }
+      }
+    },
+  )
 
   ipcMain.handle("xiaoye:secure-store:get", (_event, storageKey: unknown): SecureStoreResult => {
     if (!isValidStorageKey(storageKey)) {

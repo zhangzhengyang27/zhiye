@@ -32,7 +32,7 @@ const shot = async (page, name) => {
   logStep("[EP基线]", `✅ ${name}`)
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[EP基线:${mode}]`
   const failures = []
@@ -40,13 +40,13 @@ const capturePass = async mode => {
   // 首屏内联脚本读 localStorage（key: vueuse-color-scheme）决定 <html> 是否带 .dark；
   // 亮色显式写 light，避免跟随系统 prefers-color-scheme 造成不确定性。
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, smokeConfig.baseUrl).toString()
+  const url = (path) => new URL(path, smokeConfig.baseUrl).toString()
 
   try {
     // 1. 登录页（未登录态直接访问，fresh context 无会话）
@@ -93,7 +93,10 @@ const capturePass = async mode => {
       }
       await row.click({ button: "right" })
       await page.getByRole("menuitem", { name: "移动..." }).click()
-      await page.locator('[role="dialog"]').filter({ hasText: "移动至" }).waitFor({ state: "visible", timeout: 10_000 })
+      await page
+        .locator('[role="dialog"]')
+        .filter({ hasText: "移动至" })
+        .waitFor({ state: "visible", timeout: 10_000 })
       await page.waitForTimeout(800)
       await shot(page, `move-dialog-${mode}`)
       await page.keyboard.press("Escape")

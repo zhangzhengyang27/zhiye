@@ -3,7 +3,10 @@
 import { computed } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
 import BoardAiConfigForm from "@/components/board/BoardAiConfigForm.vue"
-import type { KnowledgeBoardAiConfigCollection, KnowledgeBoardAiProviderProfile } from "@/types/knowledge-board-ai"
+import type {
+  KnowledgeBoardAiConfigCollection,
+  KnowledgeBoardAiProviderProfile,
+} from "@/types/knowledge-board-ai"
 import {
   createKnowledgeBoardAiProviderProfile,
   getKnowledgeBoardAiActiveProfile,
@@ -19,7 +22,9 @@ const emit = defineEmits<{
   "update:modelValue": [value: KnowledgeBoardAiConfigCollection]
 }>()
 
-const normalizedCollection = computed(() => normalizeKnowledgeBoardAiConfigCollection(props.modelValue))
+const normalizedCollection = computed(() =>
+  normalizeKnowledgeBoardAiConfigCollection(props.modelValue),
+)
 const activeProfile = computed(() => getKnowledgeBoardAiActiveProfile(normalizedCollection.value))
 
 const updateCollection = (nextCollection: KnowledgeBoardAiConfigCollection) => {
@@ -34,7 +39,7 @@ const selectProfile = (profileId: string) => {
 }
 
 const patchActiveProfile = (nextProfile: KnowledgeBoardAiProviderProfile) => {
-  const nextProfiles = normalizedCollection.value.profiles.map(profile => {
+  const nextProfiles = normalizedCollection.value.profiles.map((profile) => {
     if (profile.id !== nextProfile.id) {
       return profile
     }
@@ -67,7 +72,9 @@ const removeActiveProfile = () => {
     return
   }
 
-  const nextProfiles = normalizedCollection.value.profiles.filter(profile => profile.id !== activeProfile.value.id)
+  const nextProfiles = normalizedCollection.value.profiles.filter(
+    (profile) => profile.id !== activeProfile.value.id,
+  )
   const nextActiveProfileId = nextProfiles[0]?.id || ""
 
   updateCollection({
@@ -79,11 +86,15 @@ const removeActiveProfile = () => {
 
 <template>
   <div class="grid gap-5">
-    <section class="rounded-kb-3xl border border-line bg-surface px-5 py-5 shadow-[var(--kb-surface-shadow)]">
+    <section
+      class="rounded-kb-3xl border border-line bg-surface px-5 py-5 shadow-[var(--kb-surface-shadow)]"
+    >
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p class="text-[14px] font-semibold text-ink">配置列表</p>
-          <p class="mt-1 text-[13px] text-ink-tertiary">支持保存多个模型配置，并在画板中切换当前使用的配置。</p>
+          <p class="mt-1 text-[13px] text-ink-tertiary">
+            支持保存多个模型配置，并在画板中切换当前使用的配置。
+          </p>
         </div>
         <el-button plain class="py-2" @click="addProfile"
           ><Icon icon="ph:plus" :width="16" :height="16" />
@@ -117,7 +128,9 @@ const removeActiveProfile = () => {
               {{ normalizedCollection.activeProfileId === profile.id ? "当前使用" : "点击切换" }}
             </span>
           </div>
-          <p class="mt-2 text-[12px] text-ink-tertiary">{{ resolveKnowledgeBoardAiConfigSummary(profile) }}</p>
+          <p class="mt-2 text-[12px] text-ink-tertiary">
+            {{ resolveKnowledgeBoardAiConfigSummary(profile) }}
+          </p>
         </button>
       </div>
 
@@ -138,7 +151,8 @@ const removeActiveProfile = () => {
 
     <p class="text-[12px] leading-6 text-ink-quaternary">
       API Key 不以明文写入本地存储。桌面端由操作系统密钥链（macOS Keychain / Windows DPAPI / Linux
-      libsecret）加密保存；Web 端在安全上下文下使用 AES 加密，局域网 HTTP 等非安全上下文自动切换为兼容模式的本地可逆加密存储。
+      libsecret）加密保存；Web 端在安全上下文下使用 AES 加密，局域网 HTTP
+      等非安全上下文自动切换为兼容模式的本地可逆加密存储。
     </p>
   </div>
 </template>

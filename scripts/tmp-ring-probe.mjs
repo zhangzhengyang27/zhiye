@@ -17,16 +17,18 @@ const kb = await ensureKnowledgeBase(token, "probe")
 const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n探针。` })
 
 await page.evaluate(() => globalThis.localStorage.setItem("vueuse-color-scheme", "dark"))
-await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), { waitUntil: "networkidle" })
+await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
+  waitUntil: "networkidle",
+})
 const row = page.locator(`[data-knowledge-node-id="${doc.id}"]`)
 await row.waitFor({ state: "visible", timeout: smokeConfig.timeout })
 
-const probe = label =>
-  page.evaluate(l => {
+const probe = (label) =>
+  page.evaluate((l) => {
     const rows = [...document.querySelectorAll("[data-knowledge-tree-row]")]
     const ringed = rows
-      .filter(el => getComputedStyle(el).boxShadow !== "none")
-      .map(el => (el.querySelector("span.truncate")?.textContent ?? el.textContent).slice(0, 14))
+      .filter((el) => getComputedStyle(el).boxShadow !== "none")
+      .map((el) => (el.querySelector("span.truncate")?.textContent ?? el.textContent).slice(0, 14))
     const a = document.activeElement
     return {
       [l]: {

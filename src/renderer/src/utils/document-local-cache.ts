@@ -22,9 +22,9 @@ const buildKey = (docId: string) => `kb-doc-local-cache:${docId}`
 const isSnapshotEntry = (value: unknown): value is DocumentLocalSnapshot => {
   return Boolean(
     value &&
-      typeof value === "object" &&
-      typeof (value as DocumentLocalSnapshot).at === "number" &&
-      typeof (value as DocumentLocalSnapshot).content === "string"
+    typeof value === "object" &&
+    typeof (value as DocumentLocalSnapshot).at === "number" &&
+    typeof (value as DocumentLocalSnapshot).content === "string",
   )
 }
 
@@ -57,7 +57,10 @@ const readSnapshotList = async (key: string): Promise<DocumentLocalSnapshot[]> =
 }
 
 /** 追加一条快照：与最近一条内容相同则跳过；超出上限裁剪最旧的。 */
-export const appendDocumentLocalSnapshot = async (docId: string, snapshot: DocumentLocalSnapshot) => {
+export const appendDocumentLocalSnapshot = async (
+  docId: string,
+  snapshot: DocumentLocalSnapshot,
+) => {
   if (!docId) return
   const key = buildKey(docId)
   const existing = await readSnapshotList(key)
@@ -69,7 +72,9 @@ export const appendDocumentLocalSnapshot = async (docId: string, snapshot: Docum
 }
 
 /** 读取某文档的全部本地快照（新→旧）。 */
-export const getDocumentLocalSnapshots = async (docId: string): Promise<DocumentLocalSnapshot[]> => {
+export const getDocumentLocalSnapshots = async (
+  docId: string,
+): Promise<DocumentLocalSnapshot[]> => {
   if (!docId) {
     return []
   }

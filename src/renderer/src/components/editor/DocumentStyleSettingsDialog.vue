@@ -52,11 +52,11 @@ const draftFontSize = ref(props.docStyle.fontSize)
 
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (open) {
       draftFontSize.value = props.docStyle.fontSize
     }
-  }
+  },
 )
 
 const commitFontSize = () => {
@@ -66,7 +66,10 @@ const commitFontSize = () => {
 }
 
 const handleSpacingChange = (value: string | number | boolean) => {
-  emit("update:docStyle", { ...props.docStyle, paragraphSpacing: value === "relax" ? "relax" : "default" })
+  emit("update:docStyle", {
+    ...props.docStyle,
+    paragraphSpacing: value === "relax" ? "relax" : "default",
+  })
 }
 
 const dialog = useDialogBehavior({
@@ -89,7 +92,7 @@ const resetFontSize = () => {
     title="样式设置"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('close')"
+    @update:model-value="(value) => !value && emit('close')"
   >
     <template #header>
       <KbDialogHeader title="样式设置" eyebrow="编辑器" @close="emit('close')" />

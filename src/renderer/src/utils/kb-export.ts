@@ -6,7 +6,10 @@
  * fflate 与 turndown 均按需动态 import，不进首屏包。
  */
 import type { KnowledgeBaseItem } from "@/services/knowledge-base"
-import { getKnowledgeDocument, type KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
+import {
+  getKnowledgeDocument,
+  type KnowledgeDocumentTreeNode,
+} from "@/services/knowledge-documents"
 import type { KnowledgeDocumentContent } from "@/types/knowledge-document"
 
 /** 导出结果计数：exported = 成功写入 zip 的文档数，skipped = 无法转 Markdown 的节点数 */
@@ -64,7 +67,7 @@ const contentToMarkdown = async (content: KnowledgeDocumentContent | null | unde
  */
 export const exportKnowledgeBaseZip = async (
   kb: KnowledgeBaseItem,
-  nodes: KnowledgeDocumentTreeNode[]
+  nodes: KnowledgeDocumentTreeNode[],
 ): Promise<KbExportResult> => {
   const files: Record<string, Uint8Array> = {}
   let exported = 0
@@ -89,12 +92,21 @@ export const exportKnowledgeBaseZip = async (
       }
 
       // 外链节点无正文；画板/表格/思维导图无法转 Markdown，按类型直接跳过
-      if (node.type === "link" || node.editorType === "board" || node.editorType === "datatable" || node.editorType === "sheet" || node.editorType === "mindmap") {
+      if (
+        node.type === "link" ||
+        node.editorType === "board" ||
+        node.editorType === "datatable" ||
+        node.editorType === "sheet" ||
+        node.editorType === "mindmap"
+      ) {
         skipped += 1
         continue
       }
 
-      tasks.push({ docId: node.id, zipPath: `${prefix}${uniqueEntryName(`${safeTitle}.md`, usedNames)}` })
+      tasks.push({
+        docId: node.id,
+        zipPath: `${prefix}${uniqueEntryName(`${safeTitle}.md`, usedNames)}`,
+      })
     }
   }
 

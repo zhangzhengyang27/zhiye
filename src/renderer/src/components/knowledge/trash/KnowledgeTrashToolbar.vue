@@ -23,7 +23,7 @@ const props = withDefaults(
   {
     searchPlaceholderDocs: "搜索文档标题或知识库名称",
     searchPlaceholderKbs: "搜索知识库名称",
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -51,8 +51,16 @@ const searchPlaceholder = computed(() => {
         @clear-docs="emit('clearDocs')"
       />
 
-      <el-button plain class="h-8 rounded-kb-md px-3 py-0 gap-1.5" :disabled="props.loading" @click="emit('refresh')"
-        ><AppIcon name="i-lucide-refresh-cw" class="h-3.5 w-3.5" :class="props.loading ? 'animate-spin' : ''" />
+      <el-button
+        plain
+        class="h-8 rounded-kb-md px-3 py-0 gap-1.5"
+        :disabled="props.loading"
+        @click="emit('refresh')"
+        ><AppIcon
+          name="i-lucide-refresh-cw"
+          class="h-3.5 w-3.5"
+          :class="props.loading ? 'animate-spin' : ''"
+        />
         <span class="truncate">刷新</span>
       </el-button>
     </div>

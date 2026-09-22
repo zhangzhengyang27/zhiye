@@ -3,7 +3,10 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
 import KnowledgeInlineTitleInput from "@/components/knowledge/KnowledgeInlineTitleInput.vue"
-import type { KnowledgeDocumentTreeNode, KnowledgeDocumentType } from "@/services/knowledge-documents"
+import type {
+  KnowledgeDocumentTreeNode,
+  KnowledgeDocumentType,
+} from "@/services/knowledge-documents"
 import type { TreeDropPosition, TreeRowRegistryItem } from "./tree-dnd"
 
 type KnowledgeNodeMenuMode = "actions" | "create"
@@ -37,14 +40,23 @@ const emit = defineEmits<{
   (event: "toggle-folder", id: string): void
   (event: "open-doc", id: string): void
   (event: "focus-node", node: KnowledgeDocumentTreeNode): void
-  (event: "create-child", payload: { parentId: string | null; type: KnowledgeCreateChildType }): void
-  (event: "rename-finish", payload: { node: KnowledgeDocumentTreeNode; title: string; committed: boolean }): void
+  (
+    event: "create-child",
+    payload: { parentId: string | null; type: KnowledgeCreateChildType },
+  ): void
+  (
+    event: "rename-finish",
+    payload: { node: KnowledgeDocumentTreeNode; title: string; committed: boolean },
+  ): void
   (event: "move-node", node: KnowledgeDocumentTreeNode): void
   (event: "delete-node", node: KnowledgeDocumentTreeNode): void
   (event: "copy-link-node", node: KnowledgeDocumentTreeNode): void
   (event: "preview-doc", node: KnowledgeDocumentTreeNode): void
   (event: "show-node-menu", payload: KnowledgeNodeMenuPayload): void
-  (event: "drag-start-node", payload: { node: KnowledgeDocumentTreeNode; event: PointerEvent }): void
+  (
+    event: "drag-start-node",
+    payload: { node: KnowledgeDocumentTreeNode; event: PointerEvent },
+  ): void
   (event: "register-row", payload: { item: TreeRowRegistryItem }): void
   (event: "unregister-row", payload: { nodeId: string }): void
 }>()
@@ -70,7 +82,7 @@ const isRenaming = computed(() => !!props.renamingNodeId && props.renamingNodeId
  * 2px，键盘可达性不降级。
  */
 const rowRingWidthClass = computed(() =>
-  isRenaming.value ? "has-[:focus-visible]:ring-1" : "has-[:focus-visible]:ring-2"
+  isRenaming.value ? "has-[:focus-visible]:ring-1" : "has-[:focus-visible]:ring-2",
 )
 
 const rowStateClass = computed(() => {
@@ -249,7 +261,7 @@ watch(
   () => [props.node, props.depth, props.index] as const,
   () => {
     void nextTick(syncRowRegistry)
-  }
+  },
 )
 
 onBeforeUnmount(() => {
@@ -264,7 +276,9 @@ onBeforeUnmount(() => {
       class="pointer-events-none absolute inset-x-2 top-0 z-10 -translate-y-1/2"
       :style="dropPreviewOffsetStyle"
     >
-      <span class="block h-[2px] rounded-full bg-gradient-to-r from-brand-lighter/0 via-brand to-brand" />
+      <span
+        class="block h-[2px] rounded-full bg-gradient-to-r from-brand-lighter/0 via-brand to-brand"
+      />
     </div>
 
     <div
@@ -306,7 +320,7 @@ onBeforeUnmount(() => {
         v-if="isRenaming"
         :value="node.title"
         aria-label="重命名"
-        @finish="payload => emit('rename-finish', { node, ...payload })"
+        @finish="(payload) => emit('rename-finish', { node, ...payload })"
       />
       <button
         v-else
@@ -318,7 +332,9 @@ onBeforeUnmount(() => {
         @pointermove="handleDragHandlePointerMove"
         @click="handleClickName"
       >
-        <span class="truncate text-[14px] font-medium leading-5" :title="node.title">{{ node.title }}</span>
+        <span class="truncate text-[14px] font-medium leading-5" :title="node.title">{{
+          node.title
+        }}</span>
       </button>
 
       <!-- 对齐语雀桌面端：行 hover 浮现 ⋯（更多）/ 👁（阅读）/ +（新建）；
@@ -377,7 +393,9 @@ onBeforeUnmount(() => {
       class="pointer-events-none absolute inset-x-2 bottom-0 z-10 translate-y-1/2"
       :style="dropPreviewOffsetStyle"
     >
-      <span class="block h-[2px] rounded-full bg-gradient-to-r from-brand-lighter/0 via-brand to-brand" />
+      <span
+        class="block h-[2px] rounded-full bg-gradient-to-r from-brand-lighter/0 via-brand to-brand"
+      />
     </div>
   </div>
 </template>

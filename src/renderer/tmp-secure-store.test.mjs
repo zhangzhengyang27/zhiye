@@ -92,7 +92,9 @@ describe("secure-store（主进程安全存储）", () => {
     const onDisk = JSON.parse(fs.readFileSync(getFilePath(), "utf-8"))
     expect(Object.keys(onDisk)).toEqual(["kb-board-ai:user-1:abc"])
     expect(onDisk["kb-board-ai:user-1:abc"]).not.toContain("sk-secret-key-123")
-    expect(onDisk["kb-board-ai:user-1:abc"]).toBe(Buffer.from("enc::sk-secret-key-123", "utf-8").toString("base64"))
+    expect(onDisk["kb-board-ai:user-1:abc"]).toBe(
+      Buffer.from("enc::sk-secret-key-123", "utf-8").toString("base64"),
+    )
 
     const getResult = call("xiaoye:secure-store:get", "kb-board-ai:user-1:abc")
     expect(getResult).toEqual({ ok: true, value: "sk-secret-key-123" })
@@ -158,9 +160,15 @@ describe("secure-store（主进程安全存储）", () => {
   it("safeStorage 不可用时拒绝并回报 unavailable，且不写盘", async () => {
     const fs = await import("node:fs")
     state.encryptionAvailable.value = false
-    expect(call("xiaoye:secure-store:set", "key-a", "value-a")).toEqual({ ok: false, reason: "unavailable" })
+    expect(call("xiaoye:secure-store:set", "key-a", "value-a")).toEqual({
+      ok: false,
+      reason: "unavailable",
+    })
     expect(call("xiaoye:secure-store:get", "key-a")).toEqual({ ok: false, reason: "unavailable" })
-    expect(call("xiaoye:secure-store:delete", "key-a")).toEqual({ ok: false, reason: "unavailable" })
+    expect(call("xiaoye:secure-store:delete", "key-a")).toEqual({
+      ok: false,
+      reason: "unavailable",
+    })
     expect(fs.existsSync(getFilePath())).toBe(false)
   })
 })

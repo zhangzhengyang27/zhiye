@@ -16,7 +16,10 @@ const { browser, page } = await createBrowserPage({ viewport: { width: 1247, hei
 await loginThroughUi(page, "probe")
 const token = await readAccessToken(page)
 const kb = await ensureKnowledgeBase(token, "probe")
-const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n点击探针。` })
+const doc = await ensureDocument(kb.id, token, {
+  title: TITLE,
+  content: `# ${TITLE}\n\n点击探针。`,
+})
 
 await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
   waitUntil: "networkidle",
@@ -33,8 +36,16 @@ const dismiss = async () => {
 }
 const state = async () => ({
   url: page.url().replace("http://127.0.0.1:4173", ""),
-  menu: await page.locator("text=导出…").first().isVisible().catch(() => false),
-  dialog: await page.locator("text=新建文档").first().isVisible().catch(() => false),
+  menu: await page
+    .locator("text=导出…")
+    .first()
+    .isVisible()
+    .catch(() => false),
+  dialog: await page
+    .locator("text=新建文档")
+    .first()
+    .isVisible()
+    .catch(() => false),
 })
 
 // 1. 完全不做 hover 前置，直接点三个图标（此前 group-hover 变体失效时正是这种姿势点不动）
@@ -44,7 +55,9 @@ for (const name of ["更多操作", "阅读模式", "新建同级文档"]) {
   await dismiss()
   const btn = row.locator(`button[title='${name}']`)
   const before = await state()
-  await btn.click({ timeout: 5000 }).catch(e => (results[`${name}_clickError`] = e.message.split("\n")[0]))
+  await btn
+    .click({ timeout: 5000 })
+    .catch((e) => (results[`${name}_clickError`] = e.message.split("\n")[0]))
   await page.waitForTimeout(600)
   const after = await state()
   results[name] = {
@@ -61,7 +74,7 @@ await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).t
   waitUntil: "networkidle",
 })
 await row.waitFor({ state: "visible", timeout: smokeConfig.timeout })
-const tail = await row.evaluate(el => {
+const tail = await row.evaluate((el) => {
   const span = el.querySelector("[data-knowledge-tree-drag-handle] > span")
   const group = el.lastElementChild
   const sr = span.getBoundingClientRect()
@@ -74,7 +87,10 @@ await page.waitForTimeout(250)
 await page.mouse.down()
 await page.mouse.up()
 await page.waitForTimeout(700)
-results.titleTailClick = { point: { x: tail.x, y: tail.y }, url: page.url().replace("http://127.0.0.1:4173", "") }
+results.titleTailClick = {
+  point: { x: tail.x, y: tail.y },
+  url: page.url().replace("http://127.0.0.1:4173", ""),
+}
 
 logStep("probe", JSON.stringify(results, null, 2))
 await browser.close()

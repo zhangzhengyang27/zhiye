@@ -6,10 +6,22 @@
  * `group-hover:px-3` 这类带变体前缀的类会被整串匹配误判成自定义尺寸，
  * 导致组件默认内边距被静默丢弃。
  */
-const SPACING_PREFIXES = ["min-h-", "max-h-", "h-", "size-", "p-", "px-", "py-", "pt-", "pb-", "pl-", "pr-"]
+const SPACING_PREFIXES = [
+  "min-h-",
+  "max-h-",
+  "h-",
+  "size-",
+  "p-",
+  "px-",
+  "py-",
+  "pt-",
+  "pb-",
+  "pl-",
+  "pr-",
+]
 
 export const hasExplicitSpacing = (classString: string | undefined | null): boolean =>
   (classString ?? "")
     .split(/\s+/)
     .filter(Boolean)
-    .some(token => SPACING_PREFIXES.some(prefix => token.startsWith(prefix)))
+    .some((token) => SPACING_PREFIXES.some((prefix) => token.startsWith(prefix)))

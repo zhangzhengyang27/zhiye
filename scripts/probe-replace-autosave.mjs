@@ -21,8 +21,11 @@ const CONTENT = "# 自动保存实证\n\n苹果是水果，香蕉也是水果。
 
 const { browser, page } = await createBrowserPage()
 const saveRequests = []
-page.on("request", req => {
-  if (/\/api\/knowledge\/documents\/[A-Za-z0-9_-]+$/.test(req.url()) && ["PATCH", "PUT"].includes(req.method())) {
+page.on("request", (req) => {
+  if (
+    /\/api\/knowledge\/documents\/[A-Za-z0-9_-]+$/.test(req.url()) &&
+    ["PATCH", "PUT"].includes(req.method())
+  ) {
     saveRequests.push({ at: Date.now(), method: req.method() })
   }
 })
@@ -36,13 +39,22 @@ const openSearchPanel = async (kbId, docId) => {
   await page.locator(".ne-editor-wrap-content").first().click()
   // search 项可能直接平铺在工具栏（宽视口）或折叠进「更多」（窄视口），双路径弹性打开
   const directSearch = page.locator(".ne-ui-toolbar-search")
-  if ((await directSearch.count()) > 0 && (await directSearch.first().isVisible().catch(() => false))) {
+  if (
+    (await directSearch.count()) > 0 &&
+    (await directSearch
+      .first()
+      .isVisible()
+      .catch(() => false))
+  ) {
     await directSearch.first().click()
   } else {
     await page.locator(".ne-ui-toolbar-more-button").click()
     await page.locator(".ne-ui-toolbar-search").click()
   }
-  await page.getByText("查找", { exact: true }).first().waitFor({ state: "visible", timeout: 10_000 })
+  await page
+    .getByText("查找", { exact: true })
+    .first()
+    .waitFor({ state: "visible", timeout: 10_000 })
 }
 
 try {
@@ -80,10 +92,12 @@ try {
     })
   ).json()
   const saved = detail?.content?.value || ""
-  const editorText = await page.evaluate(() => document.querySelector(".ne-engine")?.textContent ?? "")
+  const editorText = await page.evaluate(
+    () => document.querySelector(".ne-engine")?.textContent ?? "",
+  )
   logStep(
     "[实证]",
-    `保存请求数=${saveRequests.length} ${JSON.stringify(saveRequests)}；服务端含苹果=${saved.includes("苹果")}；服务端含梨=${(saved.match(/梨/g) || []).length}；编辑器DOM含梨=${(editorText.match(/梨/g) || []).length}`
+    `保存请求数=${saveRequests.length} ${JSON.stringify(saveRequests)}；服务端含苹果=${saved.includes("苹果")}；服务端含梨=${(saved.match(/梨/g) || []).length}；编辑器DOM含梨=${(editorText.match(/梨/g) || []).length}`,
   )
   await page.screenshot({ path: `${shotDir}/probe-replace-autosave.png` })
 } finally {

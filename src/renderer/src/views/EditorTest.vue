@@ -5,7 +5,10 @@
       <div class="min-h-0 flex-1 border border-line">
         <YuqueDocEditor v-model="content" content-type="markdown" />
       </div>
-      <textarea v-model="content" class="mt-4 h-40 w-full border border-line p-2 font-mono text-xs" />
+      <textarea
+        v-model="content"
+        class="mt-4 h-40 w-full border border-line p-2 font-mono text-xs"
+      />
     </div>
   </el-container>
 </template>

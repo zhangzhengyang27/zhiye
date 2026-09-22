@@ -22,13 +22,15 @@ const kb = await ensureKnowledgeBase(token, "probe")
 const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n环宽。` })
 
 await page.evaluate(() => globalThis.localStorage.setItem("vueuse-color-scheme", "dark"))
-await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), { waitUntil: "networkidle" })
+await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
+  waitUntil: "networkidle",
+})
 const row = page.locator(`[data-knowledge-node-id="${doc.id}"]`)
 await row.waitFor({ state: "visible", timeout: smokeConfig.timeout })
 const aside = page.locator("aside", { has: page.locator("[data-knowledge-tree-row]") }).first()
 
 const ringWidth = () =>
-  page.evaluate(id => {
+  page.evaluate((id) => {
     const el = document.querySelector(`[data-knowledge-node-id="${id}"]`)
     const m = /0px 0px 0px ([\d.]+)px/.exec(getComputedStyle(el).boxShadow)
     return m ? m[1] : "none"
@@ -55,7 +57,7 @@ await page.waitForTimeout(300)
 let buttonRing = "none"
 for (let i = 0; i < 30; i += 1) {
   await page.keyboard.press("Tab")
-  const hit = await page.evaluate(id => {
+  const hit = await page.evaluate((id) => {
     const a = document.activeElement
     const onRow = a?.closest?.(`[data-knowledge-node-id="${id}"]`)
     if (!onRow || a.tagName !== "BUTTON") return null
@@ -68,8 +70,8 @@ for (let i = 0; i < 30; i += 1) {
   }
 }
 out.tabToButtonRingPx = buttonRing
-out.ringClasses = await row.evaluate(el =>
-  [...el.classList].filter(c => c.includes("ring-")).join(" ")
+out.ringClasses = await row.evaluate((el) =>
+  [...el.classList].filter((c) => c.includes("ring-")).join(" "),
 )
 console.log(JSON.stringify(out, null, 2))
 

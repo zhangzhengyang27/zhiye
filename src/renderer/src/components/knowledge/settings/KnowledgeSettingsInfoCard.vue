@@ -32,11 +32,11 @@ const coverFileInput = ref<HTMLInputElement | null>(null)
 // 工作区上下文刷新后同步最新值，避免表单停留在旧数据上
 watch(
   () => props.knowledgeBase,
-  next => {
+  (next) => {
     name.value = next.name
     description.value = next.description ?? ""
     cover.value = next.cover ?? ""
-  }
+  },
 )
 
 const dirty = computed(() => {
@@ -103,7 +103,9 @@ const handleSave = async () => {
   <section class="kb-section-shell p-4">
     <div class="px-2 pt-2">
       <h2 class="text-base font-semibold text-ink">知识库信息</h2>
-      <p class="mt-1 text-[13px] leading-5 text-ink-tertiary">名称、简介与封面会在知识库首页与列表中展示。</p>
+      <p class="mt-1 text-[13px] leading-5 text-ink-tertiary">
+        名称、简介与封面会在知识库首页与列表中展示。
+      </p>
     </div>
 
     <div class="mt-5 space-y-5 px-2 pb-2">
@@ -115,9 +117,13 @@ const handleSave = async () => {
           </label>
 
           <label class="block">
-            <span class="mb-1.5 flex items-center justify-between text-[13px] font-medium text-ink-secondary">
+            <span
+              class="mb-1.5 flex items-center justify-between text-[13px] font-medium text-ink-secondary"
+            >
               <span>简介</span>
-              <span class="text-[11px] text-ink-quaternary">{{ description.length }} / {{ DESCRIPTION_MAX }}</span>
+              <span class="text-[11px] text-ink-quaternary"
+                >{{ description.length }} / {{ DESCRIPTION_MAX }}</span
+              >
             </span>
             <el-input
               v-model="description"
@@ -138,18 +144,38 @@ const handleSave = async () => {
             class="flex h-[164px] w-[330px] max-w-full items-center justify-center overflow-hidden rounded-kb-xl border border-line bg-muted"
           >
             <img v-if="cover" :src="cover" alt="知识库封面" class="h-full w-full object-cover" />
-            <span v-else class="px-6 text-center text-[12px] text-ink-quaternary">推荐尺寸 330 × 164</span>
+            <span v-else class="px-6 text-center text-[12px] text-ink-quaternary"
+              >推荐尺寸 330 × 164</span
+            >
           </div>
           <div v-if="canManage" class="mt-2 flex items-center gap-2">
-            <el-button plain size="small" class="rounded-kb-lg" :loading="uploadingCover" @click="pickCover"
-              ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            <el-button
+              plain
+              size="small"
+              class="rounded-kb-lg"
+              :loading="uploadingCover"
+              @click="pickCover"
+              ><template #loading
+                ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+              /></template>
               <AppIcon v-if="!uploadingCover" name="i-lucide-image-up" class="h-3.5 w-3.5" />
               <span class="truncate">上传图片</span>
             </el-button>
-            <el-button v-if="cover" text size="small" class="rounded-kb-lg text-ink-tertiary" @click="removeCover"
+            <el-button
+              v-if="cover"
+              text
+              size="small"
+              class="rounded-kb-lg text-ink-tertiary"
+              @click="removeCover"
               ><span class="truncate">移除</span>
             </el-button>
-            <input ref="coverFileInput" type="file" accept="image/*" class="hidden" @change="handleCoverChange" />
+            <input
+              ref="coverFileInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handleCoverChange"
+            />
           </div>
         </div>
       </div>
@@ -163,7 +189,9 @@ const handleSave = async () => {
           :disabled="!dirty"
           :loading="saving"
           @click="handleSave"
-          ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+          ><template #loading
+            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
           <span class="truncate">保存</span>
         </el-button>
       </div>

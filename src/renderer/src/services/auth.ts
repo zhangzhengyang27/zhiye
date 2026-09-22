@@ -1,7 +1,11 @@
 /**
  * 封装认证相关的验证码、登录、注册与当前用户查询接口。
  */
-import { buildApiUrl, createJsonHeaders as createBaseJsonHeaders, ensureApiResponseOk } from "./http-client"
+import {
+  buildApiUrl,
+  createJsonHeaders as createBaseJsonHeaders,
+  ensureApiResponseOk,
+} from "./http-client"
 
 /**
  * 描述登录用户信息。
@@ -90,7 +94,9 @@ export const fetchAuthCaptcha = async (): Promise<AuthCaptchaPayload> => {
 /**
  * 完成手机号登录或自动注册流程。
  */
-export const phoneSignInOrRegister = async (payload: PhoneAuthInput): Promise<AuthSuccessResponse> => {
+export const phoneSignInOrRegister = async (
+  payload: PhoneAuthInput,
+): Promise<AuthSuccessResponse> => {
   const response = await fetch(buildApiUrl("/auth/phone-auth"), {
     method: "POST",
     headers: createJsonHeaders(),

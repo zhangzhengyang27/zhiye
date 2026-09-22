@@ -45,12 +45,16 @@ const emit = defineEmits<{
       <p class="mt-3 text-sm leading-6 text-ink-secondary">
         当前在 {{ props.currentScopeLabel }} 中检索
         <span class="font-medium text-ink">“{{ props.keyword.trim() }}”</span>
-        <span v-if="props.hasActiveFilters">，并叠加了 {{ props.activeFilterCount }} 项筛选条件。</span>
+        <span v-if="props.hasActiveFilters"
+          >，并叠加了 {{ props.activeFilterCount }} 项筛选条件。</span
+        >
         <span v-else>，尚未添加额外筛选。</span>
       </p>
 
       <div class="mt-5 flex flex-wrap items-center gap-2">
-        <span class="rounded-full border border-white/80 bg-surface px-3 py-1 text-xs font-medium text-ink-secondary">
+        <span
+          class="rounded-full border border-white/80 bg-surface px-3 py-1 text-xs font-medium text-ink-secondary"
+        >
           搜索范围：{{ props.currentScopeLabel }}
         </span>
         <span
@@ -84,7 +88,9 @@ const emit = defineEmits<{
           @click="emit('apply-suggested-search', props.keyword.trim(), 'all')"
           ><span class="truncate">恢复全文检索</span>
         </el-button>
-        <el-button text @click="emit('reset-search')"><span class="truncate">重新开始搜索</span> </el-button>
+        <el-button text @click="emit('reset-search')"
+          ><span class="truncate">重新开始搜索</span>
+        </el-button>
       </div>
 
       <div class="mt-6 grid gap-3 md:grid-cols-3">

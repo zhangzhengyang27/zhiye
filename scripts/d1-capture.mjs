@@ -40,12 +40,13 @@ const kb = await ensureKnowledgeBase(token, prefix)
 await ensureDocument(kb.id, token, { title: "Smoke 验收文档" })
 
 async function captureSet(theme) {
-  await page.evaluate(scheme => {
+  await page.evaluate((scheme) => {
     // eslint-disable-next-line no-undef
     window.localStorage.setItem("vueuse-color-scheme", scheme)
   }, theme)
   for (const [name, route] of routes) {
-    const actualRoute = route ?? `/knowledge/${kb.id}/${name === "08-overview" ? "overview" : "templates"}`
+    const actualRoute =
+      route ?? `/knowledge/${kb.id}/${name === "08-overview" ? "overview" : "templates"}`
     const url = new globalThis.URL(actualRoute, smokeConfig.baseUrl).toString()
     try {
       await page.goto(url, { waitUntil: "networkidle", timeout: 30_000 })

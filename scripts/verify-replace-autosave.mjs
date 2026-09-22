@@ -30,8 +30,11 @@ const diagnostics = createDiagnostics()
 attachPageDiagnostics(page, diagnostics)
 
 const saveRequests = []
-page.on("request", req => {
-  if (/\/api\/knowledge\/documents\/[A-Za-z0-9_-]+$/.test(req.url()) && ["PATCH", "PUT"].includes(req.method())) {
+page.on("request", (req) => {
+  if (
+    /\/api\/knowledge\/documents\/[A-Za-z0-9_-]+$/.test(req.url()) &&
+    ["PATCH", "PUT"].includes(req.method())
+  ) {
     saveRequests.push({ at: Date.now(), method: req.method() })
   }
 })
@@ -57,7 +60,10 @@ const openSearchPanel = async (kbId, docId) => {
     await page.locator(".ne-ui-toolbar-more-button").click()
     await page.locator(".ne-ui-toolbar-search").click()
   }
-  await page.getByText("查找", { exact: true }).first().waitFor({ state: "visible", timeout: 10_000 })
+  await page
+    .getByText("查找", { exact: true })
+    .first()
+    .waitFor({ state: "visible", timeout: 10_000 })
 }
 
 try {
@@ -87,7 +93,9 @@ try {
   await page.waitForTimeout(300)
   // 切换到「替换」tab：等替换 tab 进入选中态后，取面板内第二个输入框（第一个是查找词）
   await page.getByRole("tab", { name: "替换" }).click()
-  const replaceTabActive = page.locator(".ne-ui-search-panel [role='tab'][aria-selected='true'][id$='tab-replace']")
+  const replaceTabActive = page.locator(
+    ".ne-ui-search-panel [role='tab'][aria-selected='true'][id$='tab-replace']",
+  )
   await replaceTabActive.waitFor({ state: "visible", timeout: 5_000 })
   const panelInputs = page.locator(".ne-ui-search-panel input.ant-input")
   await panelInputs.first().waitFor({ state: "visible", timeout: 5_000 })
@@ -115,8 +123,8 @@ try {
 
   // 内核已知边界：替换后面板重定位选区可能抛 Range offset 异常（白名单，见内核清单 6a）
   const RANGE_ERROR = /setStart.*larger than the node's length/
-  const relevantConsoleErrors = diagnostics.consoleErrors.filter(e => !RANGE_ERROR.test(e))
-  const relevantPageErrors = diagnostics.pageErrors.filter(e => !RANGE_ERROR.test(e))
+  const relevantConsoleErrors = diagnostics.consoleErrors.filter((e) => !RANGE_ERROR.test(e))
+  const relevantPageErrors = diagnostics.pageErrors.filter((e) => !RANGE_ERROR.test(e))
   assert.equal(relevantPageErrors.length, 0, `页面异常：${relevantPageErrors.join(" | ")}`)
   assert.equal(relevantConsoleErrors.length, 0, `控制台错误：${relevantConsoleErrors.join(" | ")}`)
   logStep("[验证]", "🎉 替换自动保存验证全部通过")

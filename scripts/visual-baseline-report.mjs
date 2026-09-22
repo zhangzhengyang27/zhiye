@@ -13,7 +13,7 @@ const SCREENS = [
   { id: "start", label: "开始页" },
 ]
 
-const exists = p => fs.existsSync(p)
+const exists = (p) => fs.existsSync(p)
 const rows = SCREENS.map(({ id, label }) => {
   const yuque = exists(path.join(BASE, "yuque", `${id}.png`))
   const replica = exists(path.join(BASE, "replica", `${id}.png`))

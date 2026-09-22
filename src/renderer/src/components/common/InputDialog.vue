@@ -39,11 +39,11 @@ const inputValue = ref("")
 
 watch(
   () => props.open,
-  val => {
+  (val) => {
     if (val) inputValue.value = props.defaultValue || ""
   },
   // 挂载时 open 可能已为 true（父层 v-if 控制），immediate 保证 defaultValue 仍被应用
-  { immediate: true }
+  { immediate: true },
 )
 
 const handleConfirm = () => {
@@ -79,7 +79,7 @@ const dialog = useDialogBehavior({
     :title="title"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && closeDialog()"
+    @update:model-value="(value) => !value && closeDialog()"
   >
     <template #header>
       <KbDialogHeader :title="title" :description="description" @close="closeDialog" />

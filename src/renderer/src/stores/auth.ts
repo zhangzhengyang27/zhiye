@@ -111,7 +111,7 @@ export const useAuthStore = defineStore("auth", () => {
       } catch (error) {
         // 网络抖动/后端重启（fetch 直接抛错）时重试一次，避免启动瞬断被当成登出
         if (getApiErrorStatus(error) === null) {
-          await new Promise(resolve => setTimeout(resolve, 600))
+          await new Promise((resolve) => setTimeout(resolve, 600))
           const result = await refreshSessionSingleFlight()
           user.value = result.user ?? persistedSession.user
         } else {
@@ -157,12 +157,24 @@ export const useAuthStore = defineStore("auth", () => {
   /**
    * 使用账号信息完成注册，并在成功后建立本地会话。
    */
-  const register = async ({ account, password, displayName, captchaId, captchaCode }: AuthActionInput) => {
+  const register = async ({
+    account,
+    password,
+    displayName,
+    captchaId,
+    captchaCode,
+  }: AuthActionInput) => {
     if (!captchaId || !captchaCode) {
       throw new Error("注册缺少图形验证码")
     }
 
-    const result = await registerByAccount({ account, password, displayName, captchaId, captchaCode })
+    const result = await registerByAccount({
+      account,
+      password,
+      displayName,
+      captchaId,
+      captchaCode,
+    })
     setSession(result.accessToken, result.user)
   }
 

@@ -57,7 +57,7 @@ const check = (name, ok, detail = "") => {
 
 // ============ S. 静态哨兵（源码级） ============
 const checkStaticSentinels = () => {
-  const read = path => {
+  const read = (path) => {
     try {
       return fs.readFileSync(`src/renderer/src/${path}`, "utf8")
     } catch {
@@ -68,7 +68,7 @@ const checkStaticSentinels = () => {
   check("S1 AppDialog.vue 已删除", read("components/common/AppDialog.vue") === null)
 
   let appDialogTags = 0
-  const walk = dir => {
+  const walk = (dir) => {
     for (const entry of fs.readdirSync(`src/renderer/src/${dir}`, { withFileTypes: true })) {
       const rel = `${dir}/${entry.name}`
       if (entry.isDirectory()) {
@@ -101,30 +101,38 @@ const checkStaticSentinels = () => {
     "components/common/ConfirmDialog.vue",
     "components/common/InputDialog.vue",
   ]
-  const missingBinding = migrated.filter(src => {
+  const missingBinding = migrated.filter((src) => {
     const code = read(src) ?? ""
     return !code.includes(".elDialogBindings") || !code.includes("KbDialogHeader")
   })
   check(
     "S3 16 个换内脏组件：v-bind elDialogBindings + KbDialogHeader 头部片段全接入",
     missingBinding.length === 0,
-    missingBinding.length ? `缺接入：${missingBinding.join(", ")}` : `${migrated.length} 个组件全过`
+    missingBinding.length
+      ? `缺接入：${missingBinding.join(", ")}`
+      : `${migrated.length} 个组件全过`,
   )
-  const handWritten = migrated.filter(src => /class="[^"]*kb-dialog/.test(read(src) ?? ""))
+  const handWritten = migrated.filter((src) => /class="[^"]*kb-dialog/.test(read(src) ?? ""))
   check(
     "S4 组件模板零手写 kb-dialog（chrome 复合类只从 bindings 下发，T8 评审待办①）",
     handWritten.length === 0,
-    handWritten.length ? `手写命中：${handWritten.join(", ")}` : "16 个组件模板均无复合类字面量"
+    handWritten.length ? `手写命中：${handWritten.join(", ")}` : "16 个组件模板均无复合类字面量",
   )
 
   const stackSrc = read("composables/dialog-stack.ts") ?? ""
   check(
     "S5 dialog-stack 收窄：isDialogTopMost 导出已删（AppDialog 解散后无消费者）、hasOpenDialog 保留",
-    !stackSrc.includes("isDialogTopMost") && stackSrc.includes("hasOpenDialog")
+    !stackSrc.includes("isDialogTopMost") && stackSrc.includes("hasOpenDialog"),
   )
-  const consumers = ["components/version/DocumentVersionsPanel.vue", "components/editor/DocumentInfoPanel.vue"]
-  const lostConsumer = consumers.filter(src => !(read(src) ?? "").includes("hasOpenDialog"))
-  check("S6 hasOpenDialog 面板消费者仍在位（DocumentVersionsPanel / DocumentInfoPanel）", lostConsumer.length === 0)
+  const consumers = [
+    "components/version/DocumentVersionsPanel.vue",
+    "components/editor/DocumentInfoPanel.vue",
+  ]
+  const lostConsumer = consumers.filter((src) => !(read(src) ?? "").includes("hasOpenDialog"))
+  check(
+    "S6 hasOpenDialog 面板消费者仍在位（DocumentVersionsPanel / DocumentInfoPanel）",
+    lostConsumer.length === 0,
+  )
 }
 
 // ============ 0. CSS bundle 哨兵（沿用 T8 口径） ============
@@ -134,20 +142,31 @@ const reportBundleClues = () => {
       "--el-color-primary: var(--kb-brand)",
       "element-plus-bridge.css 的 html:root 桥接（变量死亡 → 查 bridge.css / calibration.css 注释意外终止）",
     ],
-    [".h-9{", 'Tailwind utilities（缺失 → 查 style.css 的 @import "tailwindcss" 是否被吞、层序是否塌）'],
+    [
+      ".h-9{",
+      'Tailwind utilities（缺失 → 查 style.css 的 @import "tailwindcss" 是否被吞、层序是否塌）',
+    ],
     ["@layer theme", "Tailwind 层序声明（缺失 → style.css 首部被吞）"],
     [
       ".el-input.el-input{width:revert-layer",
       "校准 el-input 根中和段（缺失 → 查 calibration.css 中和段前注释是否意外终止）",
     ],
-    [".el-dialog.kb-dialog{margin:revert-layer", "校准 el-dialog 中和段（缺失 → 查该段前注释是否意外终止）"],
+    [
+      ".el-dialog.kb-dialog{margin:revert-layer",
+      "校准 el-dialog 中和段（缺失 → 查该段前注释是否意外终止）",
+    ],
     [
       ".el-dialog.kb-dialog{width:100%",
       "校准 el-dialog components 段（缺失 → 查 components 层 el-dialog 小节是否被吞）",
     ],
-    [".el-overlay.kb-dialog-overlay", "校准 el-dialog 遮罩段（缺失 → 查 components 层 el-dialog 小节是否被吞）"],
+    [
+      ".el-overlay.kb-dialog-overlay",
+      "校准 el-dialog 遮罩段（缺失 → 查 components 层 el-dialog 小节是否被吞）",
+    ],
   ]
-  const files = fs.readdirSync("dist/assets").filter(f => f.startsWith("index-") && f.endsWith(".css"))
+  const files = fs
+    .readdirSync("dist/assets")
+    .filter((f) => f.startsWith("index-") && f.endsWith(".css"))
   for (const file of files) {
     const css = fs.readFileSync(`dist/assets/${file}`, "utf8")
     for (const [flag, hint] of flags) {
@@ -161,7 +180,10 @@ const reportBundleClues = () => {
 const checkCssBundleSentinels = async (page, prefix) => {
   const sentry = await page.evaluate(() => {
     const cs = getComputedStyle(document.documentElement)
-    const tokens = ["--kb-muted-bg", "--kb-brand", "--kb-text"].map(name => [name, cs.getPropertyValue(name)])
+    const tokens = ["--kb-muted-bg", "--kb-brand", "--kb-text"].map((name) => [
+      name,
+      cs.getPropertyValue(name),
+    ])
     let bridgePrimary = null
     let h9Found = false
     let sheetCount = 0
@@ -173,7 +195,7 @@ const checkCssBundleSentinels = async (page, prefix) => {
         continue
       }
       sheetCount += 1
-      const walk = list => {
+      const walk = (list) => {
         for (const rule of list) {
           if (rule.cssRules && rule.cssRules.length && rule.selectorText === undefined) {
             walk(rule.cssRules)
@@ -188,7 +210,11 @@ const checkCssBundleSentinels = async (page, prefix) => {
           ) {
             bridgePrimary = rule.style.getPropertyValue("--el-color-primary")
           }
-          if (!h9Found && sel.split(",").some(s => s.trim() === ".h-9") && rule.style.getPropertyValue("height")) {
+          if (
+            !h9Found &&
+            sel.split(",").some((s) => s.trim() === ".h-9") &&
+            rule.style.getPropertyValue("height")
+          ) {
             h9Found = true
           }
         }
@@ -206,20 +232,28 @@ const checkCssBundleSentinels = async (page, prefix) => {
   check(
     `${prefix} 哨兵① 关键 token 挂载（--kb-muted-bg/--kb-brand/--kb-text 非空，tokens.css 未被吞）`,
     okTokens,
-    dead.length ? `空值：${dead.map(([n]) => n).join(",")}` : sentry.tokens.map(([n, v]) => `${n}=${v}`).join(" ")
+    dead.length
+      ? `空值：${dead.map(([n]) => n).join(",")}`
+      : sentry.tokens.map(([n, v]) => `${n}=${v}`).join(" "),
   )
   check(
     `${prefix} 哨兵② bridge 生效（CSSOM 存在 html:root 且 --el-color-primary 有值）`,
     okBridge,
-    okBridge ? `primary=${sentry.bridgePrimary}` : `sheets=${sentry.sheetCount}，未见 html:root 规则`
+    okBridge
+      ? `primary=${sentry.bridgePrimary}`
+      : `sheets=${sentry.sheetCount}，未见 html:root 规则`,
   )
   check(
     `${prefix} 哨兵③ Tailwind utilities 存活（CSSOM 存在 .h-9 规则）`,
     okUtilities,
-    okUtilities ? "height=calc(var(--spacing) * 9)" : "未见 .h-9 规则"
+    okUtilities ? "height=calc(var(--spacing) * 9)" : "未见 .h-9 规则",
   )
   if (!ok) {
-    check(`${prefix} CSS bundle 结构性损坏（哨兵组未全过，后续视觉断言不可信）`, false, "见上方失败哨兵与下方定位线索")
+    check(
+      `${prefix} CSS bundle 结构性损坏（哨兵组未全过，后续视觉断言不可信）`,
+      false,
+      "见上方失败哨兵与下方定位线索",
+    )
     reportBundleClues()
   }
   return ok
@@ -228,11 +262,11 @@ const checkCssBundleSentinels = async (page, prefix) => {
 const computedOf = (locator, props) =>
   locator.evaluate((el, names) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(names.map(n => [n, cs.getPropertyValue(n)]))
+    return Object.fromEntries(names.map((n) => [n, cs.getPropertyValue(n)]))
   }, props)
 
 const tokenRgb = (page, token) =>
-  page.evaluate(t => {
+  page.evaluate((t) => {
     const probe = document.createElement("div")
     probe.style.backgroundColor = `var(${t})`
     probe.style.display = "none"
@@ -243,7 +277,8 @@ const tokenRgb = (page, token) =>
   }, token)
 
 /** 当前可见对话框（排除 display:none 的历史 overlay 空壳） */
-const visibleDialog = page => page.locator('.el-overlay:not([style*="display: none"]) .el-dialog').last()
+const visibleDialog = (page) =>
+  page.locator('.el-overlay:not([style*="display: none"]) .el-dialog').last()
 
 const openDialogByTrigger = async (page, open, waitText) => {
   await open()
@@ -256,14 +291,14 @@ const openDialogByTrigger = async (page, open, waitText) => {
   return dialog
 }
 
-const closeByEsc = async page => {
+const closeByEsc = async (page) => {
   await page.keyboard.press("Escape")
   await page.waitForTimeout(600)
 }
 
 /** 派发组词 Esc（isComposing + keyCode 229；selector 为空 = document 级） */
 const dispatchComposingEsc = (page, selector) =>
-  page.evaluate(sel => {
+  page.evaluate((sel) => {
     const target = sel ? document.querySelector(sel) : document
     if (!target) throw new Error(`IME 探针目标不存在：${sel}`)
     const event = new KeyboardEvent("keydown", {
@@ -295,7 +330,7 @@ const checkDialogChrome = async (page, prefix, dialog, tag, dark, colors, editor
       rootStyles["border-top-color"] === colors.border &&
       rootStyles["box-shadow"].includes("rgba(15, 23, 42, 0.18)") &&
       rootStyles.overflow === "hidden",
-    JSON.stringify(rootStyles)
+    JSON.stringify(rootStyles),
   )
 
   const header = dialog.locator(".el-dialog__header")
@@ -319,7 +354,7 @@ const checkDialogChrome = async (page, prefix, dialog, tag, dark, colors, editor
       headerStyles["border-bottom-width"] === "1px" &&
       headerStyles["border-bottom-color"] === colors.borderSoft &&
       headerStyles["background-color"] === colors.surfaceSoft,
-    JSON.stringify(headerStyles)
+    JSON.stringify(headerStyles),
   )
 
   // 编辑器 / 画板页的 h3 被懒注入的 Lake antd.css 承重（unlayered `h1..h6
@@ -329,16 +364,25 @@ const checkDialogChrome = async (page, prefix, dialog, tag, dark, colors, editor
   // 暗色 h3 有 text-ink 类 → style.css html.dark .text-ink-*（!important）接管为
   // 0.88 白（T2 暗坑①链路）。非编辑器页按 utilities 层 600 / ink 断言。
   const title = dialog.locator("h3").first()
-  const titleStyles = await computedOf(title, ["font-size", "font-weight", "letter-spacing", "color"])
+  const titleStyles = await computedOf(title, [
+    "font-size",
+    "font-weight",
+    "letter-spacing",
+    "color",
+  ])
   const expectedWeight = editorPage ? "500" : "600"
-  const expectedTitleColor = dark ? "rgba(255, 255, 255, 0.88)" : editorPage ? "rgba(0, 0, 0, 0.85)" : colors.ink
+  const expectedTitleColor = dark
+    ? "rgba(255, 255, 255, 0.88)"
+    : editorPage
+      ? "rgba(0, 0, 0, 0.85)"
+      : colors.ink
   check(
     `${prefix} ${tag} 标题：22px / ${expectedWeight}${editorPage ? "（antd.css 承重链路，基线同款）" : ""} / -0.03em / ${dark ? "0.88 白" : editorPage ? "antd.css 0.85 黑" : "ink"}`,
     titleStyles["font-size"] === "22px" &&
       titleStyles["font-weight"] === expectedWeight &&
       parseFloat(titleStyles["letter-spacing"]) === -0.66 &&
       titleStyles.color === expectedTitleColor,
-    JSON.stringify(titleStyles)
+    JSON.stringify(titleStyles),
   )
 
   const body = dialog.locator(".el-dialog__body")
@@ -352,32 +396,36 @@ const checkDialogChrome = async (page, prefix, dialog, tag, dark, colors, editor
     bodyStyles.padding === "24px 28px" &&
       bodyStyles.color === bodyBase.color &&
       bodyStyles["font-size"] === bodyBase.fontSize,
-    JSON.stringify({ bodyStyles, bodyBase })
+    JSON.stringify({ bodyStyles, bodyBase }),
   )
 
   const overlay = page.locator('.el-overlay:not([style*="display: none"])').last()
-  const overlayStyles = await computedOf(overlay, ["background-color", "backdrop-filter", "z-index"])
+  const overlayStyles = await computedOf(overlay, [
+    "background-color",
+    "backdrop-filter",
+    "z-index",
+  ])
   const expectedMask = dark ? "rgba(0, 0, 0, 0.6)" : "rgba(15, 23, 42, 0.24)"
   check(
     `${prefix} ${tag} 遮罩：Task 3.1 校准底色 + backdrop blur(10px) + z 400（bindings.zIndex 钉值）`,
     overlayStyles["background-color"] === expectedMask &&
       overlayStyles["backdrop-filter"].includes("blur(10px)") &&
       overlayStyles["z-index"] === "400",
-    JSON.stringify(overlayStyles)
+    JSON.stringify(overlayStyles),
   )
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T9验证:${mode}]`
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
   const dark = mode === "dark"
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    dark ? "dark" : "light"
+    dark ? "dark" : "light",
   )
 
   try {
@@ -387,9 +435,12 @@ const capturePass = async mode => {
     const kb = await ensureKnowledgeBase(token, prefix, "Smoke Workspace T9 内容库")
     const doc = await ensureDocument(kb.id, token, { title: DOC_TITLE, content: DOC_CONTENT })
 
-    const tree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, { token })
-    const flat = nodes => (Array.isArray(nodes) ? nodes : []).flatMap(node => [node, ...flat(node.children ?? [])])
-    if (!flat(tree).some(node => node.type === "template" && node.title === "T9 模板文档")) {
+    const tree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, {
+      token,
+    })
+    const flat = (nodes) =>
+      (Array.isArray(nodes) ? nodes : []).flatMap((node) => [node, ...flat(node.children ?? [])])
+    if (!flat(tree).some((node) => node.type === "template" && node.title === "T9 模板文档")) {
       await apiRequest("/knowledge/documents", {
         method: "POST",
         token,
@@ -417,14 +468,17 @@ const capturePass = async mode => {
         method: "PATCH",
         token,
         body: {
-          content: { scheme: "text/markdown", value: `${DOC_CONTENT}\n\n第二版补充段落。\n\n第三版补充段落。\n` },
+          content: {
+            scheme: "text/markdown",
+            value: `${DOC_CONTENT}\n\n第二版补充段落。\n\n第三版补充段落。\n`,
+          },
           message: "T9 版本三",
         },
       })
     }
 
     const members = await apiRequest(`/knowledge/knowledge-bases/${kb.id}/members`, { token })
-    if (!Array.isArray(members) || !members.some(m => m.user?.email === MEMBER_EMAIL)) {
+    if (!Array.isArray(members) || !members.some((m) => m.user?.email === MEMBER_EMAIL)) {
       await apiRequest(`/knowledge/knowledge-bases/${kb.id}/members`, {
         method: "POST",
         token,
@@ -468,22 +522,33 @@ const capturePass = async mode => {
     const styleRootCls = (await styleDialog.getAttribute("class")) ?? ""
     check(
       `${prefix} A1 面板根：el-dialog 原生根 + bindings 下发的 kb-dialog + 宽度档落根（max-w-md）`,
-      styleRootCls.includes("el-dialog") && styleRootCls.includes("kb-dialog") && styleRootCls.includes("max-w-md"),
-      styleRootCls.slice(0, 90)
+      styleRootCls.includes("el-dialog") &&
+        styleRootCls.includes("kb-dialog") &&
+        styleRootCls.includes("max-w-md"),
+      styleRootCls.slice(0, 90),
     )
     const styleWidth = await computedOf(styleDialog, ["width"])
-    check(`${prefix} B1 widthClass=md：computed width 448px`, styleWidth.width === "448px", styleWidth.width)
+    check(
+      `${prefix} B1 widthClass=md：computed width 448px`,
+      styleWidth.width === "448px",
+      styleWidth.width,
+    )
     // EP 的 role="dialog"/aria-label 落在 .el-overlay-dialog（滚动容器，dialog.vue
     // createElementVNode 层），不在 .el-dialog 上——aria-label 由 :title 喂给该元素
     const ariaLabel = await styleDialog.locator("xpath=..").getAttribute("aria-label")
     check(
       `${prefix} A2 aria-label：:title 喂 EP role=dialog（.el-overlay-dialog 层，样式设置）`,
       ariaLabel === "样式设置",
-      String(ariaLabel)
+      String(ariaLabel),
     )
     await checkDialogChrome(page, prefix, styleDialog, "A3 style-settings", dark, colors, true)
-    const eyebrowChip = styleDialog.locator(".el-dialog__header").getByText("编辑器", { exact: true })
-    check(`${prefix} B2 eyebrow 角标（KbDialogHeader 共享片段）：「编辑器」chip 渲染`, await eyebrowChip.isVisible())
+    const eyebrowChip = styleDialog
+      .locator(".el-dialog__header")
+      .getByText("编辑器", { exact: true })
+    check(
+      `${prefix} B2 eyebrow 角标（KbDialogHeader 共享片段）：「编辑器」chip 渲染`,
+      await eyebrowChip.isVisible(),
+    )
 
     // C：遮罩点击（面板内不关 / 面板外关闭）+ 焦点还原 + destroy-on-close
     await styleDialog.locator(".el-dialog__body").first().locator("p").first().click()
@@ -494,12 +559,15 @@ const capturePass = async mode => {
     const styleClosedByOverlay = await page.evaluate(
       () =>
         ![...document.querySelectorAll(".el-dialog")].some(
-          el => el.className.includes("kb-dialog") && el.offsetParent !== null
-        )
+          (el) => el.className.includes("kb-dialog") && el.offsetParent !== null,
+        ),
     )
     check(`${prefix} C1b 遮罩点击（面板外）：closeOnOverlay 默认 true → 关闭`, styleClosedByOverlay)
     const styleGone = await page.evaluate(
-      () => ![...document.querySelectorAll(".el-dialog")].some(el => el.textContent?.includes("样式设置"))
+      () =>
+        ![...document.querySelectorAll(".el-dialog")].some((el) =>
+          el.textContent?.includes("样式设置"),
+        ),
     )
     check(`${prefix} C2 destroy-on-close：关闭转场后对话框从 DOM 卸载（基线 v-if 语义）`, styleGone)
 
@@ -509,10 +577,13 @@ const capturePass = async mode => {
     await page.waitForTimeout(600)
     await closeByEsc(page)
     const styleFocusRestored = await page.evaluate(
-      btn => document.activeElement === btn,
-      await styleTrigger.elementHandle()
+      (btn) => document.activeElement === btn,
+      await styleTrigger.elementHandle(),
     )
-    check(`${prefix} C3 焦点还原：Esc 关闭后 activeElement 回到触发按钮（EP stopTrap）`, styleFocusRestored)
+    check(
+      `${prefix} C3 焦点还原：Esc 关闭后 activeElement 回到触发按钮（EP stopTrap）`,
+      styleFocusRestored,
+    )
 
     // C：Tab 循环抽样（连 Tab 后焦点始终在对话框内）
     await styleTrigger.click()
@@ -532,7 +603,10 @@ const capturePass = async mode => {
         break
       }
     }
-    check(`${prefix} C4 Tab 循环抽样：连续 14 次 Tab 焦点不出对话框（EP 内建 focus-trap）`, !escaped)
+    check(
+      `${prefix} C4 Tab 循环抽样：连续 14 次 Tab 焦点不出对话框（EP 内建 focus-trap）`,
+      !escaped,
+    )
     let shiftEscaped = false
     for (let i = 0; i < 14; i += 1) {
       await page.keyboard.press("Shift+Tab")
@@ -574,12 +648,14 @@ const capturePass = async mode => {
     const compareWidth = await computedOf(compareDialog, ["width"])
     check(
       `${prefix} B3 widthClass=6xl：kb-dialog + max-w-6xl 落根、computed width 1152px`,
-      compareCls.includes("kb-dialog") && compareCls.includes("max-w-6xl") && compareWidth.width === "1152px",
-      `${compareCls.slice(0, 60)} ${compareWidth.width}`
+      compareCls.includes("kb-dialog") &&
+        compareCls.includes("max-w-6xl") &&
+        compareWidth.width === "1152px",
+      `${compareCls.slice(0, 60)} ${compareWidth.width}`,
     )
     check(
       `${prefix} B4 description（KbDialogHeader）：版本对比弹层渲染描述文案`,
-      await compareDialog.getByText("选择两个历史版本并查看内容差异。").isVisible()
+      await compareDialog.getByText("选择两个历史版本并查看内容差异。").isVisible(),
     )
     await closeByEsc(page)
     await closeByEsc(page)
@@ -601,17 +677,23 @@ const capturePass = async mode => {
         !!active.closest(".el-dialog")
       )
     })
-    check(`${prefix} C6 data-autofocus（move-node 原生 input）：宏任务聚焦晚于 EP 容器聚焦`, moveAutofocus)
+    check(
+      `${prefix} C6 data-autofocus（move-node 原生 input）：宏任务聚焦晚于 EP 容器聚焦`,
+      moveAutofocus,
+    )
     const moveCls = (await moveDialog.getAttribute("class")) ?? ""
     const moveWidth = await computedOf(moveDialog, ["width"])
     check(
       `${prefix} B5 widthClass=md（move-node）：computed width 448px`,
       moveCls.includes("max-w-md") && moveWidth.width === "448px",
-      moveWidth.width
+      moveWidth.width,
     )
     await dispatchComposingEsc(page, null)
     await page.waitForTimeout(500)
-    check(`${prefix} C7 IME 组词 Esc（document 级，isComposing+229）：对话框不关闭`, await moveDialog.isVisible())
+    check(
+      `${prefix} C7 IME 组词 Esc（document 级，isComposing+229）：对话框不关闭`,
+      await moveDialog.isVisible(),
+    )
     await dispatchComposingEsc(page, ".el-dialog input[data-autofocus]")
     await page.waitForTimeout(500)
     check(`${prefix} C8 IME 组词 Esc（input 冒泡路径）：对话框不关闭`, await moveDialog.isVisible())
@@ -619,13 +701,13 @@ const capturePass = async mode => {
     const moveClosed = await page.evaluate(
       () =>
         ![...document.querySelectorAll(".el-dialog")].some(
-          el => el.className.includes("kb-dialog") && el.offsetParent !== null
-        )
+          (el) => el.className.includes("kb-dialog") && el.offsetParent !== null,
+        ),
     )
     check(
       `${prefix} C9 普通 Esc 可关（守卫不过度拦截）：move-node 对话框关闭`,
       moveClosed,
-      "焦点还原不在本弹层断言：触发链是树行 ⋯ 菜单（菜单项点击后触发钮焦点已随菜单卸载），机制由 C3（style-settings 稳定触发钮）覆盖"
+      "焦点还原不在本弹层断言：触发链是树行 ⋯ 菜单（菜单项点击后触发钮焦点已随菜单卸载），机制由 C3（style-settings 稳定触发钮）覆盖",
     )
 
     // ===== C：doc-create / create-kb / add-member 的 data-autofocus（el-input 3 处） =====
@@ -642,11 +724,17 @@ const capturePass = async mode => {
       () =>
         document.activeElement instanceof HTMLInputElement &&
         document.activeElement.hasAttribute("data-autofocus") &&
-        document.activeElement.type !== "hidden"
+        document.activeElement.type !== "hidden",
     )
-    check(`${prefix} C10 data-autofocus（doc-create el-input）：焦点落名称输入原生 input`, docCreateAutofocus)
+    check(
+      `${prefix} C10 data-autofocus（doc-create el-input）：焦点落名称输入原生 input`,
+      docCreateAutofocus,
+    )
     const docCreateWidth = await computedOf(docCreateDialog, ["width"])
-    check(`${prefix} B6 widthClass=md（doc-create）：computed width 448px`, docCreateWidth.width === "448px")
+    check(
+      `${prefix} B6 widthClass=md（doc-create）：computed width 448px`,
+      docCreateWidth.width === "448px",
+    )
     await closeByEsc(page)
 
     await page.goto(url("/knowledge/start"), { waitUntil: "domcontentloaded" })
@@ -657,32 +745,48 @@ const capturePass = async mode => {
     await createKbDialog.waitFor({ state: "visible", timeout: 15000 })
     await page.waitForTimeout(600)
     const createKbAutofocus = await page.evaluate(
-      () => document.activeElement instanceof HTMLInputElement && document.activeElement.hasAttribute("data-autofocus")
+      () =>
+        document.activeElement instanceof HTMLInputElement &&
+        document.activeElement.hasAttribute("data-autofocus"),
     )
-    check(`${prefix} C11 data-autofocus（create-kb el-input）：焦点落名称输入原生 input`, createKbAutofocus)
+    check(
+      `${prefix} C11 data-autofocus（create-kb el-input）：焦点落名称输入原生 input`,
+      createKbAutofocus,
+    )
     await dispatchComposingEsc(page, ".el-dialog input[data-autofocus]")
     await page.waitForTimeout(500)
-    check(`${prefix} C12 IME 组词 Esc（create-kb input 级）：对话框不关闭`, await createKbDialog.isVisible())
+    check(
+      `${prefix} C12 IME 组词 Esc（create-kb input 级）：对话框不关闭`,
+      await createKbDialog.isVisible(),
+    )
     await closeByEsc(page)
 
     await page.goto(url(`/knowledge/${kb.id}/settings`), { waitUntil: "domcontentloaded" })
     await page.getByRole("button", { name: "成员", exact: true }).waitFor({ timeout: 15000 })
     await page.getByRole("button", { name: "成员", exact: true }).click()
-    await page.getByRole("button", { name: "添加成员", exact: true }).first().waitFor({ timeout: 15000 })
+    await page
+      .getByRole("button", { name: "添加成员", exact: true })
+      .first()
+      .waitFor({ timeout: 15000 })
     await page.waitForTimeout(600)
     await page.getByRole("button", { name: "添加成员", exact: true }).first().click()
     const addMemberDialog = visibleDialog(page)
     await addMemberDialog.waitFor({ state: "visible", timeout: 15000 })
     await page.waitForTimeout(600)
     const addMemberAutofocus = await page.evaluate(
-      () => document.activeElement instanceof HTMLInputElement && document.activeElement.hasAttribute("data-autofocus")
+      () =>
+        document.activeElement instanceof HTMLInputElement &&
+        document.activeElement.hasAttribute("data-autofocus"),
     )
-    check(`${prefix} C13 data-autofocus（add-member el-input）：焦点落邮箱输入原生 input`, addMemberAutofocus)
+    check(
+      `${prefix} C13 data-autofocus（add-member el-input）：焦点落邮箱输入原生 input`,
+      addMemberAutofocus,
+    )
     const addMemberWidth = await computedOf(addMemberDialog, ["width"])
     check(`${prefix} B7 widthClass=xl：computed width 576px`, addMemberWidth.width === "576px")
     check(
       `${prefix} B8 description（KbDialogHeader）：添加成员弹层渲染邀请说明`,
-      await addMemberDialog.getByText("通过邮箱邀请成员加入当前知识库").isVisible()
+      await addMemberDialog.getByText("通过邮箱邀请成员加入当前知识库").isVisible(),
     )
     await closeByEsc(page)
 
@@ -701,10 +805,13 @@ const capturePass = async mode => {
     check(
       `${prefix} C14 开 ShareDialog：body 上锁（use-dialog-behavior 计数）+ EP lock-scroll 未启用`,
       overflowBefore !== "hidden" && shareOpenState.overflow === "hidden" && !shareOpenState.epLock,
-      JSON.stringify(shareOpenState)
+      JSON.stringify(shareOpenState),
     )
     const shareWidth = await computedOf(shareDialog, ["width"])
-    check(`${prefix} B9 widthClass=lg（ShareDialog）：computed width 512px`, shareWidth.width === "512px")
+    check(
+      `${prefix} B9 widthClass=lg（ShareDialog）：computed width 512px`,
+      shareWidth.width === "512px",
+    )
     await page.getByText("更多分享设置", { exact: true }).click()
     const qrTrigger = page.locator('[title="扫码访问"]').first()
     await qrTrigger.waitFor({ state: "visible", timeout: 15000 })
@@ -717,44 +824,54 @@ const capturePass = async mode => {
     check(
       `${prefix} B10 widthClass=sm（ShareQrDialog）：computed width 384px`,
       qrCls.includes("max-w-sm") && qrWidth.width === "384px",
-      qrWidth.width
+      qrWidth.width,
     )
     const stackedState = await page.evaluate(() => ({
       overflow: document.body.style.overflow,
-      visibleDialogs: [...document.querySelectorAll(".el-dialog")].filter(el => el.offsetParent !== null).length,
+      visibleDialogs: [...document.querySelectorAll(".el-dialog")].filter(
+        (el) => el.offsetParent !== null,
+      ).length,
       qrEyebrow: [...document.querySelectorAll(".el-dialog")]
-        .find(el => el.textContent?.includes("扫码访问"))
+        .find((el) => el.textContent?.includes("扫码访问"))
         ?.textContent?.includes("分享设置"),
     }))
     check(
       `${prefix} C15 真实叠放链：两层 .el-dialog 可见（Share 在下、QR 在上）+ body 仍锁 + QR eyebrow「分享设置」`,
-      stackedState.visibleDialogs === 2 && stackedState.overflow === "hidden" && qrEyebrowSafe(stackedState.qrEyebrow),
-      JSON.stringify(stackedState)
+      stackedState.visibleDialogs === 2 &&
+        stackedState.overflow === "hidden" &&
+        qrEyebrowSafe(stackedState.qrEyebrow),
+      JSON.stringify(stackedState),
     )
     await page.keyboard.press("Escape")
     await page.waitForTimeout(600)
     const afterFirstEsc = await page.evaluate(() => ({
       overflow: document.body.style.overflow,
-      visibleDialogs: [...document.querySelectorAll(".el-dialog")].filter(el => el.offsetParent !== null).length,
+      visibleDialogs: [...document.querySelectorAll(".el-dialog")].filter(
+        (el) => el.offsetParent !== null,
+      ).length,
       shareOpen: [...document.querySelectorAll(".el-dialog")].some(
-        el => el.textContent?.includes("允许评论") && el.offsetParent !== null
+        (el) => el.textContent?.includes("允许评论") && el.offsetParent !== null,
       ),
     }))
     check(
       `${prefix} C16 叠放 Esc 只关栈顶：ShareQrDialog 关、ShareDialog 仍在、body 仍锁`,
-      afterFirstEsc.visibleDialogs === 1 && afterFirstEsc.shareOpen && afterFirstEsc.overflow === "hidden",
-      JSON.stringify(afterFirstEsc)
+      afterFirstEsc.visibleDialogs === 1 &&
+        afterFirstEsc.shareOpen &&
+        afterFirstEsc.overflow === "hidden",
+      JSON.stringify(afterFirstEsc),
     )
     await page.keyboard.press("Escape")
     await page.waitForTimeout(600)
     const afterSecondEsc = await page.evaluate(() => ({
       overflow: document.body.style.overflow,
-      visibleDialogs: [...document.querySelectorAll(".el-dialog")].filter(el => el.offsetParent !== null).length,
+      visibleDialogs: [...document.querySelectorAll(".el-dialog")].filter(
+        (el) => el.offsetParent !== null,
+      ).length,
     }))
     check(
       `${prefix} C17 关闭最后一个对话框：body 解锁（use-dialog-behavior 计数收尾）`,
       afterSecondEsc.overflow !== "hidden" && afterSecondEsc.visibleDialogs === 0,
-      JSON.stringify(afterSecondEsc)
+      JSON.stringify(afterSecondEsc),
     )
 
     // ===== C：password（AccountView 内联 el-dialog，无 data-autofocus → 回落关闭钮） =====
@@ -770,13 +887,18 @@ const capturePass = async mode => {
     check(
       `${prefix} B11 widthClass=[400px]：computed width 400px`,
       passwordCls.includes("max-w-[400px]") && passwordWidth.width === "400px",
-      passwordWidth.width
+      passwordWidth.width,
     )
     const fallbackFocus = await page.evaluate(() => {
-      const dialogEl = [...document.querySelectorAll(".el-dialog")].find(el => el.offsetParent !== null)
+      const dialogEl = [...document.querySelectorAll(".el-dialog")].find(
+        (el) => el.offsetParent !== null,
+      )
       return document.activeElement === dialogEl?.querySelector("button")
     })
-    check(`${prefix} C18 无标记对话框：打开后焦点回落首个可聚焦元素（头部关闭钮，基线同款兜底）`, fallbackFocus)
+    check(
+      `${prefix} C18 无标记对话框：打开后焦点回落首个可聚焦元素（头部关闭钮，基线同款兜底）`,
+      fallbackFocus,
+    )
     await closeByEsc(page)
 
     // ===== B：template-select / board-ai-config（2xl 档 + eyebrow/description） =====
@@ -797,14 +919,17 @@ const capturePass = async mode => {
       `${prefix} B12 widthClass=2xl（template-select）：computed width 672px + description 渲染`,
       templateWidth.width === "672px" &&
         (await templateDialog.getByText("选择一个模板并生成新的文档副本。").isVisible()),
-      templateWidth.width
+      templateWidth.width,
     )
     await closeByEsc(page)
 
     // ===== B：board-ai-config（2xl 档 + eyebrow「AI 模型」+ 动态 description） =====
     const findBoard = async () => {
-      const boardTree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, { token })
-      return flat(boardTree).find(node => node.type === "doc" && node.title === "T9 直用改造画板")
+      const boardTree = await apiRequest(
+        `/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`,
+        { token },
+      )
+      return flat(boardTree).find((node) => node.type === "doc" && node.title === "T9 直用改造画板")
     }
     let board = await findBoard()
     if (!board) {
@@ -833,7 +958,9 @@ const capturePass = async mode => {
       })
       board = await findBoard()
     }
-    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), { waitUntil: "domcontentloaded" })
+    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), {
+      waitUntil: "domcontentloaded",
+    })
     await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 30000 })
     await page.waitForTimeout(1200)
     await page.getByRole("button", { name: "模型配置", exact: true }).click()
@@ -841,7 +968,9 @@ const capturePass = async mode => {
     await boardDialog.waitFor({ state: "visible", timeout: 15000 })
     await page.waitForTimeout(600)
     const boardWidth = await computedOf(boardDialog, ["width"])
-    const boardDescriptionOk = await boardDialog.getByText("用于当前账号在本浏览器内发起画板 AI 生成").isVisible()
+    const boardDescriptionOk = await boardDialog
+      .getByText("用于当前账号在本浏览器内发起画板 AI 生成")
+      .isVisible()
     const boardEyebrowOk = await boardDialog
       .locator(".el-dialog__header")
       .getByText("AI 模型", { exact: true })
@@ -849,7 +978,7 @@ const capturePass = async mode => {
     check(
       `${prefix} B13 widthClass=2xl（board-ai-config）：computed width 672px + eyebrow「AI 模型」+ 动态 description`,
       boardWidth.width === "672px" && boardDescriptionOk && boardEyebrowOk,
-      boardWidth.width
+      boardWidth.width,
     )
     await closeByEsc(page)
 
@@ -857,19 +986,21 @@ const capturePass = async mode => {
     return true
   } catch (error) {
     console.error(`${prefix} 验证异常：`, error)
-    await page.screenshot({ path: `output/visual/ep-direct/t9/verify-error-${mode}.png` }).catch(() => {})
+    await page
+      .screenshot({ path: `output/visual/ep-direct/t9/verify-error-${mode}.png` })
+      .catch(() => {})
     await browser.close().catch(() => {})
     return false
   }
 }
 
-const qrEyebrowSafe = v => v === true
+const qrEyebrowSafe = (v) => v === true
 
 checkStaticSentinels()
 
 const light = await capturePass("light")
 const dark = await capturePass("dark")
-const failed = results.filter(r => !r.ok)
+const failed = results.filter((r) => !r.ok)
 console.log(`\n断言 ${results.length} 项，失败 ${failed.length} 项`)
 if (failed.length > 0) {
   for (const f of failed) console.error(`❌ ${f.name} — ${f.detail}`)

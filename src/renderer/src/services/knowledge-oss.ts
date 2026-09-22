@@ -24,7 +24,7 @@ interface KnowledgeUploadPayload {
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = event => resolve((event.target?.result as string) || "")
+    reader.onload = (event) => resolve((event.target?.result as string) || "")
     // 读取失败必须拒绝，否则上传降级链路会永久挂起
     reader.onerror = () => reject(reader.error ?? new Error("文件读取失败"))
     reader.onabort = () => reject(new Error("文件读取被中断"))
@@ -34,7 +34,10 @@ const fileToDataUrl = (file: File) =>
 /** 内联进文档正文（dataURL）的大小上限：超过后不再降级，避免把自动保存的请求体撑爆 */
 const DATA_URL_FALLBACK_MAX_BYTES = 2 * 1024 * 1024
 
-const uploadAsset = async (payload: KnowledgeUploadPayload, token?: string | null): Promise<KnowledgeUploadResult> => {
+const uploadAsset = async (
+  payload: KnowledgeUploadPayload,
+  token?: string | null,
+): Promise<KnowledgeUploadResult> => {
   const form = new FormData()
 
   form.append("file", payload.file)
@@ -58,7 +61,7 @@ const uploadAsset = async (payload: KnowledgeUploadPayload, token?: string | nul
         method: "POST",
         body: form,
       },
-      token
+      token,
     )
   } catch (error) {
     console.warn("[knowledge-oss] 上传失败，尝试本地内联降级：", error)
@@ -88,14 +91,14 @@ export function uploadKnowledgeAsset(file: File): Promise<string>
  */
 export function uploadKnowledgeAsset(
   payload: KnowledgeUploadPayload,
-  token?: string | null
+  token?: string | null,
 ): Promise<KnowledgeUploadResult>
 /**
  * 上传知识库资源文件。
  */
 export async function uploadKnowledgeAsset(
   input: File | KnowledgeUploadPayload,
-  token?: string | null
+  token?: string | null,
 ): Promise<string | KnowledgeUploadResult> {
   if (input instanceof File) {
     const result = await uploadAsset({ file: input }, token)

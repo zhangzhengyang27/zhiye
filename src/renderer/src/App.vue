@@ -70,7 +70,7 @@ onMounted(() => {
     return
   }
 
-  unsubscribeTrayCommand = window.xiaoyeDesktop.onTrayCommand(command => {
+  unsubscribeTrayCommand = window.xiaoyeDesktop.onTrayCommand((command) => {
     const routeName = router.currentRoute.value.name
     // 偏好设置窗与锁定窗都不接受导航指令（锁定窗被导航走即锁定被绕过）
     if (routeName === "settings" || routeName === "desktop-lock") {

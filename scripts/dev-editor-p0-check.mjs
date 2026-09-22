@@ -5,7 +5,12 @@
  */
 import assert from "node:assert/strict"
 import { chromium } from "playwright"
-import { smokeConfig, loginThroughUi, readAccessToken, apiRequest } from "./lib/knowledge-smoke-utils.mjs"
+import {
+  smokeConfig,
+  loginThroughUi,
+  readAccessToken,
+  apiRequest,
+} from "./lib/knowledge-smoke-utils.mjs"
 
 const browser = await chromium.launch()
 const context = await browser.newContext({ viewport: { width: 1440, height: 960 } })
@@ -30,25 +35,33 @@ const doc = await api("/knowledge/documents", {
     type: "doc",
     status: "draft",
     parentId: null,
-    content: { scheme: "text/markdown", value: "# P0 验证文档\n\n第一段内容，用于复制为 Markdown。\n" },
+    content: {
+      scheme: "text/markdown",
+      value: "# P0 验证文档\n\n第一段内容，用于复制为 Markdown。\n",
+    },
   },
 })
 const docId = doc.id ?? doc.document?.id
 console.log(`[p0-check] 测试知识库 ${kbId} / 文档 ${docId}`)
 
 const consoleErrors = []
-page.on("pageerror", error => consoleErrors.push(`pageerror: ${error.message}`))
-page.on("console", message => {
+page.on("pageerror", (error) => consoleErrors.push(`pageerror: ${error.message}`))
+page.on("console", (message) => {
   if (message.type() === "error" && !message.text().startsWith("Failed to load resource")) {
     consoleErrors.push(message.text())
   }
 })
 
-await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: smokeConfig.baseUrl.origin })
+await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+  origin: smokeConfig.baseUrl.origin,
+})
 await page.goto(new URL(`/knowledge/${kbId}/doc/${docId}`, smokeConfig.baseUrl).toString(), {
   waitUntil: "networkidle",
 })
-await page.locator('input[placeholder="无标题文档"]').first().waitFor({ timeout: smokeConfig.timeout })
+await page
+  .locator('input[placeholder="无标题文档"]')
+  .first()
+  .waitFor({ timeout: smokeConfig.timeout })
 
 // 1) 样式设置：打开 → 调字号 → 完成 → 校验 localStorage 与服务端持久化
 await page.locator('button[title="样式设置"]').click()
@@ -57,10 +70,17 @@ const range = page.locator('input[type="range"]')
 await range.fill("18")
 await range.dispatchEvent("change")
 await page.getByRole("button", { name: "完成" }).click()
-const storedRaw = await page.evaluate(key => globalThis.localStorage.getItem(key), `xiaoye:doc-style:${docId}`)
+const storedRaw = await page.evaluate(
+  (key) => globalThis.localStorage.getItem(key),
+  `xiaoye:doc-style:${docId}`,
+)
 assert.ok(storedRaw && JSON.parse(storedRaw).fontSize === 18, `样式未持久化：${storedRaw}`)
 const serverDoc = await api(`/knowledge/documents/${docId}`)
-assert.equal(serverDoc.editorStyle?.fontSize, 18, `服务端样式未保存：${JSON.stringify(serverDoc.editorStyle)}`)
+assert.equal(
+  serverDoc.editorStyle?.fontSize,
+  18,
+  `服务端样式未保存：${JSON.stringify(serverDoc.editorStyle)}`,
+)
 console.log("[p0-check] 样式设置：字号调整并持久化（本地 + 服务端）✓")
 
 // 2) 快捷键面板：打开 → 搜索过滤 → 关闭
@@ -70,7 +90,9 @@ assert.ok(await page.getByText("标题 1", { exact: true }).isVisible(), "快捷
 await page.getByPlaceholder("输入功能关键字搜索").fill("粗体")
 assert.ok(await page.getByText("**x** + Space").isVisible(), "搜索后缺少 Markdown 语法内容")
 await page.keyboard.press("Escape")
-await page.getByRole("heading", { name: "快捷键" }).waitFor({ state: "hidden", timeout: smokeConfig.timeout })
+await page
+  .getByRole("heading", { name: "快捷键" })
+  .waitFor({ state: "hidden", timeout: smokeConfig.timeout })
 console.log("[p0-check] 快捷键面板：打开/搜索/Markdown 列 ✓")
 
 // 3) 复制为 Markdown：更多菜单 → 点击 → 剪贴板校验
@@ -98,14 +120,20 @@ const htmlDoc = await api("/knowledge/documents", {
     type: "doc",
     status: "draft",
     parentId: null,
-    content: { scheme: "text/html", value: "<h1>P0 HTML 文档</h1><p>HTML 转 Markdown 验证段落。</p>" },
+    content: {
+      scheme: "text/html",
+      value: "<h1>P0 HTML 文档</h1><p>HTML 转 Markdown 验证段落。</p>",
+    },
   },
 })
 const htmlDocId = htmlDoc.id ?? htmlDoc.document?.id
 await page.goto(new URL(`/knowledge/${kbId}/doc/${htmlDocId}`, smokeConfig.baseUrl).toString(), {
   waitUntil: "networkidle",
 })
-await page.locator('input[placeholder="无标题文档"]').first().waitFor({ timeout: smokeConfig.timeout })
+await page
+  .locator('input[placeholder="无标题文档"]')
+  .first()
+  .waitFor({ timeout: smokeConfig.timeout })
 await page.locator('header button[title="更多操作"]').click()
 await page.getByText("复制与打开", { exact: true }).first().click()
 const htmlMenuItem = page.getByText("复制为 Markdown", { exact: true }).first()
@@ -115,7 +143,7 @@ await page.getByText("已复制为 Markdown。").waitFor({ timeout: smokeConfig.
 const htmlClipboard = await page.evaluate(() => globalThis.navigator.clipboard.readText())
 assert.ok(
   htmlClipboard.includes("P0 HTML 文档") && !htmlClipboard.includes("<h1>"),
-  `HTML 转出的不是 Markdown：${htmlClipboard.slice(0, 80)}`
+  `HTML 转出的不是 Markdown：${htmlClipboard.slice(0, 80)}`,
 )
 console.log("[p0-check] 复制为 Markdown（HTML scheme）✓")
 
@@ -123,18 +151,26 @@ console.log("[p0-check] 复制为 Markdown（HTML scheme）✓")
 await page.goto(new URL(`/knowledge/${kbId}/doc/${docId}`, smokeConfig.baseUrl).toString(), {
   waitUntil: "networkidle",
 })
-await page.locator('input[placeholder="无标题文档"]').first().waitFor({ timeout: smokeConfig.timeout })
+await page
+  .locator('input[placeholder="无标题文档"]')
+  .first()
+  .waitFor({ timeout: smokeConfig.timeout })
 const paragraph = page.getByText("第一段内容").first()
 await paragraph.waitFor({ timeout: smokeConfig.timeout })
 const paraBox = await paragraph.boundingBox()
 assert.ok(paraBox, "未定位到段落文本")
-await page.mouse.click(paraBox.x + paraBox.width / 2, paraBox.y + paraBox.height / 2, { clickCount: 3 })
+await page.mouse.click(paraBox.x + paraBox.width / 2, paraBox.y + paraBox.height / 2, {
+  clickCount: 3,
+})
 const copySelectionButton = page.locator('button[title="复制选中文本"]')
 await copySelectionButton.waitFor({ timeout: smokeConfig.timeout })
 await copySelectionButton.click()
 await page.getByText("已复制选中文本。").waitFor({ timeout: smokeConfig.timeout })
 const selectionClipboard = await page.evaluate(() => globalThis.navigator.clipboard.readText())
-assert.ok(selectionClipboard.includes("第一段内容"), `复制选区内容不符：${selectionClipboard.slice(0, 60)}`)
+assert.ok(
+  selectionClipboard.includes("第一段内容"),
+  `复制选区内容不符：${selectionClipboard.slice(0, 60)}`,
+)
 console.log("[p0-check] 选中浮动条：选区浮出 + 复制 ✓")
 
 // 6) 分享二维码：创建分享 → 打开分享弹层 → 行内二维码按钮 → 二维码弹窗
@@ -161,13 +197,18 @@ await api(`/knowledge/documents/${docId}/comments`, {
   method: "POST",
   body: { content: "开始页验证评论" },
 })
-await page.goto(new URL("/knowledge/start", smokeConfig.baseUrl).toString(), { waitUntil: "networkidle" })
+await page.goto(new URL("/knowledge/start", smokeConfig.baseUrl).toString(), {
+  waitUntil: "networkidle",
+})
 for (const tabLabel of ["编辑过", "浏览过", "我评论的", "分享中的", "邀我协作"]) {
   await page.getByRole("tab", { name: tabLabel }).waitFor({ timeout: smokeConfig.timeout })
 }
-const expectDocInTab = async tabLabel => {
+const expectDocInTab = async (tabLabel) => {
   await page.getByRole("tab", { name: tabLabel }).click()
-  await page.getByText("P0 验证文档", { exact: true }).first().waitFor({ timeout: smokeConfig.timeout })
+  await page
+    .getByText("P0 验证文档", { exact: true })
+    .first()
+    .waitFor({ timeout: smokeConfig.timeout })
 }
 await expectDocInTab("浏览过")
 await expectDocInTab("分享中的")
@@ -194,7 +235,10 @@ console.log("[p0-check] 知识库设置：信息编辑保存 + 文档管理 ✓"
 await page.goto(new URL(`/knowledge/${kbId}/doc/${docId}`, smokeConfig.baseUrl).toString(), {
   waitUntil: "networkidle",
 })
-await page.locator('input[placeholder="无标题文档"]').first().waitFor({ timeout: smokeConfig.timeout })
+await page
+  .locator('input[placeholder="无标题文档"]')
+  .first()
+  .waitFor({ timeout: smokeConfig.timeout })
 const commentPara = page.getByText("第一段内容").first()
 await commentPara.waitFor({ timeout: smokeConfig.timeout })
 const cBox = await commentPara.boundingBox()
@@ -205,14 +249,17 @@ await page.getByRole("button", { name: "发布评论" }).click()
 await page.getByText("评论已发布。").waitFor({ timeout: smokeConfig.timeout })
 const comments = await api(`/knowledge/documents/${docId}/comments`)
 const anchored = (Array.isArray(comments) ? comments : []).find(
-  item => item.content === "这条评论来自 e2e" && item.position?.startPath
+  (item) => item.content === "这条评论来自 e2e" && item.position?.startPath,
 )
 assert.ok(anchored, "评论缺少选区锚点 position")
 console.log("[p0-check] 划词评论：发布 + 锚点持久化 ✓")
 
 // 重载：Canvas 高亮存在 + 讨论面板列出评论
 await page.reload({ waitUntil: "networkidle" })
-await page.locator('input[placeholder="无标题文档"]').first().waitFor({ timeout: smokeConfig.timeout })
+await page
+  .locator('input[placeholder="无标题文档"]')
+  .first()
+  .waitFor({ timeout: smokeConfig.timeout })
 await page.locator('button[title="讨论"]').click()
 await page.getByText("这条评论来自 e2e").waitFor({ timeout: smokeConfig.timeout })
 const canvasCount = await page.locator(".yuque-doc-editor__surface canvas").count()
@@ -229,7 +276,7 @@ for (const id of [docId, htmlDocId]) {
 await api(`/knowledge/knowledge-bases/${kbId}`, { method: "DELETE" }).catch(() => {})
 const kbList = await api("/knowledge/knowledge-bases")
 const staleKbs = (kbList.items ?? kbList ?? []).filter(
-  item => typeof item?.name === "string" && item.name.startsWith("P0 Check ")
+  (item) => typeof item?.name === "string" && item.name.startsWith("P0 Check "),
 )
 for (const item of staleKbs) {
   await api(`/knowledge/knowledge-bases/${item.id}`, { method: "DELETE" }).catch(() => {})

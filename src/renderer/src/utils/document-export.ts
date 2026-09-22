@@ -29,7 +29,11 @@ const downloadBlob = (filename: string, blob: Blob) => {
  * 后者服务导入容错，口径漂移属预期，修改任一侧时先确认另一侧是否需要同步。
  */
 export const htmlToMarkdown = (html: string): string => {
-  const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", bulletListMarker: "-" })
+  const turndown = new TurndownService({
+    headingStyle: "atx",
+    codeBlockStyle: "fenced",
+    bulletListMarker: "-",
+  })
   return turndown.turndown(html)
 }
 
@@ -37,7 +41,7 @@ export const htmlToMarkdown = (html: string): string => {
 export const exportAsMarkdown = async (
   title: string,
   content: string,
-  contentType: "markdown" | "html" = "markdown"
+  contentType: "markdown" | "html" = "markdown",
 ) => {
   const markdown = contentType === "html" ? htmlToMarkdown(content) : content
   const filename = `${sanitizeFilename(title)}.md`
@@ -48,7 +52,11 @@ export const exportAsMarkdown = async (
  * 将文档导出为语雀文档（.lake）格式：JSON 容器携带 scheme 与原始文档模型内容，
  * 可无损回导（导入链路按 scheme 直接 setContent）。Markdown/HTML scheme 均原样导出。
  */
-export const exportAsLake = async (title: string, content: string, contentType: "markdown" | "html" = "markdown") => {
+export const exportAsLake = async (
+  title: string,
+  content: string,
+  contentType: "markdown" | "html" = "markdown",
+) => {
   const payload = {
     format: "yuque-doc",
     version: 1,
@@ -57,11 +65,18 @@ export const exportAsLake = async (title: string, content: string, contentType: 
     content,
   }
   const filename = `${sanitizeFilename(title)}.lake`
-  downloadBlob(filename, new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" }))
+  downloadBlob(
+    filename,
+    new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" }),
+  )
 }
 
 /** 打开独立打印窗口并触发 PDF 导出流程。 */
-export const exportAsPDF = async (title: string, content: string, contentType: "markdown" | "html" = "markdown") => {
+export const exportAsPDF = async (
+  title: string,
+  content: string,
+  contentType: "markdown" | "html" = "markdown",
+) => {
   const html = await renderKnowledgeDocumentHtmlWithMermaid(title, content, contentType)
   // features 里带 noopener/noreferrer 时按 WHATWG 规范 window.open 恒返回 null，
   // 打印窗口会永远打不开；改为打开后手动断开 opener
@@ -77,7 +92,7 @@ export const exportAsPDF = async (title: string, content: string, contentType: "
   printWindow.document.write(html)
   printWindow.document.close()
 
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     printWindow.onload = () => resolve()
     setTimeout(() => resolve(), 300)
   })
@@ -87,7 +102,11 @@ export const exportAsPDF = async (title: string, content: string, contentType: "
 }
 
 /** 将当前文档内容导出为 Word 兼容的 HTML 文档。 */
-export const exportAsWord = async (title: string, content: string, contentType: "markdown" | "html" = "markdown") => {
+export const exportAsWord = async (
+  title: string,
+  content: string,
+  contentType: "markdown" | "html" = "markdown",
+) => {
   const filename = `${sanitizeFilename(title)}.doc`
   const html = await renderKnowledgeDocumentHtmlWithMermaid(title, content, contentType)
 

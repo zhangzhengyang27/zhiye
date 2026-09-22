@@ -57,10 +57,14 @@ const clampOffset = (nextOffsetX: number, nextOffsetY: number) => {
   const minOffsetY = Math.min(0, VIEWPORT_SIZE - height)
 
   const resolvedOffsetX =
-    width <= VIEWPORT_SIZE ? (VIEWPORT_SIZE - width) / 2 : Math.max(minOffsetX, Math.min(0, nextOffsetX))
+    width <= VIEWPORT_SIZE
+      ? (VIEWPORT_SIZE - width) / 2
+      : Math.max(minOffsetX, Math.min(0, nextOffsetX))
 
   const resolvedOffsetY =
-    height <= VIEWPORT_SIZE ? (VIEWPORT_SIZE - height) / 2 : Math.max(minOffsetY, Math.min(0, nextOffsetY))
+    height <= VIEWPORT_SIZE
+      ? (VIEWPORT_SIZE - height) / 2
+      : Math.max(minOffsetY, Math.min(0, nextOffsetY))
 
   return {
     x: resolvedOffsetX,
@@ -69,7 +73,10 @@ const clampOffset = (nextOffsetX: number, nextOffsetY: number) => {
 }
 
 const centerImage = () => {
-  const centered = clampOffset((VIEWPORT_SIZE - displayedWidth.value) / 2, (VIEWPORT_SIZE - displayedHeight.value) / 2)
+  const centered = clampOffset(
+    (VIEWPORT_SIZE - displayedWidth.value) / 2,
+    (VIEWPORT_SIZE - displayedHeight.value) / 2,
+  )
 
   offsetX.value = centered.x
   offsetY.value = centered.y
@@ -169,7 +176,10 @@ const handleImageLoad = async () => {
     return
   }
 
-  baseScale.value = Math.max(VIEWPORT_SIZE / naturalWidth.value, VIEWPORT_SIZE / naturalHeight.value)
+  baseScale.value = Math.max(
+    VIEWPORT_SIZE / naturalWidth.value,
+    VIEWPORT_SIZE / naturalHeight.value,
+  )
   zoom.value = 1
   imageReady.value = true
   centerImage()
@@ -204,10 +214,20 @@ const handleConfirm = async () => {
     const sourceWidth = (VIEWPORT_SIZE * naturalWidth.value) / displayedWidth.value
     const sourceHeight = (VIEWPORT_SIZE * naturalHeight.value) / displayedHeight.value
 
-    context.drawImage(imageRef.value, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE)
+    context.drawImage(
+      imageRef.value,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      OUTPUT_SIZE,
+      OUTPUT_SIZE,
+    )
 
-    const blob = await new Promise<Blob | null>(resolve => {
-      canvas.toBlob(result => resolve(result), "image/png")
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((result) => resolve(result), "image/png")
     })
 
     if (!blob) {
@@ -230,12 +250,12 @@ const handleConfirm = async () => {
 
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (!open) {
       stopDragging()
       resetPreview()
     }
-  }
+  },
 )
 
 watch(
@@ -246,7 +266,7 @@ watch(
     }
 
     resetPreview()
-  }
+  },
 )
 
 watch(zoom, () => {
@@ -276,7 +296,7 @@ const dialog = useDialogBehavior({
     title="裁剪头像"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('update:open', false)"
+    @update:model-value="(value) => !value && emit('update:open', false)"
   >
     <template #header>
       <KbDialogHeader
@@ -304,7 +324,9 @@ const dialog = useDialogBehavior({
             @load="handleImageLoad"
           />
 
-          <div class="pointer-events-none absolute inset-0 rounded-kb-3xl ring-1 ring-inset ring-white/70" />
+          <div
+            class="pointer-events-none absolute inset-0 rounded-kb-3xl ring-1 ring-inset ring-white/70"
+          />
           <div
             class="pointer-events-none absolute inset-0 bg-[linear-gradient(transparent_calc(100%-1px),rgba(255,255,255,0.22)_0),linear-gradient(90deg,transparent_calc(100%-1px),rgba(255,255,255,0.22)_0)] bg-[size:40px_40px] opacity-50"
           />
@@ -315,7 +337,9 @@ const dialog = useDialogBehavior({
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium text-ink">缩放与拖拽</p>
-            <p class="text-xs text-ink-tertiary">拖动图片调整取景，确认后会导出 512 x 512 的方形头像。</p>
+            <p class="text-xs text-ink-tertiary">
+              拖动图片调整取景，确认后会导出 512 x 512 的方形头像。
+            </p>
           </div>
           <button
             type="button"
@@ -337,7 +361,9 @@ const dialog = useDialogBehavior({
             class="h-2 w-full cursor-pointer appearance-none rounded-full bg-fill-muted accent-brand"
             @input="handleZoomInput"
           />
-          <span class="w-14 text-right text-sm font-medium text-ink-secondary"> {{ Math.round(zoom * 100) }}% </span>
+          <span class="w-14 text-right text-sm font-medium text-ink-secondary">
+            {{ Math.round(zoom * 100) }}%
+          </span>
         </div>
       </div>
     </div>

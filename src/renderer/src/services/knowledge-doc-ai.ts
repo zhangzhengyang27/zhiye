@@ -18,7 +18,11 @@ export interface DocAiWriteResult {
 }
 
 /** 向指定文档发起 AI 写作请求（服务端读取正文 + 返回自由文本）。 */
-export const generateDocumentAiWrite = (documentId: string, payload: DocAiWriteRequest, token?: string | null) =>
+export const generateDocumentAiWrite = (
+  documentId: string,
+  payload: DocAiWriteRequest,
+  token?: string | null,
+) =>
   requestKbDriveApi<DocAiWriteResult>(
     `/knowledge/documents/${documentId}/ai/write`,
     {
@@ -27,5 +31,5 @@ export const generateDocumentAiWrite = (documentId: string, payload: DocAiWriteR
       // 续写、润色等动作的生成耗时随正文长度浮动，客户端兜底超时防无限等待
       timeoutMs: AI_REQUEST_TIMEOUT_MS,
     },
-    token
+    token,
   )

@@ -41,7 +41,11 @@ setupElSelectRootBehavior()
 const UMAMI_SRC = "https://analytics.zhangzhengyang.com/script.js"
 const UMAMI_WEBSITE_ID = "4e44b999-f747-4d04-b39d-f782607d8354"
 
-if (import.meta.env.PROD && !window.xiaoyeDesktop && !document.querySelector(`script[src="${UMAMI_SRC}"]`)) {
+if (
+  import.meta.env.PROD &&
+  !window.xiaoyeDesktop &&
+  !document.querySelector(`script[src="${UMAMI_SRC}"]`)
+) {
   const tracker = document.createElement("script")
   tracker.defer = true
   tracker.src = UMAMI_SRC

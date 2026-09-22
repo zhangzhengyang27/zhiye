@@ -48,7 +48,7 @@ const props = withDefaults(
     folders: () => [],
     defaultFolderId: "",
     defaultEditorType: "richText",
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -77,15 +77,15 @@ const EDITOR_TYPE_OPTIONS: Array<{ label: string; value: DocCreateEditorType }> 
 
 /** 目录选项转 el-select options；根目录 id="" 映射为哨兵（见 ROOT_FOLDER_SENTINEL 说明） */
 const folderItems = computed(() =>
-  (props.folders ?? []).map(folder => ({
+  (props.folders ?? []).map((folder) => ({
     label: folder.label,
     value: folder.id === "" ? ROOT_FOLDER_SENTINEL : folder.id,
-  }))
+  })),
 )
 
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (open) {
       name.value = props.defaultValue || ""
       // defaultFolderId ""（根目录）映射为哨兵；真实目录 id 原样回显
@@ -96,7 +96,7 @@ watch(
     }
   },
   // 挂载时 open 可能已为 true（父层 v-if 控制），immediate 保证默认值/预选目录生效
-  { immediate: true }
+  { immediate: true },
 )
 
 const submit = () => {
@@ -135,7 +135,7 @@ const dialog = useDialogBehavior({
     :title="title"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('update:open', false)"
+    @update:model-value="(value) => !value && emit('update:open', false)"
   >
     <template #header>
       <KbDialogHeader :title="title" @close="emit('update:open', false)" />

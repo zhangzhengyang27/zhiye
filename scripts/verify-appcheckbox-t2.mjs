@@ -40,21 +40,21 @@ const check = (name, ok, detail = "") => {
 const computedOf = (locator, props) =>
   locator.evaluate((el, names) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(names.map(n => [n, cs.getPropertyValue(n)]))
+    return Object.fromEntries(names.map((n) => [n, cs.getPropertyValue(n)]))
   }, props)
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T2验证:${mode}]`
   const diagnostics = createDiagnostics()
   attachPageDiagnostics(page, diagnostics)
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
   try {
@@ -64,13 +64,16 @@ const capturePass = async mode => {
     await page.goto(url("/auth/login"), { waitUntil: "networkidle" })
     await page.waitForTimeout(600)
     const rememberRoot = page.locator('.el-checkbox:has-text("记住账号")')
-    check(`${prefix} 登录页 checkbox 根（label.el-checkbox）存在`, (await rememberRoot.count()) === 1)
+    check(
+      `${prefix} 登录页 checkbox 根（label.el-checkbox）存在`,
+      (await rememberRoot.count()) === 1,
+    )
     const rememberInput = rememberRoot.locator("input.el-checkbox__original")
     const ariaOnRoot = await rememberRoot.getAttribute("aria-label")
     check(
       `${prefix} EP 原生 DOM：aria-label 无值（label 文本承担可访问名）、input 在根内`,
       (ariaOnRoot === null || ariaOnRoot === "") && (await rememberInput.count()) === 1,
-      `aria-label=${ariaOnRoot}`
+      `aria-label=${ariaOnRoot}`,
     )
     if (await rememberInput.isChecked()) await rememberRoot.click()
     // 等 150ms 选中过渡播完再读样式，避免读到过渡中间值
@@ -87,15 +90,27 @@ const capturePass = async mode => {
       "color",
       "display",
     ])
-    check(`${prefix} 根：高度回退为内容撑高（非 EP 32px）`, rootStyles.height !== "32px", rootStyles.height)
+    check(
+      `${prefix} 根：高度回退为内容撑高（非 EP 32px）`,
+      rootStyles.height !== "32px",
+      rootStyles.height,
+    )
     check(
       `${prefix} 根：margin-right 清零（非 EP 30px）`,
       rootStyles["margin-right"] === "0px",
-      rootStyles["margin-right"]
+      rootStyles["margin-right"],
     )
-    check(`${prefix} 根：字重 400（非 EP 500）`, rootStyles["font-weight"] === "400", rootStyles["font-weight"])
+    check(
+      `${prefix} 根：字重 400（非 EP 500）`,
+      rootStyles["font-weight"] === "400",
+      rootStyles["font-weight"],
+    )
     check(`${prefix} 根：gap 8px`, rootStyles.gap === "8px", rootStyles.gap)
-    check(`${prefix} 根：文本可选中（中和 EP none）`, rootStyles["user-select"] === "text", rootStyles["user-select"])
+    check(
+      `${prefix} 根：文本可选中（中和 EP none）`,
+      rootStyles["user-select"] === "text",
+      rootStyles["user-select"],
+    )
 
     const inner = root.locator(".el-checkbox__inner")
     const innerStyles = await computedOf(inner, [
@@ -108,12 +123,12 @@ const capturePass = async mode => {
     check(
       `${prefix} 方块：18×18（非 EP 14）`,
       innerStyles.width === "18px" && innerStyles.height === "18px",
-      JSON.stringify(innerStyles)
+      JSON.stringify(innerStyles),
     )
     check(
       `${prefix} 方块：圆角 5px（非 EP 桥接 6px）`,
       innerStyles["border-radius"] === "5px",
-      innerStyles["border-radius"]
+      innerStyles["border-radius"],
     )
     // token 文本（#fff）与计算样式（rgb 形式）格式不同，借助临时元素换算成 rgb 口径
     const surfaceBg = await page.evaluate(() => {
@@ -128,11 +143,11 @@ const capturePass = async mode => {
     check(
       `${prefix} 方块：底色 = --kb-surface-bg`,
       innerStyles["background-color"] === surfaceBg,
-      `${innerStyles["background-color"]} vs ${surfaceBg}`
+      `${innerStyles["background-color"]} vs ${surfaceBg}`,
     )
 
     const after_ = root.locator(".el-checkbox__inner")
-    const afterStyles = await after_.evaluate(el => {
+    const afterStyles = await after_.evaluate((el) => {
       const cs = getComputedStyle(el, "::after")
       return {
         width: cs.width,
@@ -148,7 +163,7 @@ const capturePass = async mode => {
         afterStyles.height === "12px" &&
         afterStyles.opacity === "0" &&
         afterStyles.mask.includes("data:image"),
-      JSON.stringify(afterStyles)
+      JSON.stringify(afterStyles),
     )
 
     const label = root.locator(".el-checkbox__label")
@@ -158,7 +173,7 @@ const capturePass = async mode => {
       labelStyles["padding-left"] === "0px" &&
         labelStyles["line-height"] === "20px" &&
         labelStyles["font-size"] === "14px",
-      JSON.stringify(labelStyles)
+      JSON.stringify(labelStyles),
     )
 
     // ---- B：覆盖契约探针（临时挂 utilities 类，验完即摘）。
@@ -167,13 +182,13 @@ const capturePass = async mode => {
     // 无 revert-layer 时 EP 工厂值（unlayered 32px/500）会压过 utilities，
     // 因此 28px/700 同时证明「中和段生效」与「utilities > components 默认」；
     // margin-right 的 revert 已由上方默认断言（0px ≠ EP 30px）证明。
-    await root.evaluate(el => el.classList.add("h-7", "font-bold"))
+    await root.evaluate((el) => el.classList.add("h-7", "font-bold"))
     const probed = await computedOf(root, ["height", "font-weight"])
-    await root.evaluate(el => el.classList.remove("h-7", "font-bold"))
+    await root.evaluate((el) => el.classList.remove("h-7", "font-bold"))
     check(
       `${prefix} 覆盖契约：h-7/font-bold 压过 components 默认与 EP 工厂值`,
       probed.height === "28px" && probed["font-weight"] === "700",
-      JSON.stringify(probed)
+      JSON.stringify(probed),
     )
 
     // ---- C：v-model 行为（勾选/取消） ----
@@ -184,7 +199,7 @@ const capturePass = async mode => {
     check(
       `${prefix} v-model：点击勾选→true，再点→false`,
       checkedAfterClick === true && checkedAfterSecond === false,
-      `${checkedAfterClick} → ${checkedAfterSecond}`
+      `${checkedAfterClick} → ${checkedAfterSecond}`,
     )
 
     // ---- C：回收站行 checkbox ----
@@ -210,8 +225,10 @@ const capturePass = async mode => {
     const trashAfter = await trashCountText()
     check(
       `${prefix} 回收站行：勾选「已选 0→1→0」`,
-      /已选\s*0/.test(trashBefore) && /已选\s*1/.test(trashSelectedText) && /已选\s*0/.test(trashAfter),
-      `${trashBefore?.trim()} → ${trashSelectedText?.trim()} → ${trashAfter?.trim()}`
+      /已选\s*0/.test(trashBefore) &&
+        /已选\s*1/.test(trashSelectedText) &&
+        /已选\s*0/.test(trashAfter),
+      `${trashBefore?.trim()} → ${trashSelectedText?.trim()} → ${trashAfter?.trim()}`,
     )
 
     // ---- C：版本面板行 checkbox ----
@@ -223,8 +240,14 @@ const capturePass = async mode => {
     await versionRowCheck.waitFor({ timeout: 15000 })
     // 模板级覆盖探针：调用方 DocumentVersionRow 传的 mt-1 经 fallthrough 落在
     // el-checkbox 根 label 上且生效（0.25rem=4px）
-    const versionRootMarginTop = await versionRowCheck.evaluate(el => getComputedStyle(el).marginTop)
-    check(`${prefix} 模板级探针：调用方 mt-1 落根并生效（4px）`, versionRootMarginTop === "4px", versionRootMarginTop)
+    const versionRootMarginTop = await versionRowCheck.evaluate(
+      (el) => getComputedStyle(el).marginTop,
+    )
+    check(
+      `${prefix} 模板级探针：调用方 mt-1 落根并生效（4px）`,
+      versionRootMarginTop === "4px",
+      versionRootMarginTop,
+    )
     const versionCountText = () => page.locator("text=/已选/").first().textContent()
     const versionBefore = await versionCountText()
     await versionRowCheck.click()
@@ -236,7 +259,7 @@ const capturePass = async mode => {
       /已选\s*0\s*项/.test(versionBefore) &&
         /已选\s*1\s*项/.test(versionSelectedText) &&
         /已选\s*0\s*项/.test(versionAfter),
-      `${versionBefore?.trim()} → ${versionSelectedText?.trim()} → ${versionAfter?.trim()}`
+      `${versionBefore?.trim()} → ${versionSelectedText?.trim()} → ${versionAfter?.trim()}`,
     )
 
     await browser.close()
@@ -252,7 +275,7 @@ const capturePass = async mode => {
 
 const light = await capturePass("light")
 const dark = await capturePass("dark")
-const failed = results.filter(r => !r.ok)
+const failed = results.filter((r) => !r.ok)
 console.log(`\n断言 ${results.length} 项，失败 ${failed.length} 项`)
 if (failed.length > 0) {
   for (const f of failed) console.error(`❌ ${f.name} — ${f.detail}`)
@@ -267,8 +290,9 @@ const MIN_CHECKS = 30
 const passAborted = !light || !dark
 if (passAborted || results.length < MIN_CHECKS) {
   console.error(
-    `⚠ 本轮仅执行 ${results.length} 条断言（下限 ${MIN_CHECKS}${passAborted ? "，且有 pass 异常中断" : ""}）：后续断言未执行，不得视为通过`
+    `⚠ 本轮仅执行 ${results.length} 条断言（下限 ${MIN_CHECKS}${passAborted ? "，且有 pass 异常中断" : ""}）：后续断言未执行，不得视为通过`,
   )
 }
-if (!light || !dark || failed.length > 0 || passAborted || results.length < MIN_CHECKS) process.exit(1)
+if (!light || !dark || failed.length > 0 || passAborted || results.length < MIN_CHECKS)
+  process.exit(1)
 console.log("T2 验证全部通过")

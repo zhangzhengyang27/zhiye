@@ -61,7 +61,7 @@ export const codeBlockLanguages: CodeLanguageDefinition[] = [
   { value: "vue", label: "Vue" },
 ]
 
-const codeBlockLanguageSet = new Set(codeBlockLanguages.map(language => language.value))
+const codeBlockLanguageSet = new Set(codeBlockLanguages.map((language) => language.value))
 
 /** 列出增强代码块支持的主题皮肤。 */
 export const codeBlockThemes: Array<{ value: CodeBlockTheme; label: string }> = [
@@ -81,11 +81,15 @@ export const codeBlockDefaults: EnhancedCodeBlockAttrs = {
 }
 
 /** 需要按布尔值解析的围栏元数据字段。 */
-const BOOLEAN_ATTR_NAMES = new Set<keyof EnhancedCodeBlockAttrs>(["lineNumbers", "wrap", "collapsed"])
+const BOOLEAN_ATTR_NAMES = new Set<keyof EnhancedCodeBlockAttrs>([
+  "lineNumbers",
+  "wrap",
+  "collapsed",
+])
 /** 需要按字符串解析的围栏元数据字段。 */
 const STRING_ATTR_NAMES = new Set<keyof EnhancedCodeBlockAttrs>(["title"])
 /** 用于校验主题值是否合法的集合。 */
-const THEME_SET = new Set<CodeBlockTheme>(codeBlockThemes.map(theme => theme.value))
+const THEME_SET = new Set<CodeBlockTheme>(codeBlockThemes.map((theme) => theme.value))
 
 const registerLanguages = () => {
   if (hljs.getLanguage("bash")) {
@@ -193,7 +197,9 @@ const normalizeTitle = (value: unknown) => {
 }
 
 /** 规范化代码块属性。 */
-export const normalizeCodeBlockAttrs = (input?: Partial<EnhancedCodeBlockAttrs> | null): EnhancedCodeBlockAttrs => {
+export const normalizeCodeBlockAttrs = (
+  input?: Partial<EnhancedCodeBlockAttrs> | null,
+): EnhancedCodeBlockAttrs => {
   const theme = input?.theme && THEME_SET.has(input.theme) ? input.theme : codeBlockDefaults.theme
 
   return {
@@ -209,7 +215,8 @@ export const normalizeCodeBlockAttrs = (input?: Partial<EnhancedCodeBlockAttrs> 
 const unescapeMetadataValue = (value: string) => value.replace(/\\(["\\])/g, "$1")
 
 /** 转义 Markdown 围栏元数据中的引号与反斜杠。 */
-export const escapeCodeFenceMetadataValue = (value: string) => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
+export const escapeCodeFenceMetadataValue = (value: string) =>
+  value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
 
 const parseMetadataPairs = (raw: string) => {
   const attrs: Partial<EnhancedCodeBlockAttrs> = {}
@@ -288,7 +295,7 @@ export const stringifyCodeFenceInfo = (input?: Partial<EnhancedCodeBlockAttrs> |
 /** 获取代码语言标签。 */
 export const getCodeLanguageLabel = (language: string) => {
   const normalized = normalizeLanguage(language)
-  const matched = codeBlockLanguages.find(item => {
+  const matched = codeBlockLanguages.find((item) => {
     return item.value === normalized || item.aliases?.includes(normalized)
   })
 
@@ -303,7 +310,7 @@ export const isKnownCodeLanguage = (language: string) => {
 
 /** 从 DOM dataset 中读取增强代码块属性。 */
 export const getCodeBlockAttrsFromDataset = (
-  dataset: DOMStringMap | Record<string, string | undefined>
+  dataset: DOMStringMap | Record<string, string | undefined>,
 ): Partial<EnhancedCodeBlockAttrs> => {
   return {
     language: dataset.language,
@@ -319,7 +326,12 @@ export const getCodeBlockAttrsFromDataset = (
 export const highlightCodeHtml = (code: string, language?: string) => {
   const normalized = normalizeLanguage(language)
 
-  if (normalized && normalized !== "text" && normalized !== "plaintext" && hljs.getLanguage(normalized)) {
+  if (
+    normalized &&
+    normalized !== "text" &&
+    normalized !== "plaintext" &&
+    hljs.getLanguage(normalized)
+  ) {
     try {
       return hljs.highlight(code, { language: normalized, ignoreIllegals: true }).value
     } catch (error) {
@@ -336,11 +348,16 @@ const buildLineNumbersHtml = (code: string) => {
 }
 
 /** 渲染增强代码块的静态 HTML。 */
-export const renderEnhancedCodeBlockHtml = (code: string, input?: Partial<EnhancedCodeBlockAttrs> | null) => {
+export const renderEnhancedCodeBlockHtml = (
+  code: string,
+  input?: Partial<EnhancedCodeBlockAttrs> | null,
+) => {
   const attrs = normalizeCodeBlockAttrs(input)
   const languageLabel = escapeHtml(getCodeLanguageLabel(attrs.language))
   const titleLabel = escapeHtml(attrs.title || "请输入代码块名称")
-  const themeLabel = escapeHtml(codeBlockThemes.find(theme => theme.value === attrs.theme)?.label || attrs.theme)
+  const themeLabel = escapeHtml(
+    codeBlockThemes.find((theme) => theme.value === attrs.theme)?.label || attrs.theme,
+  )
   const highlightedHtml = highlightCodeHtml(code, attrs.language)
   const lineNumbersHtml = attrs.lineNumbers
     ? `<div class="kb-code-block__line-numbers">${buildLineNumbersHtml(code)}</div>`
@@ -349,17 +366,17 @@ export const renderEnhancedCodeBlockHtml = (code: string, input?: Partial<Enhanc
   return `<div data-type="enhanced-code-block" class="kb-code-block kb-code-block--${attrs.theme}" data-theme="${
     attrs.theme
   }" data-language="${escapeHtml(
-    attrs.language
+    attrs.language,
   )}" data-title="${escapeHtml(attrs.title || "")}" data-line-numbers="${String(
-    attrs.lineNumbers
+    attrs.lineNumbers,
   )}" data-wrap="${String(attrs.wrap)}" data-collapsed="${String(
-    attrs.collapsed
+    attrs.collapsed,
   )}"><div class="kb-code-block__toolbar"><div class="kb-code-block__toolbar-left"><span class="kb-code-block__caret">${
     attrs.collapsed ? "▶" : "▼"
   }</span><span class="kb-code-block__title ${attrs.title ? "" : "is-placeholder"}">${titleLabel}</span></div><div class="kb-code-block__toolbar-right"><span class="kb-code-block__badge">${languageLabel}</span><span class="kb-code-block__divider"></span><span class="kb-code-block__badge">${themeLabel}</span></div></div><div class="kb-code-block__body${
     attrs.collapsed ? " is-collapsed" : ""
   }">${lineNumbersHtml}<pre class="kb-code-block__pre"><code class="hljs language-${escapeHtml(
-    attrs.language
+    attrs.language,
   )}">${highlightedHtml}</code></pre></div></div>`
 }
 

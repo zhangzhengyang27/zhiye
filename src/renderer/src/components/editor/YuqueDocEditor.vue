@@ -47,8 +47,14 @@ const props = withDefaults(
     showToolbar: true,
     showCodeBlockButton: false,
     autoHeight: false,
+    toolbarItems: undefined,
+    defaultFontSize: undefined,
     paragraphSpacing: false,
-  }
+    onImageUpload: undefined,
+    onVideoUpload: undefined,
+    onFileUpload: undefined,
+    onAudioUpload: undefined,
+  },
 )
 
 const emit = defineEmits<{
@@ -67,7 +73,9 @@ const editorApi = ref<YuqueEditorRef | null>(null)
 /** 宿主注入工具栏的「代码块」按钮（命令式 DOM，编辑器重建时随旧 DOM 一并丢弃） */
 let codeBlockButton: HTMLButtonElement | null = null
 
-const scheme = computed<YuqueDocScheme>(() => (props.contentType === "html" ? "text/html" : "text/markdown"))
+const scheme = computed<YuqueDocScheme>(() =>
+  props.contentType === "html" ? "text/html" : "text/markdown",
+)
 
 const handleContentChange = (value: string) => {
   emit("update:modelValue", value)
@@ -83,7 +91,12 @@ const CODE_BLOCK_BUTTON_ICON =
  * 会被 markdown 序列化丢弃）。主题枚举内核未暴露，新建固定 Github Light。
  */
 const insertCodeBlock = () => {
-  editorApi.value?.execCommand("insertCard", "codeblock", { code: "", mode: "plain", theme: "Github Light" }, true)
+  editorApi.value?.execCommand(
+    "insertCard",
+    "codeblock",
+    { code: "", mode: "plain", theme: "Github Light" },
+    true,
+  )
 }
 
 const removeCodeBlockButton = () => {

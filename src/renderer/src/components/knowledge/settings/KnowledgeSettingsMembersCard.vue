@@ -50,12 +50,16 @@ const getRoleLabel = (role: string) => {
   <div class="kb-section-card p-6">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex items-start gap-4">
-        <span class="flex h-12 w-12 items-center justify-center rounded-[18px] bg-brand-faint text-brand">
+        <span
+          class="flex h-12 w-12 items-center justify-center rounded-[18px] bg-brand-faint text-brand"
+        >
           <Icon icon="ph:users-three" :width="22" :height="22" />
         </span>
         <div>
           <h2 class="text-lg font-semibold text-ink">成员管理</h2>
-          <p class="mt-1 text-sm leading-6 text-ink-tertiary">添加成员、调整角色、移除协作者，保持工作区的协作秩序。</p>
+          <p class="mt-1 text-sm leading-6 text-ink-tertiary">
+            添加成员、调整角色、移除协作者，保持工作区的协作秩序。
+          </p>
         </div>
       </div>
       <el-button
@@ -88,23 +92,28 @@ const getRoleLabel = (role: string) => {
             <div class="truncate text-sm font-semibold text-ink" :title="member.user.displayName">
               {{ member.user.displayName }}
             </div>
-            <div class="truncate text-sm text-ink-tertiary" :title="member.user.email">{{ member.user.email }}</div>
+            <div class="truncate text-sm text-ink-tertiary" :title="member.user.email">
+              {{ member.user.email }}
+            </div>
           </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <span class="rounded-full px-3 py-1 text-xs font-medium" :class="getRoleBadgeClass(member.role)">
+          <span
+            class="rounded-full px-3 py-1 text-xs font-medium"
+            :class="getRoleBadgeClass(member.role)"
+          >
             {{ getRoleLabel(member.role) }}
           </span>
           <div v-if="member.role !== 'owner'" class="min-w-40">
             <el-select
               :model-value="member.role"
-              :options="props.roleOptions.map(item => ({ label: item.label, value: item.value }))"
+              :options="props.roleOptions.map((item) => ({ label: item.label, value: item.value }))"
               :offset="6"
               :show-arrow="false"
               :suffix-icon="ChevronDown"
               :disabled="!props.canManage || props.updatingMemberId === member.userId"
-              @update:model-value="value => emit('roleChange', member, String(value))"
+              @update:model-value="(value) => emit('roleChange', member, String(value))"
             />
           </div>
           <el-button

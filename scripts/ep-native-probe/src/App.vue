@@ -24,7 +24,8 @@ const af2Open = ref(false)
 const imeOpen = ref(false)
 const imeValue = ref("")
 // ---------- 6. el-dropdown ----------
-const logDdCommand = (scope: string) => (value: unknown) => log(scope, "command", String(value ?? "(空)"))
+const logDdCommand = (scope: string) => (value: unknown) =>
+  log(scope, "command", String(value ?? "(空)"))
 // ---------- 7. el-select 空值语义 ----------
 const sel1Value = ref<ProbeValue>("")
 const sel2Value = ref<ProbeValue>("")
@@ -59,16 +60,22 @@ const logSelect = (scope: string) => (value: unknown) => {
     <!-- 2. 滚动锁 -->
     <section>
       <h2>2. 滚动锁</h2>
-      <button id="probe-scroll-open-a" type="button" @click="scrollA = true">打开对话框A（lock-scroll 默认）</button>
+      <button id="probe-scroll-open-a" type="button" @click="scrollA = true">
+        打开对话框A（lock-scroll 默认）
+      </button>
       <el-dialog v-model="scrollA" title="滚动锁-A" append-to-body>
-        <button id="probe-scroll-open-b-in-a" type="button" @click="scrollB = true">打开对话框B</button>
+        <button id="probe-scroll-open-b-in-a" type="button" @click="scrollB = true">
+          打开对话框B
+        </button>
         <template #footer>
           <button id="probe-scroll-a-close" type="button" @click="scrollA = false">关闭A</button>
         </template>
       </el-dialog>
       <el-dialog v-model="scrollB" title="滚动锁-B" append-to-body>
         <template #footer>
-          <button id="probe-scroll-close-a-under" type="button" @click="scrollA = false">关闭底层A</button>
+          <button id="probe-scroll-close-a-under" type="button" @click="scrollA = false">
+            关闭底层A
+          </button>
           <button id="probe-scroll-b-close" type="button" @click="scrollB = false">关闭B</button>
         </template>
       </el-dialog>
@@ -76,7 +83,9 @@ const logSelect = (scope: string) => (value: unknown) => {
     <!-- 3. 焦点开合 -->
     <section>
       <h2>3. 焦点开合还原</h2>
-      <button id="probe-focus-trigger" type="button" @click="focusOpen = true">打开焦点对话框</button>
+      <button id="probe-focus-trigger" type="button" @click="focusOpen = true">
+        打开焦点对话框
+      </button>
       <el-dialog v-model="focusOpen" title="焦点开合" append-to-body>
         <input id="probe-focus-input" placeholder="对话框内输入框" />
         <template #footer>
@@ -87,8 +96,12 @@ const logSelect = (scope: string) => (value: unknown) => {
     <!-- 4. data-autofocus -->
     <section>
       <h2>4. data-autofocus</h2>
-      <button id="probe-af1-open" type="button" @click="af1Open = true">打开 data-autofocus 对话框</button>
-      <button id="probe-af2-open" type="button" @click="af2Open = true">打开 el-input autofocus 对话框</button>
+      <button id="probe-af1-open" type="button" @click="af1Open = true">
+        打开 data-autofocus 对话框
+      </button>
+      <button id="probe-af2-open" type="button" @click="af2Open = true">
+        打开 el-input autofocus 对话框
+      </button>
       <el-dialog v-model="af1Open" title="data-autofocus探测" append-to-body>
         <input id="probe-af1-first" placeholder="普通input在前" />
         <input id="probe-af1-marked" data-autofocus placeholder="标记input在后" />
@@ -109,7 +122,11 @@ const logSelect = (scope: string) => (value: unknown) => {
       <h2>5. IME 组词 Esc</h2>
       <button id="probe-ime-open" type="button" @click="imeOpen = true">打开 IME 对话框</button>
       <el-dialog v-model="imeOpen" title="IME探测" append-to-body>
-        <el-input id="probe-ime-input" v-model="imeValue" placeholder="在这里按 Esc（合成 isComposing 事件）" />
+        <el-input
+          id="probe-ime-input"
+          v-model="imeValue"
+          placeholder="在这里按 Esc（合成 isComposing 事件）"
+        />
         <template #footer>
           <button id="probe-ime-close" type="button" @click="imeOpen = false">关闭</button>
         </template>
@@ -119,7 +136,7 @@ const logSelect = (scope: string) => (value: unknown) => {
     <section>
       <h2>6. el-dropdown 能力边界</h2>
       <div id="probe-dd1" class="probe-dd-wrap">
-        <el-dropdown trigger="click" @command="v => logDdCommand('dd1')(v)">
+        <el-dropdown trigger="click" @command="(v) => logDdCommand('dd1')(v)">
           <button type="button">基础菜单 ▾</button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -131,14 +148,22 @@ const logSelect = (scope: string) => (value: unknown) => {
         </el-dropdown>
       </div>
       <div id="probe-dd2" class="probe-dd-wrap">
-        <el-dropdown trigger="click" :hide-on-click="false" @command="v => logDdCommand('dd2-outer')(v)">
+        <el-dropdown
+          trigger="click"
+          :hide-on-click="false"
+          @command="(v) => logDdCommand('dd2-outer')(v)"
+        >
           <button type="button">嵌套菜单 ▾</button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="outer-a">外层项A</el-dropdown-item>
               <el-dropdown-item command="outer-parent">
                 <span id="probe-dd2-inner-wrap">
-                  <el-dropdown trigger="click" :hide-on-click="false" @command="v => logDdCommand('dd2-inner')(v)">
+                  <el-dropdown
+                    trigger="click"
+                    :hide-on-click="false"
+                    @command="(v) => logDdCommand('dd2-inner')(v)"
+                  >
                     <span>内层菜单 ▸</span>
                     <template #dropdown>
                       <el-dropdown-menu>
@@ -153,7 +178,7 @@ const logSelect = (scope: string) => (value: unknown) => {
         </el-dropdown>
       </div>
       <div id="probe-dd3" class="probe-dd-wrap">
-        <el-dropdown trigger="click" @command="v => logDdCommand('dd3')(v)">
+        <el-dropdown trigger="click" @command="(v) => logDdCommand('dd3')(v)">
           <button type="button">分组菜单 ▾</button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -177,7 +202,7 @@ const logSelect = (scope: string) => (value: unknown) => {
           :model-value="sel1Value"
           placeholder="请选择sel1"
           @update:model-value="
-            v => {
+            (v) => {
               sel1Value = v as ProbeValue
               logSelect('sel1')(v)
             }
@@ -195,7 +220,7 @@ const logSelect = (scope: string) => (value: unknown) => {
           :model-value="sel2Value"
           placeholder="请选择sel2"
           @update:model-value="
-            v => {
+            (v) => {
               sel2Value = v as ProbeValue
               logSelect('sel2')(v)
             }
@@ -214,7 +239,7 @@ const logSelect = (scope: string) => (value: unknown) => {
           clearable
           placeholder="请选择sel3"
           @update:model-value="
-            v => {
+            (v) => {
               sel3Value = v as ProbeValue
               logSelect('sel3')(v)
             }
@@ -243,7 +268,8 @@ const logSelect = (scope: string) => (value: unknown) => {
 body {
   margin: 0;
   font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
 }
 .probe-page {
   padding: 24px;

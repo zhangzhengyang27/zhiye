@@ -148,7 +148,11 @@ const CHILD_BTN_CLASS =
             <!-- 展开的子项：缩进二级（fix/ep-leftovers：独立条件渲染，置于 if/else-if
                  链之后——避免插在父项与普通项之间使后者的 v-else-if 配到本 template 上） -->
             <template
-              v-if="item.children && item.children.length > 0 && expandedParents.has(`${groupIndex}-${itemIndex}`)"
+              v-if="
+                item.children &&
+                item.children.length > 0 &&
+                expandedParents.has(`${groupIndex}-${itemIndex}`)
+              "
             >
               <el-dropdown-item
                 v-for="(child, childIndex) in item.children"

@@ -54,10 +54,12 @@ const deletingFolder = ref<KnowledgeFavoriteFolder | null>(null)
 const deletingFolderMessage = computed(() =>
   deletingFolder.value
     ? `删除收藏夹「${deletingFolder.value.name}」后，夹内收藏将回到「全部收藏」，收藏本身不会被删除。`
-    : ""
+    : "",
 )
 
-const hasMoreFavorites = computed(() => (favoriteResult.value?.total ?? 0) > favoriteItems.value.length)
+const hasMoreFavorites = computed(
+  () => (favoriteResult.value?.total ?? 0) > favoriteItems.value.length,
+)
 
 const { showToastMessage } = useTransientToast()
 
@@ -67,30 +69,32 @@ const filteredItems = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLowerCase()
 
   return favoriteItems.value
-    .filter(item => {
+    .filter((item) => {
       if (activeFolderId.value === ALL_FOLDER_VALUE) {
         return true
       }
 
       return item.folderId === activeFolderId.value
     })
-    .filter(item => {
+    .filter((item) => {
       if (!normalizedKeyword) {
         return true
       }
 
-      return [item.title, item.kbName || "", item.creator || ""].some(field =>
-        field.toLowerCase().includes(normalizedKeyword)
+      return [item.title, item.kbName || "", item.creator || ""].some((field) =>
+        field.toLowerCase().includes(normalizedKeyword),
       )
     })
 })
 
 // 页头计数用接口 total（pageSize 100 截断时 filteredItems.length 会少计）
-const summary = computed(() => `${favoriteResult.value?.total ?? filteredItems.value.length} 篇收藏`)
+const summary = computed(
+  () => `${favoriteResult.value?.total ?? filteredItems.value.length} 篇收藏`,
+)
 
 const knowledgeBaseItems = computed(() => [
   { label: "全部知识库", value: ALL_KB_VALUE },
-  ...knowledgeBases.value.map(item => ({ label: item.name, value: item.id })),
+  ...knowledgeBases.value.map((item) => ({ label: item.name, value: item.id })),
 ])
 
 /** 行尾来源描述：作者 / 知识库（对齐语雀真机归属分隔符「/」，与开始页一致）；创建者缺失时兜底。
@@ -109,7 +113,7 @@ const openDoc = (item: KnowledgeFavoriteItem) => {
       kbId: item.kbId,
       docId: item.id,
       editorType: item.editorType,
-    })
+    }),
   )
 }
 
@@ -204,7 +208,7 @@ const handleCancelFavorite = async (item: KnowledgeFavoriteItem) => {
   } catch (error) {
     showToastMessage(error instanceof Error ? error.message : "取消收藏失败。", "error")
   } finally {
-    cancelingDocIds.value = cancelingDocIds.value.filter(id => id !== item.id)
+    cancelingDocIds.value = cancelingDocIds.value.filter((id) => id !== item.id)
   }
 }
 
@@ -252,7 +256,7 @@ const submitRenameFolder = async () => {
   folderBusy.value = true
   try {
     const updated = await renameFavoriteFolder(folderId, name)
-    folders.value = folders.value.map(folder => (folder.id === updated.id ? updated : folder))
+    folders.value = folders.value.map((folder) => (folder.id === updated.id ? updated : folder))
   } catch (error) {
     showToastMessage(error instanceof Error ? error.message : "重命名失败。", "error")
   } finally {
@@ -269,7 +273,7 @@ const confirmDeleteFolder = async () => {
   folderBusy.value = true
   try {
     await removeFavoriteFolder(folder.id)
-    folders.value = folders.value.filter(item => item.id !== folder.id)
+    folders.value = folders.value.filter((item) => item.id !== folder.id)
     if (activeFolderId.value === folder.id) {
       activeFolderId.value = ALL_FOLDER_VALUE
     }
@@ -290,12 +294,12 @@ const handleMoveToFolder = async (item: KnowledgeFavoriteItem, folderId: string 
     favoriteResult.value = favoriteResult.value
       ? {
           ...favoriteResult.value,
-          items: favoriteItems.value.map(candidate =>
-            candidate.id === item.id ? { ...candidate, folderId: target } : candidate
+          items: favoriteItems.value.map((candidate) =>
+            candidate.id === item.id ? { ...candidate, folderId: target } : candidate,
           ),
         }
       : favoriteResult.value
-    const folder = folders.value.find(candidate => candidate.id === folderId)
+    const folder = folders.value.find((candidate) => candidate.id === folderId)
     showToastMessage(folder ? `已移入「${folder.name}」。` : "已移出收藏夹。", "success")
   } catch (error) {
     showToastMessage(error instanceof Error ? error.message : "移动失败。", "error")
@@ -327,7 +331,9 @@ onMounted(() => {
             @click="activeFolderId = ALL_FOLDER_VALUE"
           >
             <span class="min-w-0 truncate">全部收藏</span>
-            <span class="shrink-0 text-[11px] text-ink-quaternary">{{ favoriteResult?.total ?? 0 }}条</span>
+            <span class="shrink-0 text-[11px] text-ink-quaternary"
+              >{{ favoriteResult?.total ?? 0 }}条</span
+            >
           </button>
 
           <button
@@ -336,7 +342,9 @@ onMounted(() => {
             type="button"
             class="group flex h-8 items-center justify-between gap-2 rounded-kb-md px-2.5 text-left text-[13px] transition"
             :class="
-              activeFolderId === folder.id ? 'bg-grey-300 font-medium text-ink' : 'text-ink-secondary hover:bg-grey-200'
+              activeFolderId === folder.id
+                ? 'bg-grey-300 font-medium text-ink'
+                : 'text-ink-secondary hover:bg-grey-200'
             "
             @click="activeFolderId = folder.id"
           >
@@ -354,7 +362,9 @@ onMounted(() => {
             <template v-else>
               <span class="min-w-0 truncate" :title="folder.name">{{ folder.name }}</span>
               <span class="flex shrink-0 items-center gap-0.5">
-                <span class="text-[11px] text-ink-quaternary transition group-hover:hidden">{{ folder.count }}条</span>
+                <span class="text-[11px] text-ink-quaternary transition group-hover:hidden"
+                  >{{ folder.count }}条</span
+                >
                 <span class="hidden items-center gap-0.5 group-hover:flex">
                   <span
                     class="inline-flex h-5 w-5 items-center justify-center rounded-kb-sm text-ink-quaternary transition hover:bg-grey-300 hover:text-ink"
@@ -381,7 +391,11 @@ onMounted(() => {
             </template>
           </button>
 
-          <form v-if="creatingFolder" class="flex h-8 items-center gap-1 px-2.5" @submit.prevent="submitCreateFolder">
+          <form
+            v-if="creatingFolder"
+            class="flex h-8 items-center gap-1 px-2.5"
+            @submit.prevent="submitCreateFolder"
+          >
             <el-input
               v-model="creatingFolderName"
               type="text"
@@ -415,7 +429,7 @@ onMounted(() => {
               placeholder="按标题、作者或知识库名称筛选收藏"
               :loading="loading"
               @update:filter-value="
-                value => {
+                (value) => {
                   selectedKbId = value
                   load()
                 }
@@ -474,7 +488,9 @@ onMounted(() => {
                     (folderId: string | number | object | undefined) =>
                       handleMoveToFolder(
                         item,
-                        folderId === '__move_out__' || folderId === undefined ? null : String(folderId)
+                        folderId === '__move_out__' || folderId === undefined
+                          ? null
+                          : String(folderId),
                       )
                   "
                 >
@@ -532,7 +548,9 @@ onMounted(() => {
                 class="rounded-kb-lg border-line bg-surface px-4 text-[13px] text-ink-secondary"
                 :disabled="loadingMore"
                 @click="loadMoreFavorites"
-                >{{ loadingMore ? "加载中…" : `加载更多（共 ${favoriteResult?.total ?? 0} 条）` }}</el-button
+                >{{
+                  loadingMore ? "加载中…" : `加载更多（共 ${favoriteResult?.total ?? 0} 条）`
+                }}</el-button
               >
             </div>
           </div>
@@ -546,7 +564,7 @@ onMounted(() => {
         confirm-text="删除收藏夹"
         :loading="folderBusy ? true : null"
         @update:open="
-          value => {
+          (value) => {
             if (!value) deletingFolder = null
           }
         "

@@ -28,7 +28,8 @@ import {
 } from "./lib/knowledge-smoke-utils.mjs"
 
 const OUT_DIR =
-  process.env.TASK33_OUT_DIR || "/Users/xiaoye/Desktop/AI/知识库/xiaoye/output/visual/ep-migration/task-3.3/after"
+  process.env.TASK33_OUT_DIR ||
+  "/Users/xiaoye/Desktop/AI/知识库/xiaoye/output/visual/ep-migration/task-3.3/after"
 const VIEWPORT = { width: 1247, height: 952 }
 const CONTENT =
   "# EP 迁移基线文档\n\n用于 AppDropdownMenu 换底前后的像素对比。\n\n- 列表项一\n- 列表项二\n\n**加粗文本**与正文。\n"
@@ -37,14 +38,14 @@ fs.rmSync(OUT_DIR, { recursive: true, force: true })
 fs.mkdirSync(OUT_DIR, { recursive: true })
 
 /** 菜单展开后等动画（EP el-zoom-in-top ~0.3s；自绘版无动画，等待幂等）与定位稳定 */
-const settleMenu = async page => {
+const settleMenu = async (page) => {
   await page.waitForTimeout(600)
 }
 
 /** 开态元素截图的去噪：把 #app 整体 visibility:hidden（页面内容与数据漂移全部隐去，
     菜单 teleport 在 body 下不受影响、布局照旧），面板盒四角露出的是 body 底色，明暗
     两轮都确定。菜单面板自绘版是 div[role=menu]，EP 版是 .el-popper。 */
-const panelWithHiddenApp = async page => {
+const panelWithHiddenApp = async (page) => {
   await page.evaluate(() => {
     const app = globalThis.document.getElementById("app")
     if (app) {
@@ -60,7 +61,7 @@ const panelWithHiddenApp = async page => {
   return page.locator("div[role='menu']").first()
 }
 
-const restoreApp = async page => {
+const restoreApp = async (page) => {
   await page.evaluate(() => {
     const app = globalThis.document.getElementById("app")
     if (app) {
@@ -69,19 +70,19 @@ const restoreApp = async page => {
   })
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[Task3.3:${mode}]`
   const failures = []
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, smokeConfig.baseUrl).toString()
+  const url = (path) => new URL(path, smokeConfig.baseUrl).toString()
 
   try {
     await loginThroughUi(page, prefix)
@@ -137,7 +138,10 @@ const capturePass = async mode => {
       logStep("[Task3.3]", `✅ editor-open-${mode}`)
 
       await page.getByRole("menuitem", { name: "复制与打开" }).first().click()
-      await page.getByRole("menuitem", { name: "复制标题链接" }).first().waitFor({ state: "visible", timeout: 5000 })
+      await page
+        .getByRole("menuitem", { name: "复制标题链接" })
+        .first()
+        .waitFor({ state: "visible", timeout: 5000 })
       await settleMenu(page)
       const panel2 = await panelWithHiddenApp(page)
       await panel2.screenshot({ path: `${OUT_DIR}/editor-submenu-${mode}.png` })

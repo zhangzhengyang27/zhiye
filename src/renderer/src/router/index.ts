@@ -13,7 +13,7 @@ const KnowledgeBoardEditorPlaceholder = () =>
   h(
     "div",
     { class: "flex min-h-screen items-center justify-center text-sm text-ink-tertiary" },
-    "画板编辑器暂不可用（恢复中）。"
+    "画板编辑器暂不可用（恢复中）。",
   )
 
 const router = createRouter({
@@ -167,7 +167,7 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async to => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   await authStore.ensureHydrated()
 

@@ -20,7 +20,9 @@ const emit = defineEmits<{
 
 const shareUrl = computed(() => props.getShareUrl(props.share.shareKey))
 
-const permissionBadgeType = computed(() => (props.share.permission === "edit" ? "success" : undefined))
+const permissionBadgeType = computed(() =>
+  props.share.permission === "edit" ? "success" : undefined,
+)
 
 const metaBadges = computed(() => [
   `访问 ${props.share.viewCount} 次`,
@@ -31,7 +33,9 @@ const metaBadges = computed(() => [
 
 <template>
   <!-- 原 UCard + :ui 定制（root/body），替换为普通 div（样式等价） -->
-  <div class="rounded-kb-3xl border border-line bg-surface px-4 py-4 shadow-[var(--kb-surface-shadow)]">
+  <div
+    class="rounded-kb-3xl border border-line bg-surface px-4 py-4 shadow-[var(--kb-surface-shadow)]"
+  >
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
@@ -52,7 +56,12 @@ const metaBadges = computed(() => [
         </p>
 
         <div class="mt-2 flex flex-wrap items-center gap-2">
-          <el-tag v-for="item in metaBadges" :key="item" disable-transitions class="text-ink-tertiary">
+          <el-tag
+            v-for="item in metaBadges"
+            :key="item"
+            disable-transitions
+            class="text-ink-tertiary"
+          >
             {{ item }}
           </el-tag>
         </div>
@@ -62,10 +71,19 @@ const metaBadges = computed(() => [
         <el-button plain size="small" class="rounded-kb-xl" @click="emit('copyLink', props.share)"
           ><span class="truncate">复制链接</span>
         </el-button>
-        <el-button text size="small" class="rounded-kb-xl" @click="emit('copyMarkdown', props.share)"
+        <el-button
+          text
+          size="small"
+          class="rounded-kb-xl"
+          @click="emit('copyMarkdown', props.share)"
           ><span class="truncate">复制 Markdown</span>
         </el-button>
-        <el-button text size="small" class="rounded-kb-xl" title="扫码访问" @click="emit('showQr', props.share)"
+        <el-button
+          text
+          size="small"
+          class="rounded-kb-xl"
+          title="扫码访问"
+          @click="emit('showQr', props.share)"
           ><AppIcon name="i-lucide-qr-code" class="h-3.5 w-3.5" />
         </el-button>
         <el-button

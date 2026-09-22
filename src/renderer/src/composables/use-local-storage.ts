@@ -53,10 +53,10 @@ export function useLocalStorage<T>(key: string, options: UseLocalStorageOptions<
 
   watch(
     data,
-    nextValue => {
+    (nextValue) => {
       writeStorage(key, nextValue)
     },
-    { deep: true }
+    { deep: true },
   )
 
   const remove = () => {

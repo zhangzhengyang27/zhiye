@@ -69,14 +69,14 @@ const handleEnter = (event: KeyboardEvent) => {
 
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (open) {
       name.value = ""
       description.value = ""
       errorMessage.value = ""
       submitting.value = false
     }
-  }
+  },
 )
 const dialog = useDialogBehavior({
   open: () => props.open,
@@ -91,7 +91,7 @@ const dialog = useDialogBehavior({
     title="新建知识库"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('update:open', false)"
+    @update:model-value="(value) => !value && emit('update:open', false)"
   >
     <template #header>
       <KbDialogHeader title="新建知识库" @close="close" />
@@ -130,7 +130,9 @@ const dialog = useDialogBehavior({
       <div class="flex justify-end gap-3">
         <el-button plain @click="close"><span class="truncate">取消</span> </el-button>
         <el-button type="primary" :disabled="!canSubmit()" :loading="submitting" @click="submit"
-          ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+          ><template #loading
+            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
           <span class="truncate">创建</span>
         </el-button>
       </div>

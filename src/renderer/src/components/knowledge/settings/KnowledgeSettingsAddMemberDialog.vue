@@ -45,7 +45,7 @@ const dialog = useDialogBehavior({
     title="添加成员"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('update:open', false)"
+    @update:model-value="(value) => !value && emit('update:open', false)"
   >
     <template #header>
       <KbDialogHeader
@@ -72,7 +72,7 @@ const dialog = useDialogBehavior({
         <span class="mb-1.5 block text-[13px] font-medium text-ink-secondary">角色</span>
         <el-select
           :model-value="props.role"
-          :options="props.roleOptions.map(item => ({ label: item.label, value: item.value }))"
+          :options="props.roleOptions.map((item) => ({ label: item.label, value: item.value }))"
           :offset="6"
           :show-arrow="false"
           :suffix-icon="ChevronDown"
@@ -80,17 +80,24 @@ const dialog = useDialogBehavior({
           @update:model-value="emit('update:role', $event as 'admin' | 'editor' | 'reader')"
         />
         <p class="mt-2 text-sm leading-6 text-ink-tertiary">
-          {{ props.roleOptions.find(item => item.value === props.role)?.description }}
+          {{ props.roleOptions.find((item) => item.value === props.role)?.description }}
         </p>
       </label>
     </div>
 
     <template #footer>
       <div class="flex justify-end gap-3">
-        <el-button plain class="border-line bg-surface py-2 text-ink-secondary" @click="emit('update:open', false)"
+        <el-button
+          plain
+          class="border-line bg-surface py-2 text-ink-secondary"
+          @click="emit('update:open', false)"
           ><span class="truncate">取消</span>
         </el-button>
-        <el-button type="primary" class="py-2" :disabled="props.addingMember" @click="emit('submit')"
+        <el-button
+          type="primary"
+          class="py-2"
+          :disabled="props.addingMember"
+          @click="emit('submit')"
           ><span class="truncate">{{ props.addingMember ? "添加中…" : "添加成员" }}</span>
         </el-button>
       </div>

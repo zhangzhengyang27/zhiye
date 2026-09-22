@@ -13,7 +13,7 @@ const props = withDefaults(
     // 不再设搜索 tab；评论锚点见内核评估结论）。保留在默认值里会渲染出点了就
     // 关闭整个侧栏的死 tab
     tabs: () => ["versions", "info"],
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -36,7 +36,7 @@ const tabItems: Array<{ id: DocumentSidePanelTab; label: string; icon: string }>
       :style="{ gridTemplateColumns: `repeat(${Math.max(props.tabs.length, 1)}, minmax(0, 1fr))` }"
     >
       <button
-        v-for="tab in tabItems.filter(item => props.tabs.includes(item.id))"
+        v-for="tab in tabItems.filter((item) => props.tabs.includes(item.id))"
         :key="tab.id"
         type="button"
         class="inline-flex items-center justify-center gap-1.5 rounded-kb-xl px-2 py-2 text-[12px] font-medium transition"

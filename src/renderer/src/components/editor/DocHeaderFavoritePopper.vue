@@ -32,7 +32,9 @@ const busy = ref(false)
 const creating = ref(false)
 const newFolderName = ref("")
 
-const canSubmitNewFolder = computed(() => newFolderName.value.trim().length > 0 && newFolderName.value.length <= 30)
+const canSubmitNewFolder = computed(
+  () => newFolderName.value.trim().length > 0 && newFolderName.value.length <= 30,
+)
 
 const loadFolders = async () => {
   loading.value = true
@@ -43,7 +45,7 @@ const loadFolders = async () => {
     ])
     folders.value = folderList
     currentFolderId.value =
-      favoriteList.items.find(item => item.id === props.documentId)?.folderId ?? null
+      favoriteList.items.find((item) => item.id === props.documentId)?.folderId ?? null
   } catch {
     folders.value = []
   } finally {
@@ -93,12 +95,9 @@ onMounted(() => {
     <p class="px-1 text-[14px] font-semibold text-ink">选择分组</p>
     <p class="mt-1 px-1 text-[12px] leading-5 text-ink-tertiary">
       你可以选择分组或直接
-      <button
-        type="button"
-        class="text-brand hover:underline"
-        @click.stop="emit('unfavorited')"
-        >取消收藏</button
-      >
+      <button type="button" class="text-brand hover:underline" @click.stop="emit('unfavorited')">
+        取消收藏
+      </button>
     </p>
 
     <div v-if="loading" class="px-1 py-4 text-[12px] text-ink-quaternary">分组加载中…</div>
@@ -113,7 +112,9 @@ onMounted(() => {
           @click.stop="handleMoveTo(folder)"
         >
           <span class="min-w-0 flex-1 truncate">{{ folder.name }}</span>
-          <span v-if="folder.id === currentFolderId" class="shrink-0 text-[11px] text-brand">当前</span>
+          <span v-if="folder.id === currentFolderId" class="shrink-0 text-[11px] text-brand"
+            >当前</span
+          >
         </button>
       </div>
 
@@ -130,7 +131,11 @@ onMounted(() => {
           >
           <span>新建分组</span>
         </button>
-        <form v-else class="flex items-center gap-1.5 px-1 py-1.5" @submit.prevent="handleCreateFolder">
+        <form
+          v-else
+          class="flex items-center gap-1.5 px-1 py-1.5"
+          @submit.prevent="handleCreateFolder"
+        >
           <input
             v-model="newFolderName"
             type="text"

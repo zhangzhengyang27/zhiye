@@ -51,7 +51,7 @@ export const listKnowledgeFavorites = (
     page?: number
     pageSize?: number
   },
-  token?: string | null
+  token?: string | null,
 ) => {
   const queryText = buildKbDriveQuery({
     kbId: params?.kbId,
@@ -62,7 +62,7 @@ export const listKnowledgeFavorites = (
   return requestKbDriveApi<KnowledgeFavoriteListResult>(
     `/knowledge/favorites${queryText ? `?${queryText}` : ""}`,
     undefined,
-    token
+    token,
   )
 }
 
@@ -75,7 +75,7 @@ export const removeKnowledgeFavorite = (documentId: string, token?: string | nul
     {
       method: "DELETE",
     },
-    token
+    token,
   )
 
 /**
@@ -88,20 +88,28 @@ export const addKnowledgeFavorite = (documentId: string, token?: string | null) 
       method: "POST",
       body: JSON.stringify({ documentId }),
     },
-    token
+    token,
   )
 
 /**
  * 检查内容是否已被收藏。
  */
 export const checkKnowledgeFavorite = (documentId: string, token?: string | null) =>
-  requestKbDriveApi<{ favorited: boolean }>(`/knowledge/favorites/exists/${documentId}`, undefined, token)
+  requestKbDriveApi<{ favorited: boolean }>(
+    `/knowledge/favorites/exists/${documentId}`,
+    undefined,
+    token,
+  )
 
 /**
  * 检查知识库是否已被收藏。
  */
 export const checkKnowledgeBaseFavorite = (kbId: string, token?: string | null) =>
-  requestKbDriveApi<{ favorited: boolean }>(`/knowledge/favorites/kb/exists/${kbId}`, undefined, token)
+  requestKbDriveApi<{ favorited: boolean }>(
+    `/knowledge/favorites/kb/exists/${kbId}`,
+    undefined,
+    token,
+  )
 
 /**
  * 收藏知识库。
@@ -110,7 +118,7 @@ export const addKnowledgeBaseFavorite = (kbId: string, token?: string | null) =>
   requestKbDriveApi<{ ok: boolean }>(
     "/knowledge/favorites/kb",
     { method: "POST", body: JSON.stringify({ knowledgeBaseId: kbId }) },
-    token
+    token,
   )
 
 /**
@@ -134,7 +142,7 @@ export const createFavoriteFolder = (name: string, token?: string | null) =>
   requestKbDriveApi<KnowledgeFavoriteFolder>(
     "/knowledge/favorites/folders",
     { method: "POST", body: JSON.stringify({ name }) },
-    token
+    token,
   )
 
 /**
@@ -144,21 +152,29 @@ export const renameFavoriteFolder = (folderId: string, name: string, token?: str
   requestKbDriveApi<KnowledgeFavoriteFolder>(
     `/knowledge/favorites/folders/${folderId}`,
     { method: "PATCH", body: JSON.stringify({ name }) },
-    token
+    token,
   )
 
 /**
  * 删除收藏夹（夹内收藏回落「全部收藏」）。
  */
 export const removeFavoriteFolder = (folderId: string, token?: string | null) =>
-  requestKbDriveApi<{ ok: boolean }>(`/knowledge/favorites/folders/${folderId}`, { method: "DELETE" }, token)
+  requestKbDriveApi<{ ok: boolean }>(
+    `/knowledge/favorites/folders/${folderId}`,
+    { method: "DELETE" },
+    token,
+  )
 
 /**
  * 收藏移入收藏夹；folderId 传 null 表示移出（回全部收藏）。
  */
-export const moveFavoriteToFolder = (documentId: string, folderId: string | null, token?: string | null) =>
+export const moveFavoriteToFolder = (
+  documentId: string,
+  folderId: string | null,
+  token?: string | null,
+) =>
   requestKbDriveApi<{ ok: boolean }>(
     "/knowledge/favorites/folders/move",
     { method: "POST", body: JSON.stringify({ documentId, folderId }) },
-    token
+    token,
   )

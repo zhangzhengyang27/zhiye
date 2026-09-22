@@ -103,7 +103,7 @@ c = c.replace(anchor, instantFn)
 
 // 2) handleRootCreateMenuAction：六类即时创建，目录/模板保持原路径
 const oldRoot = c.match(
-  /  const handleRootCreateMenuAction = \(\n    action: "doc" \| "folder" \| "template" \| "board" \| "datatable" \| "sheet" \| "mindmap" \| "flowchart"\n  \) => \{\n    if \(action === "template"\) \{\n      openTemplateLibrary\(\)\n      return\n    \}\n\n    \/\/ 文档\/文件夹\/画板\/数据表\/表格\/思维导图\/流程图均走创建对话框（类型预选）\n    createNode\(action\)\n  \}/
+  / {2}const handleRootCreateMenuAction = \(\n {4}action: "doc" \| "folder" \| "template" \| "board" \| "datatable" \| "sheet" \| "mindmap" \| "flowchart"\n {2}\) => \{\n {4}if \(action === "template"\) \{\n {6}openTemplateLibrary\(\)\n {6}return\n {4}\}\n\n {4}\/\/ 文档\/文件夹\/画板\/数据表\/表格\/思维导图\/流程图均走创建对话框（类型预选）\n {4}createNode\(action\)\n {2}\}/,
 )
 if (!oldRoot) {
   console.error("root fn not matched")

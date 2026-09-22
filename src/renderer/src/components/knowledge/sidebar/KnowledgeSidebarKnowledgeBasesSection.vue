@@ -74,7 +74,7 @@ const handleDrop = (targetIndex: number, event: DragEvent) => {
   if (!draggedId) return
 
   // 拖拽期间列表可能已刷新：按 id 重查当前索引，过期快照直接放弃
-  const fromIndex = props.knowledgeBases.findIndex(item => item.id === draggedId)
+  const fromIndex = props.knowledgeBases.findIndex((item) => item.id === draggedId)
   if (fromIndex < 0 || fromIndex === targetIndex) return
 
   const items = [...props.knowledgeBases]
@@ -124,7 +124,11 @@ const handleDragEnd = () => {
 
     <div v-show="props.expanded" class="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
       <div v-if="props.loading" class="space-y-1 px-1 pt-1">
-        <div v-for="index in 8" :key="`kb-skeleton-${index}`" class="h-8 animate-pulse rounded-kb-md bg-grey-200" />
+        <div
+          v-for="index in 8"
+          :key="`kb-skeleton-${index}`"
+          class="h-8 animate-pulse rounded-kb-md bg-grey-200"
+        />
       </div>
 
       <div v-else-if="props.loadError" class="space-y-2 px-3 py-3">
@@ -147,7 +151,11 @@ const handleDragEnd = () => {
           :key="`menu-${item.id}`"
           :draggable="true"
           :class="
-            getKnowledgeItemClass(isKnowledgeBaseActive(item.id), draggedKbId === item.id, dragOverIndex === index)
+            getKnowledgeItemClass(
+              isKnowledgeBaseActive(item.id),
+              draggedKbId === item.id,
+              dragOverIndex === index,
+            )
           "
           @dragstart="handleDragStart(index, $event)"
           @dragover="handleDragOver(index, $event)"
@@ -171,14 +179,23 @@ const handleDragEnd = () => {
                 class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full border border-surface bg-white dark:bg-grey-600"
                 title="个人知识库"
               >
-                <Icon icon="ph:export" :width="7" :height="7" class="text-ink-tertiary dark:text-ink-secondary" />
+                <Icon
+                  icon="ph:export"
+                  :width="7"
+                  :height="7"
+                  class="text-ink-tertiary dark:text-ink-secondary"
+                />
               </span>
             </span>
             <!-- span 上显式给字色：style.css 的 .dark a !important 会把中间 RouterLink
                  劫持成蓝色，子元素自身声明可以不受父级 !important 影响 -->
             <span
               class="min-w-0 flex-1 truncate"
-              :class="isKnowledgeBaseActive(item.id) ? 'text-ink' : 'text-ink-secondary group-hover:text-ink'"
+              :class="
+                isKnowledgeBaseActive(item.id)
+                  ? 'text-ink'
+                  : 'text-ink-secondary group-hover:text-ink'
+              "
               :title="item.name"
               >{{ item.name }}</span
             >

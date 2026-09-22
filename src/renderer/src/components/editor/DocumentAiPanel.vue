@@ -32,7 +32,7 @@ const props = withDefaults(
   {
     token: null,
     userId: null,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -81,7 +81,9 @@ const run = async (action: DocAiAction) => {
       timeoutMs: profile.timeoutMs,
     }
     const instructionText =
-      activeAction.value === "custom" ? instruction.value.trim() : instruction.value.trim() || undefined
+      activeAction.value === "custom"
+        ? instruction.value.trim()
+        : instruction.value.trim() || undefined
     const response = await generateDocumentAiWrite(
       props.documentId,
       {
@@ -89,7 +91,7 @@ const run = async (action: DocAiAction) => {
         instruction: instructionText,
         providerConfig,
       },
-      props.token
+      props.token,
     )
     result.value = response.text
   } catch (error) {
@@ -204,7 +206,9 @@ const insertToEnd = () => {
             :loading="busy"
             :disabled="busy || !instruction.trim()"
             @click="handleCustomSubmit"
-            ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            ><template #loading
+              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+            /></template>
             <span class="truncate">生成</span>
           </el-button>
         </div>
@@ -224,7 +228,9 @@ const insertToEnd = () => {
           <div>
             <p class="font-medium">生成失败</p>
             <p class="mt-0.5 break-all text-ink-secondary">{{ errorMessage }}</p>
-            <p class="mt-1 text-[12px] text-ink-tertiary">可在画板文档的顶部「模型配置」中填写 API Key 后重试。</p>
+            <p class="mt-1 text-[12px] text-ink-tertiary">
+              可在画板文档的顶部「模型配置」中填写 API Key 后重试。
+            </p>
           </div>
         </div>
       </div>
@@ -246,19 +252,29 @@ const insertToEnd = () => {
               class="inline-flex items-center gap-1 rounded-kb-md px-2 py-1 text-[12px] text-ink-secondary transition hover:bg-surface hover:text-brand"
               @click="insertToEnd"
             >
-              <AppIcon :name="inserted ? 'i-lucide-check' : 'i-lucide-corner-down-left'" class="h-3.5 w-3.5" />
+              <AppIcon
+                :name="inserted ? 'i-lucide-check' : 'i-lucide-corner-down-left'"
+                class="h-3.5 w-3.5"
+              />
               {{ inserted ? "已插入" : "插入文末" }}
             </button>
           </div>
         </div>
-        <div class="max-h-[42vh] overflow-y-auto whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink">
+        <div
+          class="max-h-[42vh] overflow-y-auto whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink"
+        >
           {{ result }}
         </div>
       </div>
 
-      <div v-else class="mt-5 flex flex-col items-center gap-2 py-10 text-center text-ink-quaternary">
+      <div
+        v-else
+        class="mt-5 flex flex-col items-center gap-2 py-10 text-center text-ink-quaternary"
+      >
         <AppIcon name="i-lucide-wand-2" class="h-6 w-6" />
-        <p class="text-[12px] leading-relaxed">选择快捷动作或输入指令，<br />AI 将结合文档正文给出结果。</p>
+        <p class="text-[12px] leading-relaxed">
+          选择快捷动作或输入指令，<br />AI 将结合文档正文给出结果。
+        </p>
       </div>
     </div>
   </aside>

@@ -36,7 +36,7 @@ const decodeImportText = async (file: File): Promise<string> => {
 export const importMarkdownFile = async (
   file: File,
   kbId: string,
-  parentId?: string | null
+  parentId?: string | null,
 ): Promise<KnowledgeDocumentItem> => {
   const text = await decodeImportText(file)
   return createKnowledgeDocument({
@@ -57,7 +57,7 @@ export const importMarkdownFile = async (
 export const importLakeFile = async (
   file: File,
   kbId: string,
-  parentId?: string | null
+  parentId?: string | null,
 ): Promise<KnowledgeDocumentItem> => {
   const parsed: unknown = JSON.parse(await file.text())
 
@@ -86,7 +86,7 @@ export const importLakeFile = async (
 export const importDocxFile = async (
   file: File,
   kbId: string,
-  parentId?: string | null
+  parentId?: string | null,
 ): Promise<KnowledgeDocumentItem> => {
   const arrayBuffer = await file.arrayBuffer()
   const result = await mammoth.convertToHtml({ arrayBuffer })
@@ -112,7 +112,7 @@ const SUPPORTED_EXTENSIONS = [".md", ".markdown", ".txt", ".docx", ".lake"]
 const unzipToFiles = async (file: File): Promise<File[]> => {
   const { unzipSync } = await import("fflate")
   const entries = unzipSync(new Uint8Array(await file.arrayBuffer()), {
-    filter: entry => !entry.name.split("/").pop()?.startsWith("._"),
+    filter: (entry) => !entry.name.split("/").pop()?.startsWith("._"),
   })
 
   return Object.entries(entries)
@@ -127,7 +127,7 @@ const unzipToFiles = async (file: File): Promise<File[]> => {
 export const importLocalDocumentFiles = async (
   files: File[],
   kbId: string,
-  parentId?: string | null
+  parentId?: string | null,
 ): Promise<ImportedDocumentResult> => {
   const result: ImportedDocumentResult = { imported: [], failures: [] }
 
@@ -135,7 +135,7 @@ export const importLocalDocumentFiles = async (
     const name = file.name.toLowerCase()
     if (name.endsWith(".lake")) return importLakeFile(file, kbId, parentId)
     if (name.endsWith(".docx")) return importDocxFile(file, kbId, parentId)
-    if (SUPPORTED_EXTENSIONS.some(ext => name.endsWith(ext))) {
+    if (SUPPORTED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
       return importMarkdownFile(file, kbId, parentId)
     }
     throw new Error("不支持的文件类型")

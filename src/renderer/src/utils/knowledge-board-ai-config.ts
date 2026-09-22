@@ -53,7 +53,7 @@ export const resolveKnowledgeBoardAiProviderLabel = (provider: KnowledgeBoardAiP
 
 /** 为指定提供方生成一份默认配置。 */
 export const createKnowledgeBoardAiProviderConfig = (
-  provider: KnowledgeBoardAiProvider = KNOWLEDGE_BOARD_AI_PROVIDERS.deepseek
+  provider: KnowledgeBoardAiProvider = KNOWLEDGE_BOARD_AI_PROVIDERS.deepseek,
 ): KnowledgeBoardAiProviderConfig => {
   if (provider === KNOWLEDGE_BOARD_AI_PROVIDERS.deepseek) {
     return {
@@ -75,7 +75,9 @@ export const createKnowledgeBoardAiProviderConfig = (
 }
 
 /** 将外部输入规整为可直接请求模型服务的提供方配置。 */
-export const normalizeKnowledgeBoardAiProviderConfig = (value: unknown): KnowledgeBoardAiProviderConfig => {
+export const normalizeKnowledgeBoardAiProviderConfig = (
+  value: unknown,
+): KnowledgeBoardAiProviderConfig => {
   if (!isRecord(value)) {
     return createKnowledgeBoardAiProviderConfig()
   }
@@ -92,14 +94,17 @@ export const normalizeKnowledgeBoardAiProviderConfig = (value: unknown): Knowled
     apiKey: trimString(value.apiKey),
     baseUrl: trimString(value.baseUrl) || baseConfig.baseUrl,
     model: trimString(value.model) || baseConfig.model,
-    timeoutMs: Math.max(5_000, Math.min(120_000, toFiniteNumber(value.timeoutMs, baseConfig.timeoutMs))),
+    timeoutMs: Math.max(
+      5_000,
+      Math.min(120_000, toFiniteNumber(value.timeoutMs, baseConfig.timeoutMs)),
+    ),
   }
 }
 
 /** 切换提供方时复用可保留字段，并补齐该提供方的默认配置。 */
 export const applyKnowledgeBoardAiProviderPreset = (
   provider: KnowledgeBoardAiProvider,
-  previousConfig?: KnowledgeBoardAiProviderConfig | null
+  previousConfig?: KnowledgeBoardAiProviderConfig | null,
 ) => {
   const nextConfig = createKnowledgeBoardAiProviderConfig(provider)
 
@@ -132,10 +137,12 @@ export const applyKnowledgeBoardAiProviderPreset = (
 
 const createProfileName = (
   provider: KnowledgeBoardAiProvider,
-  existingProfiles?: KnowledgeBoardAiProviderProfile[]
+  existingProfiles?: KnowledgeBoardAiProviderProfile[],
 ) => {
   const label = resolveKnowledgeBoardAiProviderLabel(provider)
-  const matchedCount = (existingProfiles ?? []).filter(profile => profile.provider === provider).length
+  const matchedCount = (existingProfiles ?? []).filter(
+    (profile) => profile.provider === provider,
+  ).length
 
   return matchedCount > 0 ? `${label} ${matchedCount + 1}` : label
 }
@@ -147,7 +154,7 @@ export const createKnowledgeBoardAiProviderProfile = (
     id?: string
     name?: string
     existingProfiles?: KnowledgeBoardAiProviderProfile[]
-  }
+  },
 ): KnowledgeBoardAiProviderProfile => {
   const config = createKnowledgeBoardAiProviderConfig(provider)
 
@@ -160,13 +167,15 @@ export const createKnowledgeBoardAiProviderProfile = (
 
 const normalizeKnowledgeBoardAiProviderProfile = (
   value: unknown,
-  existingProfiles?: KnowledgeBoardAiProviderProfile[]
+  existingProfiles?: KnowledgeBoardAiProviderProfile[],
 ): KnowledgeBoardAiProviderProfile => {
   const baseConfig = normalizeKnowledgeBoardAiProviderConfig(value)
 
   return {
     id: trimString(isRecord(value) ? value.id : "") || generateProfileId(),
-    name: trimString(isRecord(value) ? value.name : "") || createProfileName(baseConfig.provider, existingProfiles),
+    name:
+      trimString(isRecord(value) ? value.name : "") ||
+      createProfileName(baseConfig.provider, existingProfiles),
     ...baseConfig,
   }
 }
@@ -182,17 +191,21 @@ export const createKnowledgeBoardAiConfigCollection = (): KnowledgeBoardAiConfig
 }
 
 /** 深拷贝 AI 配置集合，供弹窗草稿独立编辑。 */
-export const cloneKnowledgeBoardAiConfigCollection = (collection: KnowledgeBoardAiConfigCollection) => {
+export const cloneKnowledgeBoardAiConfigCollection = (
+  collection: KnowledgeBoardAiConfigCollection,
+) => {
   return {
     activeProfileId: collection.activeProfileId,
-    profiles: collection.profiles.map(profile => ({
+    profiles: collection.profiles.map((profile) => ({
       ...profile,
     })),
   } satisfies KnowledgeBoardAiConfigCollection
 }
 
 /** 规整本地读取或外部传入的配置集合，确保至少存在一条有效资料。 */
-export const normalizeKnowledgeBoardAiConfigCollection = (value: unknown): KnowledgeBoardAiConfigCollection => {
+export const normalizeKnowledgeBoardAiConfigCollection = (
+  value: unknown,
+): KnowledgeBoardAiConfigCollection => {
   if (!isRecord(value)) {
     return createKnowledgeBoardAiConfigCollection()
   }
@@ -200,10 +213,10 @@ export const normalizeKnowledgeBoardAiConfigCollection = (value: unknown): Knowl
   const rawProfiles = Array.isArray(value.profiles) ? value.profiles : []
   const normalizedProfiles: KnowledgeBoardAiProviderProfile[] = []
 
-  rawProfiles.forEach(profile => {
+  rawProfiles.forEach((profile) => {
     const normalizedProfile = normalizeKnowledgeBoardAiProviderProfile(profile, normalizedProfiles)
 
-    if (normalizedProfiles.some(item => item.id === normalizedProfile.id)) {
+    if (normalizedProfiles.some((item) => item.id === normalizedProfile.id)) {
       normalizedProfile.id = generateProfileId()
     }
 
@@ -215,7 +228,9 @@ export const normalizeKnowledgeBoardAiConfigCollection = (value: unknown): Knowl
   }
 
   const activeProfileId = trimString(value.activeProfileId)
-  const resolvedActiveProfileId = normalizedProfiles.some(profile => profile.id === activeProfileId)
+  const resolvedActiveProfileId = normalizedProfiles.some(
+    (profile) => profile.id === activeProfileId,
+  )
     ? activeProfileId
     : normalizedProfiles[0]?.id || ""
 
@@ -247,7 +262,10 @@ const normalizeStoredProfile = (value: unknown): KnowledgeBoardAiStoredProfile |
     provider,
     baseUrl: trimString(value.baseUrl) || baseConfig.baseUrl,
     model: trimString(value.model) || baseConfig.model,
-    timeoutMs: Math.max(5_000, Math.min(120_000, toFiniteNumber(value.timeoutMs, baseConfig.timeoutMs))),
+    timeoutMs: Math.max(
+      5_000,
+      Math.min(120_000, toFiniteNumber(value.timeoutMs, baseConfig.timeoutMs)),
+    ),
     encryptedApiKey: isRecord(value.encryptedApiKey)
       ? {
           version: value.encryptedApiKey.version === 2 ? 2 : 1,
@@ -262,16 +280,18 @@ const normalizeStoredProfile = (value: unknown): KnowledgeBoardAiStoredProfile |
 
 const createKnowledgeBoardAiStoredConfig = async (
   collection: KnowledgeBoardAiConfigCollection,
-  userId?: string | null
+  userId?: string | null,
 ): Promise<KnowledgeBoardAiStoredConfig> => {
   const normalizedCollection = normalizeKnowledgeBoardAiConfigCollection(collection)
   const profiles = await Promise.all(
-    normalizedCollection.profiles.map(async profile => {
+    normalizedCollection.profiles.map(async (profile) => {
       const encryptedApiKey = await encryptKnowledgeBoardAiSecret(profile.apiKey, userId)
 
       if (profile.apiKey.trim() && !encryptedApiKey) {
         const supportIssue = resolveKnowledgeBoardAiSecretSupportIssue()
-        throw new Error(supportIssue || "当前环境暂时无法安全保存 API Key，请在受支持的浏览器环境中重试。")
+        throw new Error(
+          supportIssue || "当前环境暂时无法安全保存 API Key，请在受支持的浏览器环境中重试。",
+        )
       }
 
       return {
@@ -284,10 +304,12 @@ const createKnowledgeBoardAiStoredConfig = async (
         encryptedApiKey,
         updatedAt: new Date().toISOString(),
       } satisfies KnowledgeBoardAiStoredProfile
-    })
+    }),
   )
 
-  const activeProfileId = profiles.some(profile => profile.id === normalizedCollection.activeProfileId)
+  const activeProfileId = profiles.some(
+    (profile) => profile.id === normalizedCollection.activeProfileId,
+  )
     ? normalizedCollection.activeProfileId
     : profiles[0]?.id || ""
 
@@ -301,7 +323,7 @@ const createKnowledgeBoardAiStoredConfig = async (
 /** 读取并解密本地保存的 AI 配置集合。 */
 export const readKnowledgeBoardAiStoredConfig = async (
   storageKey: string,
-  userId?: string | null
+  userId?: string | null,
 ): Promise<KnowledgeBoardAiConfigCollection> => {
   if (typeof window === "undefined") {
     return createKnowledgeBoardAiConfigCollection()
@@ -340,7 +362,7 @@ export const readKnowledgeBoardAiStoredConfig = async (
       return createKnowledgeBoardAiConfigCollection()
     }
 
-    const activeProfileId = profiles.some(profile => profile.id === parsed.activeProfileId)
+    const activeProfileId = profiles.some((profile) => profile.id === parsed.activeProfileId)
       ? parsed.activeProfileId
       : profiles[0]?.id || ""
 
@@ -357,7 +379,7 @@ export const readKnowledgeBoardAiStoredConfig = async (
 export const persistKnowledgeBoardAiStoredConfig = async (
   storageKey: string,
   collection: KnowledgeBoardAiConfigCollection,
-  userId?: string | null
+  userId?: string | null,
 ) => {
   if (typeof window === "undefined") {
     return
@@ -372,7 +394,9 @@ export const getKnowledgeBoardAiActiveProfile = (collection: KnowledgeBoardAiCon
   const normalizedCollection = normalizeKnowledgeBoardAiConfigCollection(collection)
 
   return (
-    normalizedCollection.profiles.find(profile => profile.id === normalizedCollection.activeProfileId) ??
+    normalizedCollection.profiles.find(
+      (profile) => profile.id === normalizedCollection.activeProfileId,
+    ) ??
     normalizedCollection.profiles[0] ??
     createKnowledgeBoardAiProviderProfile()
   )

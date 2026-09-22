@@ -31,7 +31,12 @@ const report = await page.evaluate(() => {
     const cs = globalThis.getComputedStyle(el)
     const hasBorder = cs.borderTopWidth !== "0px" && cs.borderTopStyle !== "none"
     const hasBg = cs.backgroundColor !== "rgba(0, 0, 0, 0)"
-    if ((hasBorder || hasBg) && el.offsetHeight > 20 && el.offsetHeight < 200 && el.children.length <= 4) {
+    if (
+      (hasBorder || hasBg) &&
+      el.offsetHeight > 20 &&
+      el.offsetHeight < 200 &&
+      el.children.length <= 4
+    ) {
       out.push({
         tag: el.tagName,
         cls: String(el.className).slice(0, 110),

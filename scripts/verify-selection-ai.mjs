@@ -29,9 +29,12 @@ try {
     body: JSON.stringify({ content: { scheme: "text/markdown", value: CONTENT } }),
   })
 
-  await page.goto(new URL(`/knowledge/${kb.id}/doc/${doc.id}`, "http://127.0.0.1:4173").toString(), {
-    waitUntil: "domcontentloaded",
-  })
+  await page.goto(
+    new URL(`/knowledge/${kb.id}/doc/${doc.id}`, "http://127.0.0.1:4173").toString(),
+    {
+      waitUntil: "domcontentloaded",
+    },
+  )
   await page.locator(".ne-ui").first().waitFor({ state: "visible", timeout: 30_000 })
   await page.waitForTimeout(1000)
   // 等待正文内容异步灌入
@@ -44,10 +47,10 @@ try {
   // 程序化构造正文选区（浮动条监听 document selectionchange）
   await page.evaluate(() => {
     const all = [...document.querySelectorAll(".ne-engine ne-p, .ne-engine ne-h1")]
-    const target = all.find(p => p.textContent?.includes("这段文字将被划选"))
+    const target = all.find((p) => p.textContent?.includes("这段文字将被划选"))
     if (!target)
       throw new Error(
-        `目标段落未找到；engine=${document.querySelectorAll(".ne-engine").length} editor=${document.querySelectorAll(".ne-editor").length} 块清单: ${JSON.stringify(all.map(p => `${p.tagName}:${(p.textContent ?? "").slice(0, 24)}`))}`
+        `目标段落未找到；engine=${document.querySelectorAll(".ne-engine").length} editor=${document.querySelectorAll(".ne-editor").length} 块清单: ${JSON.stringify(all.map((p) => `${p.tagName}:${(p.textContent ?? "").slice(0, 24)}`))}`,
       )
     const range = document.createRange()
     range.selectNodeContents(target)
@@ -69,7 +72,10 @@ try {
     const textarea = document.querySelector('aside[aria-label="AI 助手面板"] textarea')
     return textarea?.value ?? ""
   })
-  assert.ok(instruction.includes("请基于以下选中内容"), `种子指令应预填，实际：${instruction.slice(0, 60)}`)
+  assert.ok(
+    instruction.includes("请基于以下选中内容"),
+    `种子指令应预填，实际：${instruction.slice(0, 60)}`,
+  )
   assert.ok(instruction.includes("这段文字将被划选"), "种子指令应包含选中文本")
   logStep("[验证]", "🎉 划选 AI 入口验证全部通过")
 } finally {

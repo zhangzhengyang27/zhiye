@@ -60,7 +60,7 @@ const props = withDefaults(
     disabled: false,
     label: "",
     ariaLabel: "",
-  }
+  },
 )
 
 const emit = defineEmits<{

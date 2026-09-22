@@ -152,7 +152,13 @@ onBeforeUnmount(stopCooldown)
         >
           {{ inCooldown ? `${cooldownSeconds}s 后可重试` : "解锁" }}
         </el-button>
-        <el-button text class="kb-lock-logout" data-testid="lock-logout" :disabled="busy" @click="handleLogout">
+        <el-button
+          text
+          class="kb-lock-logout"
+          data-testid="lock-logout"
+          :disabled="busy"
+          @click="handleLogout"
+        >
           退出登录
         </el-button>
       </div>

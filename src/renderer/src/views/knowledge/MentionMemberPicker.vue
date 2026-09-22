@@ -24,21 +24,21 @@ const searchInputRef = ref<{ focus: () => void } | null>(null)
 
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (open) {
       keyword.value = ""
       activeIndex.value = 0
       // 自动聚焦搜索框：否则方向键/Enter/Esc 处理器收不到事件，键盘完全不可用
       void nextTick(() => searchInputRef.value?.focus())
     }
-  }
+  },
 )
 
 const filtered = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return props.members
   return props.members.filter(
-    m => m.user.displayName.toLowerCase().includes(kw) || m.user.email.toLowerCase().includes(kw)
+    (m) => m.user.displayName.toLowerCase().includes(kw) || m.user.email.toLowerCase().includes(kw),
   )
 })
 
@@ -102,10 +102,19 @@ const onKeydown = (e: KeyboardEvent) => {
       @keydown="onKeydown"
     >
       <div class="border-b border-line px-3 py-2">
-        <el-input ref="searchInputRef" v-model="keyword" type="text" size="small" placeholder="搜索成员…" @click.stop />
+        <el-input
+          ref="searchInputRef"
+          v-model="keyword"
+          type="text"
+          size="small"
+          placeholder="搜索成员…"
+          @click.stop
+        />
       </div>
       <div class="max-h-[264px] overflow-y-auto py-1">
-        <p v-if="filtered.length === 0" class="px-3 py-3 text-center text-[12px] text-ink-tertiary">没有匹配的成员</p>
+        <p v-if="filtered.length === 0" class="px-3 py-3 text-center text-[12px] text-ink-tertiary">
+          没有匹配的成员
+        </p>
         <button
           v-for="(member, index) in filtered"
           :key="member.userId"
@@ -128,8 +137,12 @@ const onKeydown = (e: KeyboardEvent) => {
             />
             <span v-else>{{ member.user.displayName.slice(0, 1).toUpperCase() }}</span>
           </span>
-          <span class="min-w-0 flex-1 truncate text-[13px] text-ink">{{ member.user.displayName }}</span>
-          <span class="shrink-0 text-[11px] text-ink-tertiary">{{ resolveRoleLabel(member.role) }}</span>
+          <span class="min-w-0 flex-1 truncate text-[13px] text-ink">{{
+            member.user.displayName
+          }}</span>
+          <span class="shrink-0 text-[11px] text-ink-tertiary">{{
+            resolveRoleLabel(member.role)
+          }}</span>
         </button>
       </div>
     </div>

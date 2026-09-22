@@ -49,8 +49,8 @@ const tagChips = computed(() => {
 })
 
 /** 置顶/未置顶两组（当前标签与搜索过滤后） */
-const pinnedNotes = computed(() => filteredNotes.value.filter(note => note.pinned))
-const normalNotes = computed(() => filteredNotes.value.filter(note => !note.pinned))
+const pinnedNotes = computed(() => filteredNotes.value.filter((note) => note.pinned))
+const normalNotes = computed(() => filteredNotes.value.filter((note) => !note.pinned))
 /** 有筛选条件时不能把「筛选无结果」说成「还没有小记」 */
 const filterActive = computed(() => Boolean(searchKeyword.value.trim()) || Boolean(activeTag.value))
 
@@ -58,14 +58,14 @@ const filteredNotes = computed(() => {
   let result = notes.value
 
   if (activeTag.value === "__untagged__") {
-    result = result.filter(note => note.tags.length === 0)
+    result = result.filter((note) => note.tags.length === 0)
   } else if (activeTag.value) {
-    result = result.filter(note => note.tags.includes(activeTag.value!))
+    result = result.filter((note) => note.tags.includes(activeTag.value!))
   }
 
   const keyword = searchKeyword.value.trim()
   if (keyword) {
-    result = result.filter(note => note.content.includes(keyword))
+    result = result.filter((note) => note.content.includes(keyword))
   }
 
   return result
@@ -109,7 +109,7 @@ const addTag = () => {
 }
 
 const removeTag = (tag: string) => {
-  draftTags.value = draftTags.value.filter(item => item !== tag)
+  draftTags.value = draftTags.value.filter((item) => item !== tag)
 }
 
 const submitDraft = async () => {
@@ -122,7 +122,7 @@ const submitDraft = async () => {
   try {
     if (editingId.value) {
       const updated = await updateNote(editingId.value, { content, tags: draftTags.value })
-      notes.value = notes.value.map(note => (note.id === updated.id ? updated : note))
+      notes.value = notes.value.map((note) => (note.id === updated.id ? updated : note))
       showToastMessage("小记已更新。", "success")
     } else {
       const created = await createNote({ content, tags: draftTags.value })
@@ -155,7 +155,7 @@ const startEdit = (note: Note) => {
 const togglePinned = async (note: Note) => {
   try {
     const updated = await updateNote(note.id, { pinned: !note.pinned })
-    notes.value = notes.value.map(item => (item.id === updated.id ? updated : item))
+    notes.value = notes.value.map((item) => (item.id === updated.id ? updated : item))
   } catch (error) {
     showToastMessage(error instanceof Error ? error.message : "操作失败，请稍后重试。", "error")
   }
@@ -175,7 +175,7 @@ const confirmRemoveNote = async () => {
   deletingNote.value = true
   try {
     await deleteNote(note.id)
-    notes.value = notes.value.filter(item => item.id !== note.id)
+    notes.value = notes.value.filter((item) => item.id !== note.id)
     if (editingId.value === note.id) {
       resetDraft()
     }
@@ -223,7 +223,11 @@ onMounted(() => {
                 class="inline-flex items-center gap-1 rounded-kb-sm border border-line px-2 py-0.5 text-[12px] text-ink-tertiary"
               >
                 {{ tag }}
-                <button type="button" class="text-ink-quaternary transition hover:text-ink" @click="removeTag(tag)">
+                <button
+                  type="button"
+                  class="text-ink-quaternary transition hover:text-ink"
+                  @click="removeTag(tag)"
+                >
                   <Icon icon="ph:x" :width="11" :height="11" />
                 </button>
               </span>
@@ -281,7 +285,11 @@ onMounted(() => {
               <button
                 type="button"
                 class="inline-flex h-7 items-center rounded-full px-3 text-[12px] transition"
-                :class="activeTag === null ? 'bg-grey-300 text-ink' : 'text-ink-tertiary hover:bg-grey-200'"
+                :class="
+                  activeTag === null
+                    ? 'bg-grey-300 text-ink'
+                    : 'text-ink-tertiary hover:bg-grey-200'
+                "
                 @click="activeTag = null"
               >
                 全部
@@ -291,7 +299,9 @@ onMounted(() => {
                 :key="tag"
                 type="button"
                 class="inline-flex h-7 items-center gap-1 rounded-full px-3 text-[12px] transition"
-                :class="activeTag === tag ? 'bg-grey-300 text-ink' : 'text-ink-tertiary hover:bg-grey-200'"
+                :class="
+                  activeTag === tag ? 'bg-grey-300 text-ink' : 'text-ink-tertiary hover:bg-grey-200'
+                "
                 @click="activeTag = activeTag === tag ? null : tag"
               >
                 {{ tag }} ({{ count }})
@@ -300,7 +310,11 @@ onMounted(() => {
                 v-if="tagChips.untagged > 0"
                 type="button"
                 class="inline-flex h-7 items-center rounded-full px-3 text-[12px] transition"
-                :class="activeTag === '__untagged__' ? 'bg-grey-300 text-ink' : 'text-ink-tertiary hover:bg-grey-200'"
+                :class="
+                  activeTag === '__untagged__'
+                    ? 'bg-grey-300 text-ink'
+                    : 'text-ink-tertiary hover:bg-grey-200'
+                "
                 @click="activeTag = activeTag === '__untagged__' ? null : '__untagged__'"
               >
                 无标签 ({{ tagChips.untagged }})
@@ -311,7 +325,12 @@ onMounted(() => {
               <div
                 class="flex h-8 w-44 items-center gap-1.5 rounded-kb-md bg-grey-200 px-2.5 focus-within:bg-surface focus-within:ring-1 focus-within:ring-brand-lighter"
               >
-                <Icon icon="ph:magnifying-glass" :width="13" :height="13" class="shrink-0 text-ink-quaternary" />
+                <Icon
+                  icon="ph:magnifying-glass"
+                  :width="13"
+                  :height="13"
+                  class="shrink-0 text-ink-quaternary"
+                />
                 <input
                   v-model="searchKeyword"
                   type="text"
@@ -335,7 +354,9 @@ onMounted(() => {
                   class="group relative rounded-kb-xl border border-line bg-surface p-4 transition-colors hover:border-line-input"
                 >
                   <div class="flex items-center justify-between gap-3">
-                    <span class="text-[12px] text-ink-quaternary">更新于 {{ formatNoteTime(note.updatedAt) }}</span>
+                    <span class="text-[12px] text-ink-quaternary"
+                      >更新于 {{ formatNoteTime(note.updatedAt) }}</span
+                    >
                     <div
                       class="flex items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100"
                     >
@@ -365,7 +386,9 @@ onMounted(() => {
                       </button>
                     </div>
                   </div>
-                  <p class="mt-2 whitespace-pre-wrap break-words text-[13px] leading-6 text-ink-secondary">
+                  <p
+                    class="mt-2 whitespace-pre-wrap break-words text-[13px] leading-6 text-ink-secondary"
+                  >
                     {{ note.content }}
                   </p>
                   <div v-if="note.tags.length > 0" class="mt-2 flex flex-wrap gap-1.5">
@@ -389,7 +412,9 @@ onMounted(() => {
                 class="group relative rounded-kb-xl border border-line bg-surface p-4 transition-colors hover:border-line-input"
               >
                 <div class="flex items-center justify-between gap-3">
-                  <span class="text-[12px] text-ink-quaternary">更新于 {{ formatNoteTime(note.updatedAt) }}</span>
+                  <span class="text-[12px] text-ink-quaternary"
+                    >更新于 {{ formatNoteTime(note.updatedAt) }}</span
+                  >
                   <div
                     class="flex items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100"
                   >
@@ -419,7 +444,9 @@ onMounted(() => {
                     </button>
                   </div>
                 </div>
-                <p class="mt-2 whitespace-pre-wrap break-words text-[13px] leading-6 text-ink-secondary">
+                <p
+                  class="mt-2 whitespace-pre-wrap break-words text-[13px] leading-6 text-ink-secondary"
+                >
                   {{ note.content }}
                 </p>
                 <div v-if="note.tags.length > 0" class="mt-2 flex flex-wrap gap-1.5">
@@ -444,11 +471,15 @@ onMounted(() => {
     <ConfirmDialog
       :open="Boolean(noteToDelete)"
       danger
-      :message="noteToDelete ? `确认删除这条小记吗？删除后无法找回。${noteToDelete.content.slice(0, 40)}` : ''"
+      :message="
+        noteToDelete
+          ? `确认删除这条小记吗？删除后无法找回。${noteToDelete.content.slice(0, 40)}`
+          : ''
+      "
       confirm-text="删除小记"
       :loading="deletingNote ? true : null"
       @update:open="
-        value => {
+        (value) => {
           if (!value) noteToDelete = null
         }
       "

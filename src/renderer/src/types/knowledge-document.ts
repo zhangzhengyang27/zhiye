@@ -65,8 +65,7 @@ export const KNOWLEDGE_LEGACY_BOARD_CONTENT_SCHEME = "application/vnd.xiaoye.boa
 
 /** 约束画板文档内容协议的可选值。 */
 export type KnowledgeBoardContentScheme =
-  | typeof KNOWLEDGE_BOARD_CONTENT_SCHEME
-  | typeof KNOWLEDGE_LEGACY_BOARD_CONTENT_SCHEME
+  typeof KNOWLEDGE_BOARD_CONTENT_SCHEME | typeof KNOWLEDGE_LEGACY_BOARD_CONTENT_SCHEME
 
 /** 约束富文本文档内容协议的可选值。 */
 export type KnowledgeRichTextContentScheme = "text/markdown" | "text/html"

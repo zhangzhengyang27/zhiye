@@ -32,7 +32,9 @@ export const updateKnowledgeBoardLibrary = (items: KnowledgeBoardLibraryItem[]) 
 /**
  * 上传画板素材库资源。
  */
-export const uploadKnowledgeBoardLibraryAsset = async (payload: UploadKnowledgeBoardLibraryAssetPayload) => {
+export const uploadKnowledgeBoardLibraryAsset = async (
+  payload: UploadKnowledgeBoardLibraryAssetPayload,
+) => {
   const form = new FormData()
 
   form.append("fileId", payload.fileId)

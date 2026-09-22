@@ -6,13 +6,13 @@
 import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
 
 export const normalizeNodeIds = (nodeIds: string[]) =>
-  Array.from(new Set(nodeIds.filter(nodeId => nodeId.trim().length > 0)))
+  Array.from(new Set(nodeIds.filter((nodeId) => nodeId.trim().length > 0)))
 
 export const collectFolderIds = (nodes: KnowledgeDocumentTreeNode[]) => {
   const folderIds: string[] = []
 
   const walk = (list: KnowledgeDocumentTreeNode[]) => {
-    list.forEach(node => {
+    list.forEach((node) => {
       if (node.type === "folder") {
         folderIds.push(node.id)
       }
@@ -28,7 +28,10 @@ export const collectFolderIds = (nodes: KnowledgeDocumentTreeNode[]) => {
   return folderIds
 }
 
-export const findTreeNode = (nodes: KnowledgeDocumentTreeNode[], id: string): KnowledgeDocumentTreeNode | null => {
+export const findTreeNode = (
+  nodes: KnowledgeDocumentTreeNode[],
+  id: string,
+): KnowledgeDocumentTreeNode | null => {
   for (const node of nodes) {
     if (node.id === id) {
       return node
@@ -49,7 +52,7 @@ export const findTreeNode = (nodes: KnowledgeDocumentTreeNode[], id: string): Kn
 export const removeTreeNode = (
   nodes: KnowledgeDocumentTreeNode[],
   nodeId: string,
-  parentId: string | null = null
+  parentId: string | null = null,
 ): { node: KnowledgeDocumentTreeNode; parentId: string | null; index: number } | null => {
   for (let index = 0; index < nodes.length; index += 1) {
     const item = nodes[index]
@@ -85,7 +88,7 @@ export const removeTreeNode = (
 }
 
 export const cloneTreeNodes = (nodes: KnowledgeDocumentTreeNode[]): KnowledgeDocumentTreeNode[] =>
-  nodes.map(node => ({
+  nodes.map((node) => ({
     ...node,
     children: cloneTreeNodes(node.children),
   }))

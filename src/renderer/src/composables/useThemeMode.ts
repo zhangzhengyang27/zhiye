@@ -30,7 +30,7 @@ const toThemeOption = (value: string): ColorThemeOption =>
 /** 用户选择的主题档位（设置页下拉绑定它）。 */
 export const colorTheme = computed<ColorThemeOption>({
   get: () => toThemeOption(colorMode.value),
-  set: value => {
+  set: (value) => {
     colorMode.value = value === "system" ? "auto" : value
   },
 })

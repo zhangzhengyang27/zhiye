@@ -16,7 +16,8 @@ import {
 const BASELINE_DIR = "/Users/xiaoye/Desktop/AI/知识库/xiaoye/output/visual-baseline/replica"
 fs.mkdirSync(BASELINE_DIR, { recursive: true })
 
-const CONTENT = "# 视觉基线验证文档\n\n这是一篇用于视觉对照的文档。\n\n- 列表项一\n- 列表项二\n\n**加粗文本**与正文。\n"
+const CONTENT =
+  "# 视觉基线验证文档\n\n这是一篇用于视觉对照的文档。\n\n- 列表项一\n- 列表项二\n\n**加粗文本**与正文。\n"
 
 // 与语雀实测标准视口对齐（需求梳理：1247×952）
 const { browser, page } = await createBrowserPage({ viewport: { width: 1247, height: 952 } })
@@ -33,7 +34,9 @@ try {
   })
 
   // 1. 知识库列表
-  await page.goto(new URL("/knowledge", "http://127.0.0.1:4173").toString(), { waitUntil: "domcontentloaded" })
+  await page.goto(new URL("/knowledge", "http://127.0.0.1:4173").toString(), {
+    waitUntil: "domcontentloaded",
+  })
   await page.waitForTimeout(1500)
   await page.screenshot({ path: `${BASELINE_DIR}/knowledge-list.png` })
   logStep("[基线]", "✅ knowledge-list")
@@ -47,16 +50,21 @@ try {
   logStep("[基线]", "✅ workspace-home")
 
   // 3. 编辑页
-  await page.goto(new URL(`/knowledge/${kb.id}/doc/${doc.id}`, "http://127.0.0.1:4173").toString(), {
-    waitUntil: "domcontentloaded",
-  })
+  await page.goto(
+    new URL(`/knowledge/${kb.id}/doc/${doc.id}`, "http://127.0.0.1:4173").toString(),
+    {
+      waitUntil: "domcontentloaded",
+    },
+  )
   await page.locator(".ne-ui").first().waitFor({ state: "visible", timeout: 30_000 })
   await page.waitForTimeout(1500)
   await page.screenshot({ path: `${BASELINE_DIR}/editor.png` })
   logStep("[基线]", "✅ editor")
 
   // 4. 开始页
-  await page.goto(new URL("/knowledge/start", "http://127.0.0.1:4173").toString(), { waitUntil: "domcontentloaded" })
+  await page.goto(new URL("/knowledge/start", "http://127.0.0.1:4173").toString(), {
+    waitUntil: "domcontentloaded",
+  })
   await page.waitForTimeout(1800)
   await page.screenshot({ path: `${BASELINE_DIR}/start.png` })
   logStep("[基线]", "✅ start")

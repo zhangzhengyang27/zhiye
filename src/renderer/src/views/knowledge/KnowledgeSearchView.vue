@@ -62,7 +62,8 @@ const statusOptions: Array<{ label: string; value: string }> = [
 ]
 
 /** 状态筛选值的展示名（筛选标签与空态共用）。 */
-const statusLabelOf = (value: string) => statusOptions.find(option => option.value === value)?.label ?? value
+const statusLabelOf = (value: string) =>
+  statusOptions.find((option) => option.value === value)?.label ?? value
 
 const recommendedQueries: SuggestedQuery[] = [
   {
@@ -99,7 +100,8 @@ const currentScopeLabel = computed(() => {
 
 /** 状态与创建时间筛选由前端在搜索结果上过滤（搜索接口只支持关键词与范围）。 */
 const hasActiveFilters = computed(
-  () => filterStatus.value !== "all" || Boolean(filterDateFrom.value) || Boolean(filterDateTo.value)
+  () =>
+    filterStatus.value !== "all" || Boolean(filterDateFrom.value) || Boolean(filterDateTo.value),
 )
 
 const activeFilterCount = computed(() => {
@@ -131,7 +133,7 @@ const activeFilterLabels = computed(() => {
 })
 
 const filteredItems = computed(() =>
-  searchItems.value.filter(item => {
+  searchItems.value.filter((item) => {
     if (filterStatus.value !== "all" && (item.status ?? "draft") !== filterStatus.value) {
       return false
     }
@@ -148,17 +150,21 @@ const filteredItems = computed(() =>
     }
 
     return true
-  })
+  }),
 )
 
 /** 服务端已有原始命中，但被前端筛选条件全部排除时，空态要给出针对性提示。 */
-const hasSuppressedMatches = computed(() => searchItems.value.length > 0 && filteredItems.value.length === 0)
+const hasSuppressedMatches = computed(
+  () => searchItems.value.length > 0 && filteredItems.value.length === 0,
+)
 
 const insightCards = computed(() => [
   {
     label: "命中结果",
     value: resultTotal.value,
-    hint: keyword.value.trim() ? `关键词“${keyword.value.trim()}”的命中数量` : "输入关键词后开始第一次检索",
+    hint: keyword.value.trim()
+      ? `关键词“${keyword.value.trim()}”的命中数量`
+      : "输入关键词后开始第一次检索",
   },
   {
     label: "当前范围",
@@ -288,7 +294,7 @@ const openDoc = (docId: string, editorType?: string) => {
       kbId: workspaceContext.kbId.value,
       docId,
       editorType,
-    })
+    }),
   )
 }
 
@@ -304,7 +310,10 @@ const resetSearch = async () => {
   }
 }
 
-const applySuggestedSearch = async (nextKeyword: string, nextScope: KnowledgeSearchScope = scope.value) => {
+const applySuggestedSearch = async (
+  nextKeyword: string,
+  nextScope: KnowledgeSearchScope = scope.value,
+) => {
   keyword.value = nextKeyword
   scope.value = nextScope
   await handleSearch()
@@ -317,7 +326,7 @@ watch(
     scope.value = getRouteScope()
     void runSearch()
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>
 
@@ -351,15 +360,24 @@ watch(
       @update:filter-date-to="filterDateTo = $event"
       @search="handleSearch"
       @clear-filters="clearFilters"
-      @apply-suggested="({ keyword: nextKeyword, scope: nextScope }) => applySuggestedSearch(nextKeyword, nextScope)"
+      @apply-suggested="
+        ({ keyword: nextKeyword, scope: nextScope }) => applySuggestedSearch(nextKeyword, nextScope)
+      "
     />
 
-    <div v-if="errorMessage" class="mt-6 rounded-xl border border-error-light bg-error-bg px-4 py-3 text-sm text-error">
+    <div
+      v-if="errorMessage"
+      class="mt-6 rounded-kb-xl border border-error-light bg-error-bg px-4 py-3 text-sm text-error"
+    >
       {{ errorMessage }}
     </div>
 
-    <section class="mt-6 overflow-hidden rounded-[28px] bg-surface shadow-[0_10px_28px_rgba(0,0,0,0.05)]">
-      <header class="flex items-center justify-between border-b border-line px-5 py-4 text-sm text-ink-tertiary">
+    <section
+      class="mt-6 overflow-hidden rounded-[28px] bg-surface shadow-[var(--kb-surface-shadow)]"
+    >
+      <header
+        class="flex items-center justify-between border-b border-line px-5 py-4 text-sm text-ink-tertiary"
+      >
         <div>
           <h2 class="text-base font-semibold text-ink">匹配结果</h2>
           <p class="mt-1 text-xs text-ink-quaternary">按搜索范围与筛选条件呈现命中的文档</p>

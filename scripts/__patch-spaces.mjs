@@ -15,7 +15,7 @@ h = h.replace(
     "  spaces?: Array<{ id: string | null; name: string; role: string; memberCount: number }>",
     "  activeSpaceId?: string | null",
     "}>()",
-  ].join("\n")
+  ].join("\n"),
 )
 
 h = h.replace(
@@ -33,33 +33,33 @@ h = h.replace(
     '  "change-space": [spaceId: string | null]',
     '  "create-space": [name: string]',
     "}>()",
-  ].join("\n")
+  ].join("\n"),
 )
 
 const headerOld = [
-  '      <button',
+  "      <button",
   '        type="button"',
   '        class="flex min-w-0 items-center gap-2 rounded-kb-md py-1 pr-2 text-left transition duration-150 hover:bg-grey-200"',
   "        @click=\"emit('open-account')\"",
-  '      >',
+  "      >",
   '        <img :src="yuqueLogo" alt="语雀" class="h-6.5 w-6.5 shrink-0 rounded-kb-sm" />',
   '        <span class="truncate text-[15px] font-semibold tracking-tight text-ink">语雀</span>',
   '        <Icon icon="ph:caret-down" :width="12" :height="12" class="shrink-0 text-ink-tertiary" />',
-  '      </button>',
+  "      </button>",
 ].join("\n")
 
 const headerNew = [
   '      <el-dropdown trigger="click" :offset="6" class="min-w-0">',
-  '        <button',
+  "        <button",
   '          type="button"',
   '          class="flex min-w-0 items-center gap-2 rounded-kb-md py-1 pr-2 text-left transition duration-150 hover:bg-grey-200"',
-  '          @click.stop',
-  '        >',
+  "          @click.stop",
+  "        >",
   '          <img :src="yuqueLogo" alt="语雀" class="h-6.5 w-6.5 shrink-0 rounded-kb-sm" />',
   '          <span class="truncate text-[15px] font-semibold tracking-tight text-ink">语雀</span>',
   '          <Icon icon="ph:caret-down" :width="12" :height="12" class="shrink-0 text-ink-tertiary" />',
-  '        </button>',
-  '        <template #dropdown>',
+  "        </button>",
+  "        <template #dropdown>",
   '          <div class="kb-menu min-w-[220px] py-1">',
   '            <p class="px-3 pb-1 pt-1.5 text-[11px] text-ink-quaternary">空间</p>',
   "            <button",
@@ -68,31 +68,31 @@ const headerNew = [
   '              type="button"',
   '              class="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[13px] transition hover:bg-muted"',
   "              :class=\"activeSpaceId === space.id ? 'text-brand' : 'text-ink-secondary'\"",
-  '              @click="emit(\'change-space\', space.id)"',
-  '            >',
+  "              @click=\"emit('change-space', space.id)\"",
+  "            >",
   '              <span class="min-w-0 truncate">{{ space.name }}</span>',
   '              <span class="shrink-0 text-[11px] text-ink-quaternary">{{ space.memberCount }}成员</span>',
-  '            </button>',
+  "            </button>",
   '            <div class="my-1 border-t border-line" />',
-  '            <button',
+  "            <button",
   '              type="button"',
   '              class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-ink-secondary transition hover:bg-muted"',
   '              @click="createSpaceInline = true"',
-  '            >',
+  "            >",
   '              <Icon icon="ph:plus" :width="13" :height="13" />',
-  '              创建空间',
-  '            </button>',
-  '            <button',
+  "              创建空间",
+  "            </button>",
+  "            <button",
   '              type="button"',
   '              class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-ink-secondary transition hover:bg-muted"',
-  '              @click="emit(\'open-account\')"',
-  '            >',
-  '              个人设置',
-  '            </button>',
-  '          </div>',
-  '        </template>',
-  '      </el-dropdown>',
-  '      <input',
+  "              @click=\"emit('open-account')\"",
+  "            >",
+  "              个人设置",
+  "            </button>",
+  "          </div>",
+  "        </template>",
+  "      </el-dropdown>",
+  "      <input",
   '        v-if="createSpaceInline"',
   '        v-model="newSpaceName"',
   '        type="text"',
@@ -100,7 +100,7 @@ const headerNew = [
   '        placeholder="空间名"',
   '        @keydown.enter.prevent="submitCreateSpace"',
   '        @blur="submitCreateSpace"',
-  '      />',
+  "      />",
 ].join("\n")
 
 if (!h.includes(headerOld)) {
@@ -114,11 +114,11 @@ h = h.replace(
   [
     "",
     "// 空间切换（B7 #25）",
-    'const createSpaceInline = ref(false)',
+    "const createSpaceInline = ref(false)",
     'const newSpaceName = ref("")',
     "",
     "const submitCreateSpace = () => {",
-    '  const name = newSpaceName.value.trim()',
+    "  const name = newSpaceName.value.trim()",
     "  if (name) {",
     '    emit("create-space", name)',
     "  }",
@@ -126,7 +126,7 @@ h = h.replace(
     "  createSpaceInline.value = false",
     "}",
     "</script>",
-  ].join("\n")
+  ].join("\n"),
 )
 
 writeFileSync(headerPath, h)
@@ -147,14 +147,14 @@ m = m.replace(
     "  type KnowledgeSpaceItem,",
     "  updateKnowledgeBaseSortOrder,",
     '} from "@/services/knowledge-base"',
-  ].join("\n")
+  ].join("\n"),
 )
 
 const menuState = [
   "const knowledgeBases = ref<KnowledgeBaseItem[]>([])",
   "// 空间切换（B7 #25）：选中态持久化，KB 列表按归属过滤",
   "const spaces = ref<KnowledgeSpaceItem[]>([])",
-  'const activeSpaceId = ref<string | null>(null)',
+  "const activeSpaceId = ref<string | null>(null)",
   'const SPACE_STORAGE_KEY = "knowledge:active-space-id"',
   "",
   "const filteredKnowledgeBases = computed(() =>",
@@ -166,7 +166,7 @@ const menuState = [
   "const loadSpaces = async () => {",
   "  try {",
   "    spaces.value = await listKnowledgeSpaces()",
-  '    const stored = window.localStorage.getItem(SPACE_STORAGE_KEY)',
+  "    const stored = window.localStorage.getItem(SPACE_STORAGE_KEY)",
   "    if (stored === null || stored === '' || spaces.value.some(space => space.id === stored)) {",
   "      activeSpaceId.value = stored === null || stored === '' ? null : stored",
   "    }",
@@ -229,13 +229,13 @@ m = m.replace(
     "        <KnowledgeSidebarKnowledgeBasesSection",
     '          :expanded="knowledgeMenuExpanded"',
     '          :knowledge-bases="filteredKnowledgeBases"',
-  ].join("\n")
+  ].join("\n"),
 )
 
 // 加载空间列表：loadKnowledgeBases 成功后顺带
 m = m.replace(
   "    knowledgeBases.value = await listKnowledgeBases()",
-  "    knowledgeBases.value = await listKnowledgeBases()\n    void loadSpaces()"
+  "    knowledgeBases.value = await listKnowledgeBases()\n    void loadSpaces()",
 )
 
 writeFileSync(menuPath, m)

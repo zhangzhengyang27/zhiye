@@ -8,7 +8,7 @@ type MermaidModule = {
   initialize: (config: Record<string, unknown>) => void
   render: (
     id: string,
-    text: string
+    text: string,
   ) => Promise<{
     svg: string
     bindFunctions?: (element: Element) => void
@@ -20,7 +20,7 @@ let mermaidLoader: Promise<MermaidModule> | null = null
 /** 加载MermaidModule。 */
 export const loadMermaidModule = async () => {
   if (!mermaidLoader) {
-    mermaidLoader = import("mermaid").then(module => {
+    mermaidLoader = import("mermaid").then((module) => {
       const mermaid = module.default ?? module
 
       return {
@@ -55,7 +55,9 @@ const createStaticStage = (block: HTMLElement) => {
 
 /** 渲染Mermaid块InContainer。 */
 export const renderMermaidBlocksInContainer = async (container: ParentNode) => {
-  const blocks = Array.from(container.querySelectorAll<HTMLElement>('.kb-code-block[data-language="mermaid"]'))
+  const blocks = Array.from(
+    container.querySelectorAll<HTMLElement>('.kb-code-block[data-language="mermaid"]'),
+  )
 
   if (blocks.length === 0) {
     return
@@ -75,7 +77,8 @@ export const renderMermaidBlocksInContainer = async (container: ParentNode) => {
   for (const block of blocks) {
     const codeElement = block.querySelector("pre code")
     const source = codeElement?.textContent?.trim()
-    const stage = block.querySelector<HTMLElement>(".kb-code-block__mermaid-static") || createStaticStage(block)
+    const stage =
+      block.querySelector<HTMLElement>(".kb-code-block__mermaid-static") || createStaticStage(block)
 
     if (!source) {
       stage.innerHTML = ""
@@ -92,7 +95,10 @@ export const renderMermaidBlocksInContainer = async (container: ParentNode) => {
         fontFamily: "JetBrains Mono, SFMono-Regular, Consolas, monospace",
       })
 
-      const rendered = await mermaid.render(`kb-mermaid-static-${Date.now()}-${renderIndex}`, source)
+      const rendered = await mermaid.render(
+        `kb-mermaid-static-${Date.now()}-${renderIndex}`,
+        source,
+      )
       renderIndex += 1
 
       stage.innerHTML = rendered.svg
@@ -102,7 +108,7 @@ export const renderMermaidBlocksInContainer = async (container: ParentNode) => {
       logger.error("mermaid-render", "静态 Mermaid 渲染失败:", error)
       // 错误信息可能拼接图表源码原文，进 innerHTML 前必须转义
       stage.innerHTML = `<div class="kb-code-block__mermaid-static-error">${escapeHtml(
-        error instanceof Error ? error.message : "Mermaid 图表渲染失败，请检查语法。"
+        error instanceof Error ? error.message : "Mermaid 图表渲染失败，请检查语法。",
       )}</div>`
       block.dataset.mermaidRendered = "error"
     }

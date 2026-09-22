@@ -51,23 +51,23 @@ const shot = async (page, name) => {
 }
 
 /** 打开版本面板并等版本行渲染（DocumentVersionRow 特有文案） */
-const openVersionsPanel = async page => {
+const openVersionsPanel = async (page) => {
   await page.locator('[title="历史版本"]').click()
   await page.getByText("支持回滚与对比").first().waitFor({ timeout: 15000 })
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T2:${roundName}:${mode}]`
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   try {
     // 1. 登录页（未登录态直接访问，fresh context 无会话）

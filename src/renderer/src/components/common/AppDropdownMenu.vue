@@ -17,7 +17,7 @@
  *   el-menu 经评估不适用（侧边导航组件，nav 语义 + collapse/router 能力，非 context
  *   menu 内容容器），EP 惯用做法正是在 #dropdown 插槽自绘；
  * - 基线按钮保真：每个 el-dropdown-item（li，承担 roving focus/tabindex/EP 键盘与
- *   click 链路）内部放一个**与迁移前逐类相同的 button**（flex/rounded-lg/px/py/
+ *   click 链路）内部放一个**与迁移前逐类相同的 button**（flex/rounded-kb-md/px/py/
  *   text-sm/hover/focus-visible ring/危险项配色全部原样）。这是像素对齐的关键——
  *   编辑器页 antd.css 的 `button{font-size/line-height/color:inherit}`（unlayered）
  *   会压过 Tailwind 工具类（已知坑 6），菜单项的行高/字号/文字色在编辑器页与开始页
@@ -91,7 +91,7 @@ withDefaults(
   {
     contentClass: "",
     disabled: false,
-  }
+  },
 )
 
 const dropdownRef = ref<DropdownInstance | null>(null)
@@ -102,7 +102,8 @@ const expandedParents = ref<Set<string>>(new Set())
  * 命令负载：el-dropdown 的 command 事件只回传单个值，用对象区分「父项展开切换」与
  * 「普通项选择」，并携带原 item 引用保证 onSelect/click 回调契约不变。
  */
-type ItemCommand = { kind: "item"; item: DropdownMenuItem } | { kind: "parent"; item: DropdownMenuItem; key: string }
+type ItemCommand =
+  { kind: "item"; item: DropdownMenuItem } | { kind: "parent"; item: DropdownMenuItem; key: string }
 
 /** 基线触发器键盘契约：Enter/Space 原生按钮 + ArrowDown/ArrowUp 开合（EP triggerKeys） */
 const MENU_TRIGGER_KEYS = ["Enter", "NumpadEnter", "Space", "ArrowDown", "ArrowUp"]
@@ -161,9 +162,9 @@ const itemColorClass = (item: DropdownMenuItem, indented = false) => {
 /** 基线菜单项按钮类原样保留（内层 button 用；行高/字号/颜色的页面差异由这些类 +
     antd.css 的既有交互还原，见文件头「基线按钮保真」） */
 const ITEM_BTN_CLASS =
-  "flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed"
+  "flex w-full cursor-pointer items-center gap-2 rounded-kb-md px-2.5 py-2 text-left text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed"
 const CHILD_BTN_CLASS =
-  "flex w-full cursor-pointer items-center gap-2 rounded-lg py-1.5 pr-2.5 pl-8 text-left text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed"
+  "flex w-full cursor-pointer items-center gap-2 rounded-kb-md py-1.5 pr-2.5 pl-8 text-left text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed"
 
 /** 触发器内的可聚焦元素：焦点归还以它为准（.el-dropdown 根的首子元素即 OnlyChild
     克隆出的插槽内容，与基线 resolveTrigger 语义一致） */
@@ -294,7 +295,11 @@ onBeforeUnmount(() => {
 
             <!-- 展开的子项：缩进二级菜单 -->
             <template
-              v-if="item.children && item.children.length > 0 && expandedParents.has(`${groupIndex}-${itemIndex}`)"
+              v-if="
+                item.children &&
+                item.children.length > 0 &&
+                expandedParents.has(`${groupIndex}-${itemIndex}`)
+              "
             >
               <el-dropdown-item
                 v-for="(child, childIndex) in item.children"

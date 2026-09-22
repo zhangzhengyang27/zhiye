@@ -36,7 +36,9 @@ const activeShare = computed(() => shares.value[0] ?? null)
 const isPublic = computed(() => Boolean(activeShare.value))
 
 const statusText = computed(() =>
-  isPublic.value ? "当前文档已开启链接公开，获得链接的人可以阅读。" : "当前文档为私密，仅自己和协作者可访问。"
+  isPublic.value
+    ? "当前文档已开启链接公开，获得链接的人可以阅读。"
+    : "当前文档为私密，仅自己和协作者可访问。",
 )
 
 const shareUrl = computed(() => {
@@ -108,7 +110,9 @@ onMounted(() => {
       class="mt-3 flex w-full items-center gap-3 rounded-kb-lg px-1 py-2 text-left transition hover:bg-fill-muted"
       @click.stop="emit('open-collaborators')"
     >
-      <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-kb-lg bg-brand-faint text-brand">
+      <span
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-kb-lg bg-brand-faint text-brand"
+      >
         <Icon icon="i-lucide-user-plus" class="h-5 w-5" />
       </span>
       <span class="min-w-0 flex-1">
@@ -147,7 +151,7 @@ onMounted(() => {
       <el-switch
         :model-value="isPublic"
         :loading="toggling"
-        @change="value => handleTogglePublic(Boolean(value))"
+        @change="(value) => handleTogglePublic(Boolean(value))"
       />
     </div>
 

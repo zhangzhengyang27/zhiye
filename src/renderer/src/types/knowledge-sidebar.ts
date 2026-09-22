@@ -8,14 +8,7 @@
 import type { RouteLocationRaw } from "vue-router"
 
 export type KnowledgeSidebarMenuKey =
-  | "start"
-  | "ai-writing"
-  | "notes"
-  | "home"
-  | "recent"
-  | "boards"
-  | "favorites"
-  | "trash"
+  "start" | "ai-writing" | "notes" | "home" | "recent" | "boards" | "favorites" | "trash"
 
 export interface KnowledgeSidebarNavItem {
   key: KnowledgeSidebarMenuKey

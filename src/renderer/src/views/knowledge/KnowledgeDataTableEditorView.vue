@@ -64,10 +64,14 @@ const normalizeTable = (value: unknown): KnowledgeDataTableDocument => {
   }
   const raw = value as Partial<KnowledgeDataTableDocument>
   const fields = Array.isArray(raw.fields)
-    ? raw.fields.filter(field => field && typeof field.id === "string" && typeof field.name === "string")
+    ? raw.fields.filter(
+        (field) => field && typeof field.id === "string" && typeof field.name === "string",
+      )
     : []
   const rows = Array.isArray(raw.rows)
-    ? raw.rows.filter(row => row && typeof row.id === "string" && row.cells && typeof row.cells === "object")
+    ? raw.rows.filter(
+        (row) => row && typeof row.id === "string" && row.cells && typeof row.cells === "object",
+      )
     : []
   return { fields, rows }
 }
@@ -173,7 +177,7 @@ watch(
     editVersion.value += 1
     scheduleSave()
   },
-  { deep: true, flush: "sync" }
+  { deep: true, flush: "sync" },
 )
 
 const flushBeforeLeave = async () => {
@@ -201,7 +205,7 @@ watch(
     savedVersion.value = editVersion.value
     void loadDocument()
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // 目录树点另一篇文档时路由组件被复用（仅 params.docId 变化），onBeforeRouteLeave
@@ -225,7 +229,11 @@ onBeforeUnmount(() => {
 
 const addField = () => {
   if (!canEdit.value) return
-  table.value.fields.push({ id: generateId(), name: `字段 ${table.value.fields.length + 1}`, type: "text" })
+  table.value.fields.push({
+    id: generateId(),
+    name: `字段 ${table.value.fields.length + 1}`,
+    type: "text",
+  })
   fieldEditingStyleId.value = table.value.fields[table.value.fields.length - 1]?.id ?? null
 }
 
@@ -250,7 +258,7 @@ const requestRemoveField = (fieldId: string) => {
 const confirmRemoveField = () => {
   const fieldId = pendingFieldDeleteId.value
   if (fieldId === null) return
-  table.value.fields = table.value.fields.filter(field => field.id !== fieldId)
+  table.value.fields = table.value.fields.filter((field) => field.id !== fieldId)
   for (const row of table.value.rows) {
     delete row.cells[fieldId]
   }
@@ -272,9 +280,14 @@ const confirmRemoveRow = () => {
   pendingRowIndex.value = null
 }
 
-const cellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: string) => row.cells[fieldId] ?? ""
+const cellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: string) =>
+  row.cells[fieldId] ?? ""
 
-const setCellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: string, value: string) => {
+const setCellValue = (
+  row: KnowledgeDataTableDocument["rows"][number],
+  fieldId: string,
+  value: string,
+) => {
   row.cells[fieldId] = value
 }
 </script>
@@ -311,23 +324,32 @@ const setCellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: 
       </div>
     </div>
 
-    <div v-if="loading" class="flex flex-1 items-center justify-center text-[13px] text-ink-tertiary">
+    <div
+      v-if="loading"
+      class="flex flex-1 items-center justify-center text-[13px] text-ink-tertiary"
+    >
       <UiIcon icon="i-lucide-loader-circle" class="mr-2 h-4 w-4 animate-spin" />
       正在加载数据表…
     </div>
 
     <div v-else-if="loadError" class="flex flex-1 flex-col items-center justify-center gap-3">
       <p class="text-[13px] text-error">{{ loadError }}</p>
-      <el-button plain size="small" class="rounded-kb-lg" @click="() => void loadDocument()">重试</el-button>
+      <el-button plain size="small" class="rounded-kb-lg" @click="() => void loadDocument()"
+        >重试</el-button
+      >
     </div>
 
     <!-- 表格主体 -->
     <div v-else class="min-h-0 flex-1 overflow-auto p-6">
-      <div class="inline-block min-w-full overflow-hidden rounded-kb-xl border border-line bg-surface">
+      <div
+        class="inline-block min-w-full overflow-hidden rounded-kb-xl border border-line bg-surface"
+      >
         <table class="w-full border-collapse text-[13px]">
           <thead>
             <tr class="border-b border-line bg-muted">
-              <th class="w-10 px-2 py-2 text-center text-[11px] font-normal text-ink-quaternary">#</th>
+              <th class="w-10 px-2 py-2 text-center text-[11px] font-normal text-ink-quaternary">
+                #
+              </th>
               <th
                 v-for="field in table.fields"
                 :key="field.id"
@@ -388,7 +410,13 @@ const setCellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: 
                             "
                             class="h-3.5 w-3.5"
                           />
-                          {{ typeOption === "text" ? "文本" : typeOption === "select" ? "单选" : "日期" }}
+                          {{
+                            typeOption === "text"
+                              ? "文本"
+                              : typeOption === "select"
+                                ? "单选"
+                                : "日期"
+                          }}
                           <AppIcon
                             v-if="field.type === typeOption"
                             name="i-lucide-check"
@@ -427,8 +455,14 @@ const setCellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: 
               :key="row.id"
               class="group border-b border-line last:border-b-0 hover:bg-muted/60"
             >
-              <td class="px-2 py-1.5 text-center text-[11px] text-ink-quaternary">{{ rowIndex + 1 }}</td>
-              <td v-for="field in table.fields" :key="field.id" class="border-l border-line px-2 py-1.5">
+              <td class="px-2 py-1.5 text-center text-[11px] text-ink-quaternary">
+                {{ rowIndex + 1 }}
+              </td>
+              <td
+                v-for="field in table.fields"
+                :key="field.id"
+                class="border-l border-line px-2 py-1.5"
+              >
                 <el-select
                   v-if="field.type === 'select' && canEdit"
                   :model-value="cellValue(row, field.id)"
@@ -438,9 +472,14 @@ const setCellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: 
                   placeholder="—"
                   allow-create
                   filterable
-                  @update:model-value="value => setCellValue(row, field.id, String(value ?? ''))"
+                  @update:model-value="(value) => setCellValue(row, field.id, String(value ?? ''))"
                 >
-                  <el-option v-for="option in field.options ?? []" :key="option" :label="option" :value="option" />
+                  <el-option
+                    v-for="option in field.options ?? []"
+                    :key="option"
+                    :label="option"
+                    :value="option"
+                  />
                 </el-select>
                 <span v-else-if="field.type === 'select'" class="block px-1 py-0.5">
                   {{ cellValue(row, field.id) || "—" }}
@@ -467,7 +506,10 @@ const setCellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: 
             </tr>
 
             <tr v-if="table.rows.length === 0">
-              <td :colspan="table.fields.length + 2" class="px-4 py-10 text-center text-[13px] text-ink-tertiary">
+              <td
+                :colspan="table.fields.length + 2"
+                class="px-4 py-10 text-center text-[13px] text-ink-tertiary"
+              >
                 还没有记录，点击右下角「添加记录」开始。
               </td>
             </tr>
@@ -493,7 +535,7 @@ const setCellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: 
       message="确认删除该字段吗？字段下的所有单元格数据将一并清除。"
       danger
       confirm-text="删除字段"
-      @update:open="value => !value && (pendingFieldDeleteId = null)"
+      @update:open="(value) => !value && (pendingFieldDeleteId = null)"
       @confirm="confirmRemoveField"
     />
     <ConfirmDialog
@@ -501,7 +543,7 @@ const setCellValue = (row: KnowledgeDataTableDocument["rows"][number], fieldId: 
       message="确认删除该行记录吗？"
       danger
       confirm-text="删除"
-      @update:open="value => !value && (pendingRowIndex = null)"
+      @update:open="(value) => !value && (pendingRowIndex = null)"
       @confirm="confirmRemoveRow"
     />
   </div>

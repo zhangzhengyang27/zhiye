@@ -8,7 +8,7 @@ c = c.replace(
   `import Icon from "@/components/common/UiIcon.vue"`,
   `import Icon from "@/components/common/UiIcon.vue"
 import NoteContentBody from "@/components/knowledge/NoteContentBody.vue"
-import { uploadKnowledgeAsset } from "@/services/knowledge-oss"`
+import { uploadKnowledgeAsset } from "@/services/knowledge-oss"`,
 )
 
 // 2) script：光标插入 / 文件上传 / 待办勾选回写
@@ -95,7 +95,7 @@ c = c.replace(
   `import { createNote, deleteNote, listNotes, updateNote, type Note } from "@/services/notes"`,
   `import { nextTick, ref } from "vue"
 import { createNote, deleteNote, listNotes, updateNote, type Note } from "@/services/notes"
-import { toggleTodoLine } from "@/utils/notes-markdown"`
+import { toggleTodoLine } from "@/utils/notes-markdown"`,
 )
 
 // 4) 记事卡：textarea 加 ref + 工具栏（图片/待办/附件 + 隐藏 file input）
@@ -144,7 +144,7 @@ c = c.replace(
             <textarea
               ref="draftTextareaRef"
               v-model="draftContent"
-              rows="10"`
+              rows="10"`,
 )
 
 // 5) 卡片正文两处替换为 NoteContentBody（置顶卡与普通卡相同文案）

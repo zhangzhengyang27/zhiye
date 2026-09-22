@@ -21,13 +21,13 @@ const token = await readAccessToken(page)
 const kb = await ensureKnowledgeBase(token, "probe")
 const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n截图。` })
 
-const shot = async name => {
+const shot = async (name) => {
   const aside = page.locator("aside", { has: page.locator("[data-knowledge-tree-row]") }).first()
   await aside.screenshot({ path: path.join(OUT, `${name}.png`) })
 }
 
 for (const mode of ["light", "dark"]) {
-  await page.evaluate(m => globalThis.localStorage.setItem("vueuse-color-scheme", m), mode)
+  await page.evaluate((m) => globalThis.localStorage.setItem("vueuse-color-scheme", m), mode)
   await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
     waitUntil: "networkidle",
   })

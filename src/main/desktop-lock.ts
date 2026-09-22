@@ -73,7 +73,9 @@ const isLocked = () => Boolean(lockWindow && !lockWindow.isDestroyed())
 export const isLockWindow = (win: BrowserWindow): boolean => win === lockWindow
 
 const normalizeDelayMinutes = (value: unknown): number =>
-  (AUTO_LOCK_DELAY_MINUTES as readonly number[]).includes(value as (typeof AUTO_LOCK_DELAY_MINUTES)[number])
+  (AUTO_LOCK_DELAY_MINUTES as readonly number[]).includes(
+    value as (typeof AUTO_LOCK_DELAY_MINUTES)[number],
+  )
     ? (value as number)
     : DEFAULT_AUTO_LOCK_DELAY_MINUTES
 
@@ -139,7 +141,7 @@ const createLockWindow = () => {
   })
   // 无边框窗没有关闭按钮，但应用菜单的 role 快捷键（⌘W 关窗）仍会命中焦点窗口：
   // 解锁/退出登录走 destroy() 不经过 close，这里把其余 close 全拦下，锁定不可绕过
-  win.on("close", event => {
+  win.on("close", (event) => {
     if (!quitting) {
       event.preventDefault()
     }
@@ -186,7 +188,11 @@ const verifyLockPassword = (password: unknown): LockVerifyResult => {
     return { ok: false, reason: "empty" }
   }
   if (cooldownUntil > Date.now()) {
-    return { ok: false, reason: "cooldown", waitSeconds: Math.ceil((cooldownUntil - Date.now()) / 1000) }
+    return {
+      ok: false,
+      reason: "cooldown",
+      waitSeconds: Math.ceil((cooldownUntil - Date.now()) / 1000),
+    }
   }
 
   if (verifyPasswordHash(password, stored)) {
@@ -206,16 +212,26 @@ const verifyLockPassword = (password: unknown): LockVerifyResult => {
 }
 
 /** 设置/修改锁定密码：已有密码时必须先验当前密码（4-32 位）。 */
-const setLockPassword = (payload: { currentPassword?: unknown; newPassword?: unknown }): LockMutationResult => {
+const setLockPassword = (payload: {
+  currentPassword?: unknown
+  newPassword?: unknown
+}): LockMutationResult => {
   const stored = getLockSettings().passwordHash
   if (typeof payload?.newPassword !== "string") {
     return { ok: false, reason: "invalid" }
   }
   const newPassword = payload.newPassword
-  if (newPassword.length < LOCK_PASSWORD_MIN_LENGTH || newPassword.length > LOCK_PASSWORD_MAX_LENGTH) {
+  if (
+    newPassword.length < LOCK_PASSWORD_MIN_LENGTH ||
+    newPassword.length > LOCK_PASSWORD_MAX_LENGTH
+  ) {
     return { ok: false, reason: "invalid-length" }
   }
-  if (stored && (typeof payload.currentPassword !== "string" || !verifyPasswordHash(payload.currentPassword, stored))) {
+  if (
+    stored &&
+    (typeof payload.currentPassword !== "string" ||
+      !verifyPasswordHash(payload.currentPassword, stored))
+  ) {
     return { ok: false, reason: "unauthorized" }
   }
 
@@ -282,7 +298,9 @@ export const attachAutoLockWindow = (win: BrowserWindow) => {
     }
     blurCheckTimer = setTimeout(() => {
       blurCheckTimer = null
-      const focusedInApp = BrowserWindow.getAllWindows().some(item => !item.isDestroyed() && item.isFocused())
+      const focusedInApp = BrowserWindow.getAllWindows().some(
+        (item) => !item.isDestroyed() && item.isFocused(),
+      )
       if (focusedInApp) {
         return
       }
@@ -304,7 +322,9 @@ const unlockAfterLogout = () => {
     if (win.isDestroyed()) {
       continue
     }
-    void win.webContents.executeJavaScript('window.dispatchEvent(new CustomEvent("auth:unauthorized"))').catch(() => {})
+    void win.webContents
+      .executeJavaScript('window.dispatchEvent(new CustomEvent("auth:unauthorized"))')
+      .catch(() => {})
   }
 }
 
@@ -327,12 +347,16 @@ export const registerDesktopLockIpc = () => {
   ipcMain.handle("xiaoye:lock:get-state", () => getLockState())
   ipcMain.handle("xiaoye:lock:lock-now", () => ({ locked: lockNow() }))
   ipcMain.handle("xiaoye:lock:set-password", (_event, payload: unknown) =>
-    setLockPassword(payload as { currentPassword?: unknown; newPassword?: unknown })
+    setLockPassword(payload as { currentPassword?: unknown; newPassword?: unknown }),
   )
-  ipcMain.handle("xiaoye:lock:clear-password", (_event, currentPassword: unknown) => clearLockPassword(currentPassword))
-  ipcMain.handle("xiaoye:lock:verify-password", (_event, password: unknown) => verifyLockPassword(password))
+  ipcMain.handle("xiaoye:lock:clear-password", (_event, currentPassword: unknown) =>
+    clearLockPassword(currentPassword),
+  )
+  ipcMain.handle("xiaoye:lock:verify-password", (_event, password: unknown) =>
+    verifyLockPassword(password),
+  )
   ipcMain.handle("xiaoye:lock:set-auto-lock", (_event, payload: unknown) =>
-    setAutoLock(payload as { enabled?: unknown; delayMinutes?: unknown })
+    setAutoLock(payload as { enabled?: unknown; delayMinutes?: unknown }),
   )
   ipcMain.handle("xiaoye:lock:unlock-after-logout", () => {
     unlockAfterLogout()

@@ -50,7 +50,8 @@ const treeNodeMenuDangerItemClass =
   "group flex w-full items-center gap-2.5 rounded-kb-sm bg-transparent px-2.5 py-[7px] text-left text-[13px] font-normal outline-none transition hover:bg-error-bg focus-visible:bg-error-bg disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
 const treeNodeMenuIconClass =
   "flex h-4 w-4 shrink-0 items-center justify-center text-ink-tertiary transition group-hover:text-ink-secondary group-focus:text-ink-secondary"
-const treeNodeMenuDangerIconClass = "flex h-4 w-4 shrink-0 items-center justify-center text-error transition"
+const treeNodeMenuDangerIconClass =
+  "flex h-4 w-4 shrink-0 items-center justify-center text-error transition"
 
 defineExpose({
   open,
@@ -79,7 +80,9 @@ defineExpose({
         @contextmenu.prevent
         @focusin="handleFocusIn"
       >
-        <div class="rounded-kb-lg border border-line-input bg-surface py-1 shadow-[var(--kb-float-shadow)]">
+        <div
+          class="rounded-kb-lg border border-line-input bg-surface py-1 shadow-[var(--kb-float-shadow)]"
+        >
           <section
             v-for="(group, groupIndex) in props.groups"
             :key="group.id"
@@ -101,10 +104,16 @@ defineExpose({
                   :title="item.title || ''"
                   :data-tree-node-menu-key="getTreeNodeMenuItemKey(group.id, item.id)"
                   data-tree-node-menu-item
-                  :class="item.tone === 'danger' ? treeNodeMenuDangerItemClass : treeNodeMenuItemClass"
+                  :class="
+                    item.tone === 'danger' ? treeNodeMenuDangerItemClass : treeNodeMenuItemClass
+                  "
                   @click="handleItemClick(group.id, item)"
                 >
-                  <span :class="item.tone === 'danger' ? treeNodeMenuDangerIconClass : treeNodeMenuIconClass">
+                  <span
+                    :class="
+                      item.tone === 'danger' ? treeNodeMenuDangerIconClass : treeNodeMenuIconClass
+                    "
+                  >
                     <Icon :icon="item.icon" :width="14" :height="14" />
                   </span>
                   <span
@@ -122,9 +131,14 @@ defineExpose({
                 </button>
 
                 <div
-                  v-if="submenuParentKey === getTreeNodeMenuItemKey(group.id, item.id) && item.children?.length"
+                  v-if="
+                    submenuParentKey === getTreeNodeMenuItemKey(group.id, item.id) &&
+                    item.children?.length
+                  "
                   class="absolute top-0 z-2 w-[180px] rounded-kb-lg border border-line-input bg-surface py-1 shadow-[var(--kb-float-shadow)]"
-                  :class="submenuSide === 'right' ? 'left-[calc(100%+8px)]' : 'right-[calc(100%+8px)]'"
+                  :class="
+                    submenuSide === 'right' ? 'left-[calc(100%+8px)]' : 'right-[calc(100%+8px)]'
+                  "
                   @mouseenter="handleSubmenuMouseEnter(getTreeNodeMenuItemKey(group.id, item.id))"
                   @mouseleave="scheduleSubmenuClose(getTreeNodeMenuItemKey(group.id, item.id))"
                 >
@@ -139,10 +153,22 @@ defineExpose({
                       :title="child.title || ''"
                       :data-tree-node-menu-parent-key="getTreeNodeMenuItemKey(group.id, item.id)"
                       data-tree-node-menu-child-item
-                      :class="child.tone === 'danger' ? treeNodeMenuDangerItemClass : treeNodeMenuItemClass"
-                      @click="handleSubmenuItemClick(getTreeNodeMenuItemKey(group.id, item.id), child)"
+                      :class="
+                        child.tone === 'danger'
+                          ? treeNodeMenuDangerItemClass
+                          : treeNodeMenuItemClass
+                      "
+                      @click="
+                        handleSubmenuItemClick(getTreeNodeMenuItemKey(group.id, item.id), child)
+                      "
                     >
-                      <span :class="child.tone === 'danger' ? treeNodeMenuDangerIconClass : treeNodeMenuIconClass">
+                      <span
+                        :class="
+                          child.tone === 'danger'
+                            ? treeNodeMenuDangerIconClass
+                            : treeNodeMenuIconClass
+                        "
+                      >
                         <Icon :icon="child.icon" :width="14" :height="14" />
                       </span>
                       <span

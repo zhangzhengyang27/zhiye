@@ -56,7 +56,10 @@ const reportBundleClues = () => {
       "--el-color-primary: var(--kb-brand)",
       "element-plus-bridge.css 的 html:root 桥接（变量死亡 → 查 bridge.css / calibration.css 注释意外终止）",
     ],
-    [".h-9{", 'Tailwind utilities（缺失 → 查 style.css 的 @import "tailwindcss" 是否被吞、层序是否塌）'],
+    [
+      ".h-9{",
+      'Tailwind utilities（缺失 → 查 style.css 的 @import "tailwindcss" 是否被吞、层序是否塌）',
+    ],
     ["@layer theme", "Tailwind 层序声明（缺失 → style.css 首部被吞）"],
     [
       ".el-select.el-select{display:revert-layer",
@@ -72,7 +75,9 @@ const reportBundleClues = () => {
     ],
     ["--kb-z-popper", "popper z 档 token（缺失 → 查 tokens.css 是否被吞）"],
   ]
-  const files = fs.readdirSync("dist/assets").filter(f => f.startsWith("index-") && f.endsWith(".css"))
+  const files = fs
+    .readdirSync("dist/assets")
+    .filter((f) => f.startsWith("index-") && f.endsWith(".css"))
   for (const file of files) {
     const css = fs.readFileSync(`dist/assets/${file}`, "utf8")
     for (const [flag, hint] of flags) {
@@ -87,7 +92,7 @@ const reportBundleClues = () => {
 const checkCssBundleSentinels = async (page, prefix) => {
   const sentry = await page.evaluate(() => {
     const cs = getComputedStyle(document.documentElement)
-    const tokens = ["--kb-muted-bg", "--kb-brand", "--kb-text", "--kb-z-popper"].map(name => [
+    const tokens = ["--kb-muted-bg", "--kb-brand", "--kb-text", "--kb-z-popper"].map((name) => [
       name,
       cs.getPropertyValue(name),
     ])
@@ -102,7 +107,7 @@ const checkCssBundleSentinels = async (page, prefix) => {
         continue
       }
       sheetCount += 1
-      const walk = list => {
+      const walk = (list) => {
         for (const rule of list) {
           if (rule.cssRules && rule.cssRules.length && rule.selectorText === undefined) {
             walk(rule.cssRules)
@@ -117,7 +122,11 @@ const checkCssBundleSentinels = async (page, prefix) => {
           ) {
             bridgePrimary = rule.style.getPropertyValue("--el-color-primary")
           }
-          if (!h9Found && sel.split(",").some(s => s.trim() === ".h-9") && rule.style.getPropertyValue("height")) {
+          if (
+            !h9Found &&
+            sel.split(",").some((s) => s.trim() === ".h-9") &&
+            rule.style.getPropertyValue("height")
+          ) {
             h9Found = true
           }
         }
@@ -135,20 +144,28 @@ const checkCssBundleSentinels = async (page, prefix) => {
   check(
     `${prefix} 哨兵① 关键 token 挂载（--kb-muted-bg/--kb-brand/--kb-text/--kb-z-popper 非空）`,
     okTokens,
-    dead.length ? `空值：${dead.map(([n]) => n).join(",")}` : sentry.tokens.map(([n, v]) => `${n}=${v}`).join(" ")
+    dead.length
+      ? `空值：${dead.map(([n]) => n).join(",")}`
+      : sentry.tokens.map(([n, v]) => `${n}=${v}`).join(" "),
   )
   check(
     `${prefix} 哨兵② bridge 生效（CSSOM 存在 html:root 且 --el-color-primary 有值）`,
     okBridge,
-    okBridge ? `primary=${sentry.bridgePrimary}` : `sheets=${sentry.sheetCount}，未见 html:root 规则`
+    okBridge
+      ? `primary=${sentry.bridgePrimary}`
+      : `sheets=${sentry.sheetCount}，未见 html:root 规则`,
   )
   check(
     `${prefix} 哨兵③ Tailwind utilities 存活（CSSOM 存在 .h-9 规则）`,
     okUtilities,
-    okUtilities ? "height=calc(var(--spacing) * 9)" : "未见 .h-9 规则"
+    okUtilities ? "height=calc(var(--spacing) * 9)" : "未见 .h-9 规则",
   )
   if (!ok) {
-    check(`${prefix} CSS bundle 结构性损坏（哨兵组未全过，后续视觉断言不可信）`, false, "见上方失败哨兵与下方定位线索")
+    check(
+      `${prefix} CSS bundle 结构性损坏（哨兵组未全过，后续视觉断言不可信）`,
+      false,
+      "见上方失败哨兵与下方定位线索",
+    )
     reportBundleClues()
   }
   return ok
@@ -158,12 +175,12 @@ const checkCssBundleSentinels = async (page, prefix) => {
 const computedOf = (locator, props) =>
   locator.evaluate((el, names) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(names.map(n => [n, cs.getPropertyValue(n)]))
+    return Object.fromEntries(names.map((n) => [n, cs.getPropertyValue(n)]))
   }, props)
 
 /** token 颜色换算成 rgb 口径（借助临时隐藏元素） */
 const tokenRgb = (page, token) =>
-  page.evaluate(t => {
+  page.evaluate((t) => {
     const probe = document.createElement("div")
     probe.style.backgroundColor = `var(${t})`
     probe.style.display = "none"
@@ -175,7 +192,7 @@ const tokenRgb = (page, token) =>
 
 /** token 阴影换算成 computed 口径 */
 const tokenShadow = (page, token) =>
-  page.evaluate(t => {
+  page.evaluate((t) => {
     const probe = document.createElement("div")
     probe.style.boxShadow = `var(${t})`
     probe.style.display = "none"
@@ -186,21 +203,21 @@ const tokenShadow = (page, token) =>
   }, token)
 
 /** 当前打开的 dropdown popper（aria-hidden=false 收窄；EP 关闭后 persistent 弹层仍在 DOM） */
-const openPopper = page => page.locator('.el-dropdown__popper[aria-hidden="false"]').first()
+const openPopper = (page) => page.locator('.el-dropdown__popper[aria-hidden="false"]').first()
 
 /** 注册冒泡阶段 Esc 侦测（AppDialog 的 document 冒泡 keydown 同机制代理） */
-const armBubbleEscProbe = page =>
+const armBubbleEscProbe = (page) =>
   page.evaluate(() => {
     window.__t7EscBubble = 0
-    document.addEventListener("keydown", event => {
+    document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") window.__t7EscBubble += 1
     })
   })
 
-const bubbleEscCount = page => page.evaluate(() => window.__t7EscBubble)
+const bubbleEscCount = (page) => page.evaluate(() => window.__t7EscBubble)
 
 /** activeElement 的速查描述（li/按钮/body） */
-const activeElementInfo = page =>
+const activeElementInfo = (page) =>
   page.evaluate(() => {
     const el = document.activeElement
     if (!el) return { kind: "none" }
@@ -235,7 +252,7 @@ const checkPopperGeometry = async (page, prefix, popper) => {
       styles["background-color"] === surfaceRgb &&
       styles["box-shadow"] === elevatedShadow &&
       styles["border-top-color"] === borderRgb,
-    JSON.stringify(styles)
+    JSON.stringify(styles),
   )
   // 字号行高回退 = 继承 body（壳 line-height:inherit 同语义；起始页 body 1.6 → 22.4、
   // 编辑器页 1.5715 → 22.001，逐页对照 body 计算值）
@@ -246,37 +263,37 @@ const checkPopperGeometry = async (page, prefix, popper) => {
   check(
     `${prefix} popper 字号行高回退继承（EP 12px/20px tooltip 尺寸已中和，与 body 继承链一致）`,
     styles["font-size"] === bodyFont.fontSize && styles["line-height"] === bodyFont.lineHeight,
-    `popper=${styles["font-size"]}/${styles["line-height"]} body=${bodyFont.fontSize}/${bodyFont.lineHeight}`
+    `popper=${styles["font-size"]}/${styles["line-height"]} body=${bodyFont.fontSize}/${bodyFont.lineHeight}`,
   )
   const arrowCount = await popper.locator(".el-popper__arrow").count()
   check(
     `${prefix} 弹层小箭头不渲染（show-arrow=false 直传；display:none 兜底）`,
     arrowCount === 0,
-    `count=${arrowCount}`
+    `count=${arrowCount}`,
   )
   // 面板封顶（壳组件级 max-height 逐调用点透传，T7 评审补缺口）：EP 经 addUnit 原样
   // 落到 el-scrollbar__wrap 内联样式，952 视口下 min(510px, calc(80vh - 10px)) 解析为 510px
   const wrapMax = await popper
     .locator(".el-scrollbar__wrap")
     .first()
-    .evaluate(el => getComputedStyle(el).maxHeight)
+    .evaluate((el) => getComputedStyle(el).maxHeight)
   check(
     `${prefix} 面板封顶：wrap max-height 510px（壳 min(510px, 80vh-10px) 等价表达式）`,
     wrapMax === "510px",
-    wrapMax
+    wrapMax,
   )
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T7验证:${mode}]`
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
   try {
@@ -295,12 +312,18 @@ const capturePass = async mode => {
 
     // ============ A：起始页 3 筛选（纯文本条目直用 el-dropdown） ============
     const dropdownRoots = await page.locator(".el-dropdown").count()
-    check(`${prefix} 调用面结构：开始页 3 个 el-dropdown 触发器根在位`, dropdownRoots === 3, `count=${dropdownRoots}`)
+    check(
+      `${prefix} 调用面结构：开始页 3 个 el-dropdown 触发器根在位`,
+      dropdownRoots === 3,
+      `count=${dropdownRoots}`,
+    )
 
     // 触发器文案现为纯「类型」（早期形态是「类型: 当前值」），故按前缀匹配
     const typeTrigger = page.getByRole("button", { name: /^类型/ })
-    const typeDropdownRoot = typeTrigger.locator("xpath=ancestor::div[contains(@class,'el-dropdown')][1]")
-    const parentStyles = await typeDropdownRoot.evaluate(el => {
+    const typeDropdownRoot = typeTrigger.locator(
+      "xpath=ancestor::div[contains(@class,'el-dropdown')][1]",
+    )
+    const parentStyles = await typeDropdownRoot.evaluate((el) => {
       const cs = getComputedStyle(el.parentElement)
       return { color: cs.color, fontSize: cs.fontSize, lineHeight: cs.lineHeight }
     })
@@ -310,7 +333,7 @@ const capturePass = async mode => {
       rootStyles.color === parentStyles.color &&
         rootStyles["font-size"] === parentStyles.fontSize &&
         rootStyles["line-height"] === parentStyles.lineHeight,
-      `root=${JSON.stringify(rootStyles)} parent=${JSON.stringify(parentStyles)}`
+      `root=${JSON.stringify(rootStyles)} parent=${JSON.stringify(parentStyles)}`,
     )
 
     // —— 键盘 EP 默认：ArrowDown 开 + 焦点落首项 + roving 循环 + Enter 触发自动关
@@ -322,21 +345,21 @@ const capturePass = async mode => {
     check(
       `${prefix} 键盘开（EP 默认）：ArrowDown 打开且焦点直接落首项 li（T1 实测口径）`,
       active.kind === "menuitem" && active.text === "全部",
-      JSON.stringify(active)
+      JSON.stringify(active),
     )
     await page.keyboard.press("ArrowDown")
     active = await activeElementInfo(page)
     check(
       `${prefix} roving：ArrowDown 移动到下一项（文档）`,
       active.kind === "menuitem" && active.text === "文档",
-      JSON.stringify(active)
+      JSON.stringify(active),
     )
     await page.keyboard.press("ArrowUp")
     active = await activeElementInfo(page)
     check(
       `${prefix} roving：ArrowUp 移回上一项（全部）`,
       active.kind === "menuitem" && active.text === "全部",
-      JSON.stringify(active)
+      JSON.stringify(active),
     )
 
     // 条目基线观感（测未聚焦的第二项：聚焦项会被 style.css 全局 :focus-visible 以
@@ -344,7 +367,9 @@ const capturePass = async mode => {
     const secondItem = openPopper(page).locator(".el-dropdown-menu__item").nth(1)
     const mutedRgb = await tokenRgb(page, "--kb-muted-bg")
     const expectedItemColor =
-      mode === "dark" ? await tokenRgb(page, "--kb-text-on-fill") : await tokenRgb(page, "--kb-text-secondary")
+      mode === "dark"
+        ? await tokenRgb(page, "--kb-text-on-fill")
+        : await tokenRgb(page, "--kb-text-secondary")
     const itemStyles = await computedOf(secondItem, [
       "font-size",
       "line-height",
@@ -365,21 +390,21 @@ const capturePass = async mode => {
         itemStyles.color === expectedItemColor &&
         itemStyles.cursor === "pointer" &&
         itemStyles.display === "block",
-      JSON.stringify(itemStyles)
+      JSON.stringify(itemStyles),
     )
 
     // 焦点态条目：style.css 全局 :focus-visible（unlayered）把圆角压回 4px、环由校准
     // 层 box-shadow 承担——壳时代 li 同链路（全局规则壳时代同样命中），基线行为逐条一致
-    const focusedItemStyles = await computedOf(openPopper(page).locator(".el-dropdown-menu__item").first(), [
-      "border-radius",
-      "outline",
-      "box-shadow",
-    ])
+    const focusedItemStyles = await computedOf(
+      openPopper(page).locator(".el-dropdown-menu__item").first(),
+      ["border-radius", "outline", "box-shadow"],
+    )
     const brandRgb = await tokenRgb(page, "--kb-brand")
     check(
       `${prefix} 焦点态条目：全局 :focus-visible 圆角 4px（基线既有链路）+ 校准层 ring-2 ring-brand 焦点环`,
-      parseFloat(focusedItemStyles["border-radius"]) === 4 && focusedItemStyles["box-shadow"].includes(brandRgb),
-      JSON.stringify(focusedItemStyles)
+      parseFloat(focusedItemStyles["border-radius"]) === 4 &&
+        focusedItemStyles["box-shadow"].includes(brandRgb),
+      JSON.stringify(focusedItemStyles),
     )
 
     await page.keyboard.press("ArrowDown")
@@ -389,7 +414,7 @@ const capturePass = async mode => {
     check(
       `${prefix} Enter 触发并自动关（EP hide-on-click 默认）：菜单关闭 + 触发器文案不变`,
       (await openPopper(page).count()) === 0 && (typeLabelAfterEnter ?? "").trim() === "类型",
-      (typeLabelAfterEnter ?? "").trim()
+      (typeLabelAfterEnter ?? "").trim(),
     )
     // 覆盖收缩记档：原断言另查了「v-model 生效（类型: 文档）」——依赖触发器回显所选值。
     // 现产品形态里触发器是静态「类型 ▾」（@command 只写 selectedType，无选中态类绑定），
@@ -411,7 +436,7 @@ const capturePass = async mode => {
     check(
       `${prefix} 记档差异（EP 默认）：ArrowUp 不再开菜单（EP 默认 triggerKeys，壳有 ArrowUp——T1 收编清单接受默认）`,
       arrowUpOpened === 0,
-      `popper=${arrowUpOpened}`
+      `popper=${arrowUpOpened}`,
     )
 
     // —— 鼠标打开后键盘导航（实测记档）：T1 探针的「isUsingKeyboard=false 链路下
@@ -427,30 +452,33 @@ const capturePass = async mode => {
     check(
       `${prefix} 鼠标打开后方向键可用（基线自建菜单行为；T1 探针的焦点不动未在本仓复现，记档）`,
       active.kind === "menuitem" && active.text === "全部",
-      JSON.stringify(active)
+      JSON.stringify(active),
     )
 
     // —— 条目 hover：muted 底（亮色断言；暗色由 token 换档自动一致）
     await secondItem.hover()
     await page.waitForTimeout(250)
-    const hoverBg = await secondItem.evaluate(el => getComputedStyle(el).backgroundColor)
+    const hoverBg = await secondItem.evaluate((el) => getComputedStyle(el).backgroundColor)
     check(`${prefix} 条目 hover：muted 底（基线 hover:bg-muted）`, hoverBg === mutedRgb, hoverBg)
 
     // —— Esc 截停（收编清单 a）：开 → 只关菜单 + 归还触发器焦点 + 冒泡监听收不到
     const beforeBubble = await bubbleEscCount(page)
     await page.keyboard.press("Escape")
     await page.waitForTimeout(450)
-    const triggerFocused = await page.evaluate(el => document.activeElement === el, await typeTrigger.elementHandle())
+    const triggerFocused = await page.evaluate(
+      (el) => document.activeElement === el,
+      await typeTrigger.elementHandle(),
+    )
     const afterBubble = await bubbleEscCount(page)
     check(
       `${prefix} Esc 截停·开：菜单关闭 + 触发器焦点归还（基线 resolveTrigger 语义）`,
       (await openPopper(page).count()) === 0 && triggerFocused,
-      `triggerFocused=${triggerFocused}`
+      `triggerFocused=${triggerFocused}`,
     )
     check(
       `${prefix} Esc 截停·开：捕获阶段 stopPropagation 生效——document 冒泡监听（AppDialog 同机制）收不到该次 Esc`,
       afterBubble === beforeBubble,
-      `bubble ${beforeBubble}→${afterBubble}`
+      `bubble ${beforeBubble}→${afterBubble}`,
     )
 
     // —— Esc 关闭态不拦截：Esc 照常冒泡（AppDialog 关闭链路依赖）
@@ -460,7 +488,7 @@ const capturePass = async mode => {
     check(
       `${prefix} Esc 截停·关：菜单关闭态不拦截，Esc 照常冒泡（AppDialog Esc 链路不受影响）`,
       closedBubble === afterBubble + 1,
-      `bubble ${afterBubble}→${closedBubble}`
+      `bubble ${afterBubble}→${closedBubble}`,
     )
 
     // —— popper 几何（type 筛选展开态复用）
@@ -479,11 +507,11 @@ const capturePass = async mode => {
       const darkItemColor = await openPopper(page)
         .locator(".el-dropdown-menu__item")
         .first()
-        .evaluate(el => getComputedStyle(el).color)
+        .evaluate((el) => getComputedStyle(el).color)
       check(
         `${prefix} 暗色条目字色 = --kb-text-on-fill（批 18 起由 token 供给，原 .75 白字面量）`,
         darkItemColor === (await tokenRgb(page, "--kb-text-on-fill")),
-        darkItemColor
+        darkItemColor,
       )
       await page.keyboard.press("Escape")
       await page.waitForTimeout(350)
@@ -503,7 +531,9 @@ const capturePass = async mode => {
     const editorPopper = openPopper(page)
     check(
       `${prefix} 编辑器菜单：popper-class=kb-editor-more-menu-popper 命中（业务件透传块的作用域）`,
-      (await page.locator('.el-dropdown__popper.kb-editor-more-menu-popper[aria-hidden="false"]').count()) === 1
+      (await page
+        .locator('.el-dropdown__popper.kb-editor-more-menu-popper[aria-hidden="false"]')
+        .count()) === 1,
     )
     await checkPopperGeometry(page, `${prefix} 编辑器`, editorPopper)
 
@@ -512,7 +542,7 @@ const capturePass = async mode => {
     check(
       `${prefix} 打开后聚焦首项（收编清单 b，编辑器菜单专属）：焦点落首个可聚焦项`,
       active.kind === "menuitem",
-      JSON.stringify(active)
+      JSON.stringify(active),
     )
     const firstFocusText = active.text
     await page.keyboard.press("ArrowDown")
@@ -520,7 +550,7 @@ const capturePass = async mode => {
     check(
       `${prefix} 鼠标打开后方向键可用（基线自建菜单行为，EP 默认不移动焦点由 composable 补齐）`,
       active.kind === "menuitem" && active.text !== firstFocusText,
-      `${firstFocusText} → ${active.text}`
+      `${firstFocusText} → ${active.text}`,
     )
 
     // —— 结构：分组标题/分隔线/父子菜单计数与 aria 初态
@@ -529,10 +559,10 @@ const capturePass = async mode => {
       const labels = [...root.querySelectorAll("li[role='presentation']")]
       const separators = [...root.querySelectorAll("li[role='separator']")]
       const items = [...root.querySelectorAll(".el-dropdown-menu__item")]
-      const parents = items.filter(li => li.hasAttribute("aria-expanded"))
+      const parents = items.filter((li) => li.hasAttribute("aria-expanded"))
       return {
-        labels: labels.map(li => (li.textContent ?? "").trim()),
-        labelFocusable: labels.filter(li => li.tabIndex >= 0).length,
+        labels: labels.map((li) => (li.textContent ?? "").trim()),
+        labelFocusable: labels.filter((li) => li.tabIndex >= 0).length,
         separators: separators.length,
         items: items.length,
         parents: parents.length,
@@ -546,7 +576,7 @@ const capturePass = async mode => {
         structure.separators === 5 &&
         structure.items === 12 &&
         structure.parents === 5,
-      JSON.stringify(structure)
+      JSON.stringify(structure),
     )
     // fix/ep-leftovers（有意行为变更，T7 遗留风险 #2 修复）：壳时代模板 v-if/v-else-if
     // 配对断裂已修正——收起态只渲染真实条目（5 父项 + 7 普通项 = 12），不再有幻影 li。
@@ -557,9 +587,9 @@ const capturePass = async mode => {
     const phantomProbe = await editorPopper.evaluate(() => {
       const root = document.querySelector('.el-dropdown__popper[aria-hidden="false"]')
       const items = [...root.querySelectorAll(".el-dropdown-menu__item")]
-      const parents = items.filter(li => li.hasAttribute("aria-expanded"))
-      const parentTexts = new Set(parents.map(li => (li.textContent ?? "").trim()))
-      const phantoms = items.filter(li => {
+      const parents = items.filter((li) => li.hasAttribute("aria-expanded"))
+      const parentTexts = new Set(parents.map((li) => (li.textContent ?? "").trim()))
+      const phantoms = items.filter((li) => {
         if (li.hasAttribute("aria-expanded")) return false
         const text = (li.textContent ?? "").trim()
         return text !== "" && parentTexts.has(text)
@@ -567,8 +597,8 @@ const capturePass = async mode => {
       return {
         items: items.length,
         parents: parents.length,
-        phantoms: phantoms.map(li => (li.textContent ?? "").trim().slice(0, 20)),
-        emptyItems: items.filter(li => (li.textContent ?? "").trim() === "").length,
+        phantoms: phantoms.map((li) => (li.textContent ?? "").trim().slice(0, 20)),
+        emptyItems: items.filter((li) => (li.textContent ?? "").trim() === "").length,
       }
     })
     check(
@@ -576,7 +606,7 @@ const capturePass = async mode => {
       phantomProbe.items === phantomProbe.parents + 7 &&
         phantomProbe.phantoms.length === 0 &&
         phantomProbe.emptyItems === 0,
-      JSON.stringify(phantomProbe)
+      JSON.stringify(phantomProbe),
     )
     // —— 无幻影·roving 全程：ArrowDown 走完整圈（12 步回环），不经过空位/父项重复行
     const walkStart = await activeElementInfo(page)
@@ -599,37 +629,51 @@ const capturePass = async mode => {
     ]
     check(
       `${prefix} 无幻影·roving 全程：ArrowDown 12 步全为真实条目（无空位，父项各出现一次）且回环到起点`,
-      walkTexts.every(t => t.length > 0) &&
+      walkTexts.every((t) => t.length > 0) &&
         new Set(walkTexts).size === 12 &&
-        parentLabelGroups.every(alts => walkTexts.filter(t => alts.some(a => t.startsWith(a))).length === 1) &&
+        parentLabelGroups.every(
+          (alts) => walkTexts.filter((t) => alts.some((a) => t.startsWith(a))).length === 1,
+        ) &&
         walkBack.kind === "menuitem" &&
         walkBack.text === walkStart.text,
-      JSON.stringify(walkTexts)
+      JSON.stringify(walkTexts),
     )
     check(
       `${prefix} 分组标题不可聚焦（普通 li，不进 roving 收集，方向键自动跳过）`,
       structure.labelFocusable === 0,
-      `focusable=${structure.labelFocusable}`
+      `focusable=${structure.labelFocusable}`,
     )
     // 分组标题点击无效果（菜单不关、无命令）
     await editorPopper.locator("li[role='presentation']").first().click()
     await page.waitForTimeout(300)
-    check(`${prefix} 分组标题不可点：点击标题菜单不关闭（基线 label li 行为）`, (await openPopper(page).count()) === 1)
+    check(
+      `${prefix} 分组标题不可点：点击标题菜单不关闭（基线 label li 行为）`,
+      (await openPopper(page).count()) === 1,
+    )
 
     // —— 子菜单面板内展开：点击父项展开缩进二级、外层保活（T1 判定的核心形态）
-    const versionsParent = editorPopper.locator(".el-dropdown-menu__item").filter({ hasText: "历史版本与对比" }).first()
+    const versionsParent = editorPopper
+      .locator(".el-dropdown-menu__item")
+      .filter({ hasText: "历史版本与对比" })
+      .first()
     await versionsParent.click()
     await page.waitForTimeout(350)
     const expandedState = await versionsParent.getAttribute("aria-expanded")
-    const childCount = await editorPopper.locator(".el-dropdown-menu__item").filter({ hasText: "打开历史版本" }).count()
+    const childCount = await editorPopper
+      .locator(".el-dropdown-menu__item")
+      .filter({ hasText: "打开历史版本" })
+      .count()
     check(
       `${prefix} 面板内展开：父项点击展开缩进二级（aria-expanded=true）且外层菜单保活（嵌套 el-dropdown 浮层方案被 T1 否决的形态）`,
       expandedState === "true" && childCount === 1 && (await openPopper(page).count()) === 1,
-      `aria=${expandedState} child=${childCount}`
+      `aria=${expandedState} child=${childCount}`,
     )
 
     // —— 无互斥（基线 expandedParents Set 语义）：再展开「复制与打开」，前者保持
-    const copyParent = editorPopper.locator(".el-dropdown-menu__item").filter({ hasText: "复制与打开" }).first()
+    const copyParent = editorPopper
+      .locator(".el-dropdown-menu__item")
+      .filter({ hasText: "复制与打开" })
+      .first()
     await copyParent.click()
     await page.waitForTimeout(350)
     const versionsStillOpen = await versionsParent.getAttribute("aria-expanded")
@@ -637,15 +681,22 @@ const capturePass = async mode => {
     check(
       `${prefix} 面板内展开·无互斥：多组可同时展开（expandedParents Set 语义）`,
       versionsStillOpen === "true" && copyOpen === "true",
-      `versions=${versionsStillOpen} copy=${copyOpen}`
+      `versions=${versionsStillOpen} copy=${copyOpen}`,
     )
 
     // —— 二级条目度量：缩进 32px（pl-8）；字号 14px 与字色为编辑器页 antd.css 既有
     //      交互（button 的 font-size/color:inherit 压过 text-[13px]/text-ink-tertiary
     //      utility，文字走继承链——壳文件头记档的「两页本来就不同」，亮=body 色 0.85 黑，
     //      暗=html.dark .text-ink-tertiary !important 胜出 0.6 白），pixdiff 0 差佐证
-    const versionsChild = editorPopper.locator(".el-dropdown-menu__item").filter({ hasText: "打开历史版本" }).first()
-    const childStyles = await computedOf(versionsChild.locator("button"), ["padding-left", "font-size", "color"])
+    const versionsChild = editorPopper
+      .locator(".el-dropdown-menu__item")
+      .filter({ hasText: "打开历史版本" })
+      .first()
+    const childStyles = await computedOf(versionsChild.locator("button"), [
+      "padding-left",
+      "font-size",
+      "color",
+    ])
     const bodyColor = await page.evaluate(() => getComputedStyle(document.body).color)
     // 暗色三级字色自 2026-09-19 批 7 起单源于 --kb-text-tertiary（#a5a5a5），不再写 rgba 字面量
     const expectedChildColor = mode === "dark" ? "rgb(165, 165, 165)" : bodyColor
@@ -654,7 +705,7 @@ const capturePass = async mode => {
       childStyles["padding-left"] === "32px" &&
         childStyles["font-size"] === "14px" &&
         childStyles.color === expectedChildColor,
-      JSON.stringify(childStyles)
+      JSON.stringify(childStyles),
     )
 
     // —— 禁用项（对比历史版本，文档仅 1 版本）：is-disabled + 点击吞掉；字色为
@@ -668,15 +719,17 @@ const capturePass = async mode => {
     const disabledColor = disabledCount
       ? await computedOf(disabledChild.first().locator("button"), ["color"])
       : { color: "missing" }
-    await disabledChild.first().evaluate(el => el.querySelector("button")?.click())
+    await disabledChild.first().evaluate((el) => el.querySelector("button")?.click())
     await page.waitForTimeout(300)
     check(
       `${prefix} 禁用项：is-disabled 呈现 + antd.css 继承链字色 + 点击吞掉（菜单不关、回调不触发）`,
       disabledCount === 1 &&
         disabledColor.color ===
-          (mode === "dark" ? "rgb(132, 132, 132)" : await page.evaluate(() => getComputedStyle(document.body).color)) &&
+          (mode === "dark"
+            ? "rgb(132, 132, 132)"
+            : await page.evaluate(() => getComputedStyle(document.body).color)) &&
         (await openPopper(page).count()) === 1,
-      `count=${disabledCount} color=${disabledColor.color}`
+      `count=${disabledCount} color=${disabledColor.color}`,
     )
 
     // —— roving 跳过禁用项：从「打开历史版本」ArrowDown 应落到「复制与打开」
@@ -688,7 +741,7 @@ const capturePass = async mode => {
     check(
       `${prefix} roving 跳过禁用项：打开历史版本 → 复制与打开（对比历史版本被跳过）`,
       active.kind === "menuitem" && active.text.startsWith("复制与打开"),
-      JSON.stringify(active)
+      JSON.stringify(active),
     )
 
     // —— 方向键进出二级：父项 ArrowDown 进首个子项、子项 ArrowUp 回父项
@@ -703,7 +756,7 @@ const capturePass = async mode => {
     check(
       `${prefix} 方向键进出二级：父项 ArrowDown 进首子项、ArrowUp 回父项（roving 线性序承担，收编清单 c）`,
       intoChild && active.kind === "menuitem" && active.text.startsWith("历史版本与对比"),
-      `into=${intoChild} back=${JSON.stringify(active)}`
+      `into=${intoChild} back=${JSON.stringify(active)}`,
     )
 
     // —— Enter 触发父项 = 仅切换展开（不关菜单不触发 onSelect）
@@ -715,8 +768,10 @@ const capturePass = async mode => {
     const expandedByEnter = await versionsParent.getAttribute("aria-expanded")
     check(
       `${prefix} 父项 Enter：仅切换展开（收起→再展开），菜单保持打开`,
-      collapsedByEnter === "false" && expandedByEnter === "true" && (await openPopper(page).count()) === 1,
-      `toggle=${collapsedByEnter}→${expandedByEnter}`
+      collapsedByEnter === "false" &&
+        expandedByEnter === "true" &&
+        (await openPopper(page).count()) === 1,
+      `toggle=${collapsedByEnter}→${expandedByEnter}`,
     )
 
     // —— 重开重置（visible-change(true) 清空 expandedParents）
@@ -733,7 +788,7 @@ const capturePass = async mode => {
     check(
       `${prefix} 重开重置：重新打开后所有子菜单收起（壳 visible-change(true) 重置语义）`,
       expandedAfterReopen === "false",
-      `aria=${expandedAfterReopen}`
+      `aria=${expandedAfterReopen}`,
     )
 
     // —— 收口顺序断言（hide-on-click=false 显式收口）：Enter 子项 → 关菜单 + 触发器
@@ -753,26 +808,26 @@ const capturePass = async mode => {
     await page.waitForTimeout(500)
     const outlineActivated = await page
       .locator('header [title="目录"]')
-      .evaluate(el => el.className.includes("bg-brand-faint"))
+      .evaluate((el) => el.className.includes("bg-brand-faint"))
     const focusBackOnTrigger = await page.evaluate(
-      el => document.activeElement === el,
-      await moreTrigger.elementHandle()
+      (el) => document.activeElement === el,
+      await moreTrigger.elementHandle(),
     )
     check(
       `${prefix} 子项 Enter 收口：菜单关闭 + 触发器焦点归还 + onSelect 执行（文档信息面板打开）`,
       (await openPopper(page).count()) === 0 && outlineActivated && focusBackOnTrigger,
-      `panel=${outlineActivated} focus=${focusBackOnTrigger}`
+      `panel=${outlineActivated} focus=${focusBackOnTrigger}`,
     )
     // 复位：信息面板（fixed 右缘覆盖 header 右侧按钮）经其遮罩点击关闭
     await page.mouse.click(80, 500)
     await page.waitForTimeout(400)
     const outlineRestored = await page
       .locator('header [title="目录"]')
-      .evaluate(el => !el.className.includes("bg-brand-faint"))
+      .evaluate((el) => !el.className.includes("bg-brand-faint"))
     check(
       `${prefix} 复位：文档信息面板经遮罩关闭（大纲按钮选中底色消失）`,
       outlineRestored,
-      `restored=${outlineRestored}`
+      `restored=${outlineRestored}`,
     )
 
     // —— 危险项配色（color:"error" 走调用方类）：error 字 + hover error-bg
@@ -785,16 +840,16 @@ const capturePass = async mode => {
       .filter({ hasText: "移入回收站" })
       .locator("button")
     const dangerColor = await computedOf(dangerBtn, ["color"])
-    await dangerBtn.evaluate(el => el.scrollIntoView({ block: "nearest" }))
+    await dangerBtn.evaluate((el) => el.scrollIntoView({ block: "nearest" }))
     await dangerBtn.hover()
     await page.waitForTimeout(250)
-    const dangerHoverBg = await dangerBtn.evaluate(el => getComputedStyle(el).backgroundColor)
+    const dangerHoverBg = await dangerBtn.evaluate((el) => getComputedStyle(el).backgroundColor)
     const errorBgRgb = await tokenRgb(page, "--kb-error-bg")
     check(
       `${prefix} 危险项：hover error-bg（基线 itemColorClass error 分支）+ 字色走 antd.css 继承链（button color:inherit 压过 text-error，暗 0.88 白——基线同链路）`,
       dangerColor.color === (await page.evaluate(() => getComputedStyle(document.body).color)) &&
         dangerHoverBg === errorBgRgb,
-      `color=${dangerColor.color} hover=${dangerHoverBg}`
+      `color=${dangerColor.color} hover=${dangerHoverBg}`,
     )
     await page.keyboard.press("Escape")
     await page.waitForTimeout(400)
@@ -807,26 +862,33 @@ const capturePass = async mode => {
     await page.keyboard.press("Escape")
     await page.waitForTimeout(400)
     const editorTriggerFocused = await page.evaluate(
-      el => document.activeElement === el,
-      await moreTrigger.elementHandle()
+      (el) => document.activeElement === el,
+      await moreTrigger.elementHandle(),
     )
     check(
       `${prefix} Esc 截停（编辑器菜单）：关闭 + 触发器焦点归还 + 冒泡监听收不到（不关下层对话框的机制证明）`,
-      (await openPopper(page).count()) === 0 && editorTriggerFocused && (await bubbleEscCount(page)) === bubbleBefore,
-      `focus=${editorTriggerFocused}`
+      (await openPopper(page).count()) === 0 &&
+        editorTriggerFocused &&
+        (await bubbleEscCount(page)) === bubbleBefore,
+      `focus=${editorTriggerFocused}`,
     )
     await moreTrigger.click()
     await openPopper(page).waitFor({ state: "visible", timeout: 8000 })
     await page.waitForTimeout(350)
     await page.keyboard.press("Tab")
     await page.waitForTimeout(400)
-    check(`${prefix} Tab 关菜单（基线「Tab 移出即关」，不阻断焦点自然移动）`, (await openPopper(page).count()) === 0)
+    check(
+      `${prefix} Tab 关菜单（基线「Tab 移出即关」，不阻断焦点自然移动）`,
+      (await openPopper(page).count()) === 0,
+    )
 
     await browser.close()
     return true
   } catch (error) {
     console.error(`${prefix} 验证异常：`, error)
-    await page.screenshot({ path: `output/visual/ep-direct/t7/verify-error-${mode}.png` }).catch(() => {})
+    await page
+      .screenshot({ path: `output/visual/ep-direct/t7/verify-error-${mode}.png` })
+      .catch(() => {})
     await browser.close().catch(() => {})
     return false
   }
@@ -834,7 +896,7 @@ const capturePass = async mode => {
 
 const light = await capturePass("light")
 const dark = await capturePass("dark")
-const failed = results.filter(r => !r.ok)
+const failed = results.filter((r) => !r.ok)
 console.log(`\n断言 ${results.length} 项，失败 ${failed.length} 项`)
 if (failed.length > 0) {
   for (const f of failed) console.error(`❌ ${f.name} — ${f.detail}`)
@@ -848,8 +910,9 @@ const MIN_CHECKS = 85
 const passAborted = !light || !dark
 if (passAborted || results.length < MIN_CHECKS) {
   console.error(
-    `⚠ 本轮仅执行 ${results.length} 条断言（下限 ${MIN_CHECKS}${passAborted ? "，且有 pass 异常中断" : ""}）：后续断言未执行，不得视为通过`
+    `⚠ 本轮仅执行 ${results.length} 条断言（下限 ${MIN_CHECKS}${passAborted ? "，且有 pass 异常中断" : ""}）：后续断言未执行，不得视为通过`,
   )
 }
-if (!light || !dark || failed.length > 0 || passAborted || results.length < MIN_CHECKS) process.exit(1)
+if (!light || !dark || failed.length > 0 || passAborted || results.length < MIN_CHECKS)
+  process.exit(1)
 console.log("T7 验证全部通过")

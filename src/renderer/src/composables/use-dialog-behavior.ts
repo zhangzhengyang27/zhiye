@@ -1,6 +1,11 @@
 import { nextTick, onBeforeUnmount, ref, watch } from "vue"
 import { Z_DIALOG } from "@/constants/z-index"
-import { hasOpenDialog, openDialogCount, pushDialogId, removeDialogId } from "@/composables/dialog-stack"
+import {
+  hasOpenDialog,
+  openDialogCount,
+  pushDialogId,
+  removeDialogId,
+} from "@/composables/dialog-stack"
 import { isImeComposing } from "@/utils/keyboard"
 
 /**
@@ -99,7 +104,7 @@ const FOCUSABLE_SELECTOR = [
 
 const getFocusableNodes = (root: HTMLElement) =>
   Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-    node => node.offsetWidth > 0 || node.offsetHeight > 0
+    (node) => node.offsetWidth > 0 || node.offsetHeight > 0,
   )
 
 /** 实例标记序号（data-kb-dialog-id 需要字符串，Symbol 不能落 attr） */
@@ -193,7 +198,10 @@ export const useDialogBehavior = (options: UseDialogBehaviorOptions): UseDialogB
 
         const marked = panel.querySelector<HTMLElement>("[data-autofocus]")
         const [firstFocusable] = getFocusableNodes(panel)
-        ;(marked && (marked.offsetWidth > 0 || marked.offsetHeight > 0) ? marked : (firstFocusable ?? panel)).focus()
+        ;(marked && (marked.offsetWidth > 0 || marked.offsetHeight > 0)
+          ? marked
+          : (firstFocusable ?? panel)
+        ).focus()
       }, 0)
     })
   }
@@ -201,7 +209,7 @@ export const useDialogBehavior = (options: UseDialogBehaviorOptions): UseDialogB
   // immediate：组件以 open=true 挂载时同样要上锁/监听/聚焦/取叠放 z
   watch(
     options.open,
-    open => {
+    (open) => {
       if (typeof document === "undefined") {
         return
       }
@@ -221,7 +229,7 @@ export const useDialogBehavior = (options: UseDialogBehaviorOptions): UseDialogB
 
       releaseDialog()
     },
-    { immediate: true }
+    { immediate: true },
   )
 
   onBeforeUnmount(() => {

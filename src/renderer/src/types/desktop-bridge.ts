@@ -125,7 +125,10 @@ export interface XiaoyeDesktopApi {
    * /lock 路由调用（连错 5 次返回 cooldown）；unlockAfterLogout 供「退出登录」收尾。
    */
   getLockState: () => Promise<DesktopLockState>
-  setLockPassword: (payload: { currentPassword?: string; newPassword: string }) => Promise<LockMutationResult>
+  setLockPassword: (payload: {
+    currentPassword?: string
+    newPassword: string
+  }) => Promise<LockMutationResult>
   clearLockPassword: (currentPassword: string) => Promise<LockMutationResult>
   verifyLockPassword: (password: string) => Promise<LockVerifyResult>
   setAutoLock: (payload: { enabled: boolean; delayMinutes: number }) => Promise<DesktopLockState>

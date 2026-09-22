@@ -22,9 +22,12 @@ const kb = await ensureKnowledgeBase(token, "probe")
 const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n观感。` })
 
 /* 编辑器页（Lake antd.css 已注入）：inner 字号应仍为 14px/20px/500 */
-await page.goto(new globalThis.URL(`/knowledge/${kb.id}/doc/${doc.id}`, smokeConfig.baseUrl).toString(), {
-  waitUntil: "domcontentloaded",
-})
+await page.goto(
+  new globalThis.URL(`/knowledge/${kb.id}/doc/${doc.id}`, smokeConfig.baseUrl).toString(),
+  {
+    waitUntil: "domcontentloaded",
+  },
+)
 await page.waitForTimeout(3000)
 const row = page.locator(`[data-knowledge-node-id="${doc.id}"]`)
 await row.waitFor({ state: "visible", timeout: smokeConfig.timeout })
@@ -42,17 +45,22 @@ await page.waitForTimeout(500)
 const editorLook = await page.evaluate(() => {
   const active = document.activeElement
   const cs = getComputedStyle(active)
-  return { fontSize: cs.fontSize, lineHeight: cs.lineHeight, fontWeight: cs.fontWeight, rowHeight: active.closest("[data-knowledge-tree-row]").getBoundingClientRect().height }
+  return {
+    fontSize: cs.fontSize,
+    lineHeight: cs.lineHeight,
+    fontWeight: cs.fontWeight,
+    rowHeight: active.closest("[data-knowledge-tree-row]").getBoundingClientRect().height,
+  }
 })
 console.log(
-  `编辑器页 UA/antd 裸 input 字号=${bareInput} → 改名 inner=${JSON.stringify(editorLook)}`
+  `编辑器页 UA/antd 裸 input 字号=${bareInput} → 改名 inner=${JSON.stringify(editorLook)}`,
 )
 await page.keyboard.press("Escape")
 await page.waitForTimeout(400)
 
 /* 明暗两态截图（树面板，含改名态） */
 for (const mode of ["light", "dark"]) {
-  await page.evaluate(m => globalThis.localStorage.setItem("vueuse-color-scheme", m), mode)
+  await page.evaluate((m) => globalThis.localStorage.setItem("vueuse-color-scheme", m), mode)
   await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
     waitUntil: "networkidle",
   })

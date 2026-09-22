@@ -84,7 +84,10 @@ const computeTextNodeSize = (node: KnowledgeBoardAiDslNode) => {
   }
 }
 
-const createSceneFromElements = (elements: Array<Record<string, unknown>>, files?: Record<string, unknown>) => {
+const createSceneFromElements = (
+  elements: Array<Record<string, unknown>>,
+  files?: Record<string, unknown>,
+) => {
   const board = createKnowledgeBoardDocument()
   return normalizeExcalidrawBoardDocument({
     ...board,
@@ -115,7 +118,7 @@ const normalizeElementBounds = (element: Record<string, unknown>): Bounds | null
     let minY = y
     let maxY = y
 
-    points.forEach(point => {
+    points.forEach((point) => {
       if (!Array.isArray(point) || point.length < 2) {
         return
       }
@@ -145,7 +148,9 @@ const normalizeElementBounds = (element: Record<string, unknown>): Bounds | null
 }
 
 const getSceneBounds = (elements: Array<Record<string, unknown>>): Bounds | null => {
-  const bounds = elements.map(normalizeElementBounds).filter((value): value is Bounds => Boolean(value))
+  const bounds = elements
+    .map(normalizeElementBounds)
+    .filter((value): value is Bounds => Boolean(value))
 
   if (bounds.length === 0) {
     return null
@@ -161,12 +166,16 @@ const getSceneBounds = (elements: Array<Record<string, unknown>>): Bounds | null
       maxX: Math.max(accumulator.maxX, current.maxX),
       maxY: Math.max(accumulator.maxY, current.maxY),
     }),
-    firstBounds
+    firstBounds,
   )
 }
 
-const shiftSceneElements = (elements: Array<Record<string, unknown>>, deltaX: number, deltaY: number) => {
-  return cloneSerializable(elements, []).map(element => {
+const shiftSceneElements = (
+  elements: Array<Record<string, unknown>>,
+  deltaX: number,
+  deltaY: number,
+) => {
+  return cloneSerializable(elements, []).map((element) => {
     const nextElement = {
       ...element,
       x: toFiniteNumber(element.x) + deltaX,
@@ -181,7 +190,7 @@ const getUniqueGroups = (nodes: KnowledgeBoardAiDsl["nodes"]) => {
   const groups: string[] = []
   const seen = new Set<string>()
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     const group = typeof node.group === "string" ? node.group.trim() : ""
 
     if (!group || seen.has(group)) {
@@ -198,14 +207,14 @@ const getUniqueGroups = (nodes: KnowledgeBoardAiDsl["nodes"]) => {
 const createWhiteboardSkeletons = (dsl: KnowledgeBoardAiDsl) => {
   const skeletons: ExcalidrawElementSkeletonInput = []
   const nodeCenterById = new Map<string, { x: number; y: number }>()
-  const titleNodes = dsl.nodes.filter(node => node.type === "title" && !node.group)
-  const contentNodes = dsl.nodes.filter(node => !(node.type === "title" && !node.group))
+  const titleNodes = dsl.nodes.filter((node) => node.type === "title" && !node.group)
+  const contentNodes = dsl.nodes.filter((node) => !(node.type === "title" && !node.group))
   const groups = getUniqueGroups(contentNodes)
   const defaultGroup = groups.length === 0 ? "内容" : ""
   let titleCursorX = 120
   let titleMaxBottom = 120
 
-  titleNodes.forEach(node => {
+  titleNodes.forEach((node) => {
     const size = computeTextNodeSize(node)
 
     skeletons.push({
@@ -230,18 +239,18 @@ const createWhiteboardSkeletons = (dsl: KnowledgeBoardAiDsl) => {
   const groupNames = groups.length > 0 ? groups : [defaultGroup]
   const columnNodeMap = new Map<string, KnowledgeBoardAiDslNode[]>()
 
-  groupNames.forEach(groupName => {
+  groupNames.forEach((groupName) => {
     columnNodeMap.set(groupName, [])
   })
 
-  contentNodes.forEach(node => {
+  contentNodes.forEach((node) => {
     const groupName = node.group?.trim() || groupNames[0] || defaultGroup
     const columnNodes = columnNodeMap.get(groupName) ?? []
     columnNodes.push(node)
     columnNodeMap.set(groupName, columnNodes)
   })
 
-  const columnWidths = groupNames.map(groupName => {
+  const columnWidths = groupNames.map((groupName) => {
     const columnNodes = columnNodeMap.get(groupName) ?? []
     return columnNodes.reduce((maxWidth, node) => {
       return Math.max(maxWidth, computeTextNodeSize(node).width)
@@ -268,7 +277,7 @@ const createWhiteboardSkeletons = (dsl: KnowledgeBoardAiDsl) => {
       })
     }
 
-    columnNodes.forEach(node => {
+    columnNodes.forEach((node) => {
       const size = computeTextNodeSize(node)
       const nodeX = columnX
       const nodeY = cursorY
@@ -320,7 +329,7 @@ const createWhiteboardSkeletons = (dsl: KnowledgeBoardAiDsl) => {
     columnX += columnWidth + WHITEBOARD_COLUMN_GAP
   })
 
-  dsl.connectors.forEach(connector => {
+  dsl.connectors.forEach((connector) => {
     const from = nodeCenterById.get(connector.fromNodeId)
     const to = nodeCenterById.get(connector.toNodeId)
 
@@ -350,7 +359,9 @@ const createWhiteboardSkeletons = (dsl: KnowledgeBoardAiDsl) => {
 }
 
 /** 将 AI 生成结果转换为可直接加载的 Excalidraw 场景。 */
-export const buildKnowledgeBoardSceneFromAiResult = async (result: KnowledgeBoardAiGenerateResult) => {
+export const buildKnowledgeBoardSceneFromAiResult = async (
+  result: KnowledgeBoardAiGenerateResult,
+) => {
   if (result.kind === "flowchart") {
     const parseMermaidToExcalidraw = await loadMermaidParser()
     const mermaidResult = await parseMermaidToExcalidraw(result.mermaid, {
@@ -363,11 +374,14 @@ export const buildKnowledgeBoardSceneFromAiResult = async (result: KnowledgeBoar
       maxEdges: 200,
       maxTextSize: 10000,
     })
-    const elements = convertToExcalidrawElements(mermaidResult.elements as ExcalidrawElementSkeletonInput) as Array<
-      Record<string, unknown>
-    >
+    const elements = convertToExcalidrawElements(
+      mermaidResult.elements as ExcalidrawElementSkeletonInput,
+    ) as Array<Record<string, unknown>>
 
-    return createSceneFromElements(elements, cloneSerializable(mermaidResult.files, createEmptyRecord()))
+    return createSceneFromElements(
+      elements,
+      cloneSerializable(mermaidResult.files, createEmptyRecord()),
+    )
   }
 
   const skeletons = createWhiteboardSkeletons(result.boardDsl)
@@ -383,7 +397,7 @@ export const replaceKnowledgeBoardWithGeneratedScene = (scene: KnowledgeBoardDoc
 /** 将 AI 生成场景平移到当前画板右侧并合并进去。 */
 export const appendKnowledgeBoardSceneToRight = (
   currentScene: KnowledgeBoardDocument,
-  generatedScene: KnowledgeBoardDocument
+  generatedScene: KnowledgeBoardDocument,
 ) => {
   const baseScene = normalizeExcalidrawBoardDocument(currentScene)
   const nextScene = normalizeExcalidrawBoardDocument(generatedScene)
@@ -418,7 +432,8 @@ export const appendKnowledgeBoardSceneToRight = (
     appState: {
       ...baseScene.appState,
       ...nextScene.appState,
-      viewBackgroundColor: baseScene.appState.viewBackgroundColor ?? nextScene.appState.viewBackgroundColor,
+      viewBackgroundColor:
+        baseScene.appState.viewBackgroundColor ?? nextScene.appState.viewBackgroundColor,
     },
   })
 }

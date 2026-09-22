@@ -40,7 +40,7 @@ const props = withDefaults(
     cancelText: "",
     danger: false,
     loading: null,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -87,7 +87,7 @@ const handleConfirm = () => {
         confirming.value = false
         emit("update:open", false)
       })
-      .catch(error => {
+      .catch((error) => {
         confirming.value = false
         // 拒绝时保持弹窗打开（调用方负责 toast），但不能再静默吞掉错误
         console.error("[ConfirmDialog] 确认操作失败", error)
@@ -120,7 +120,7 @@ const dialog = useDialogBehavior({
     :title="dialogTitle"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && closeDialog()"
+    @update:model-value="(value) => !value && closeDialog()"
   >
     <template #header>
       <KbDialogHeader :title="dialogTitle" @close="closeDialog" />
@@ -130,7 +130,11 @@ const dialog = useDialogBehavior({
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <el-button plain class="h-8 rounded-kb-md py-0 gap-1.5 text-[13px] [line-height:inherit]" @click="handleCancel">
+        <el-button
+          plain
+          class="h-8 rounded-kb-md py-0 gap-1.5 text-[13px] [line-height:inherit]"
+          @click="handleCancel"
+        >
           <span class="truncate">{{ cancelText || "取消" }}</span>
         </el-button>
         <el-button

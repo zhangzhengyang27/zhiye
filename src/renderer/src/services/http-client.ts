@@ -17,7 +17,12 @@ export class ApiHttpError extends Error {
   readonly bodyText: string
   readonly fallbackMessage: string
 
-  constructor(params: { status: number; statusText: string; bodyText: string; fallbackMessage: string }) {
+  constructor(params: {
+    status: number
+    statusText: string
+    bodyText: string
+    fallbackMessage: string
+  }) {
     const { status, statusText, bodyText, fallbackMessage } = params
     super(`${fallbackMessage}（${status}）：${bodyText || statusText}`)
     this.name = "ApiHttpError"
@@ -34,7 +39,7 @@ const normalizeUnknownMessage = (input: unknown): string | null => {
 
   if (Array.isArray(input)) {
     const joined = input
-      .map(item => normalizeUnknownMessage(item))
+      .map((item) => normalizeUnknownMessage(item))
       .filter((item): item is string => Boolean(item))
       .join("；")
 
@@ -134,7 +139,9 @@ export const ensureApiResponseOk = async (response: Response, fallbackMessage: s
 /**
  * 创建 JSON 请求头，并允许合并调用方额外传入的头信息。
  */
-export const createJsonHeaders = (extraHeaders?: Record<string, string>): Record<string, string> => ({
+export const createJsonHeaders = (
+  extraHeaders?: Record<string, string>,
+): Record<string, string> => ({
   "Content-Type": "application/json",
   ...(extraHeaders || {}),
 })

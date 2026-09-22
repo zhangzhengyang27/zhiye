@@ -30,7 +30,7 @@ const props = withDefaults(
     meta: "",
     title: "",
     sticky: false,
-  }
+  },
 )
 </script>
 
@@ -39,7 +39,13 @@ const props = withDefaults(
     <div class="flex items-center gap-3 px-6 py-2.5">
       <nav aria-label="面包屑" class="flex min-w-0 flex-1 items-center gap-1.5 text-kb-xs">
         <template v-for="(crumb, index) in props.crumbs" :key="`${crumb.label}-${index}`">
-          <Icon v-if="index > 0" icon="ph:caret-right" :width="11" :height="11" class="shrink-0 text-ink-quaternary" />
+          <Icon
+            v-if="index > 0"
+            icon="ph:caret-right"
+            :width="11"
+            :height="11"
+            class="shrink-0 text-ink-quaternary"
+          />
           <component
             :is="crumb.to ? RouterLink : 'span'"
             :to="crumb.to"

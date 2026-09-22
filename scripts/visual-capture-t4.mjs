@@ -85,7 +85,7 @@ const shotStable = async (page, name) => {
 }
 
 /** 分享弹层：等加载 → 展开高级设置 → ensure 主分享开关 on（创建分享配置） */
-const openShareDialogWithLink = async page => {
+const openShareDialogWithLink = async (page) => {
   await page.getByRole("button", { name: "分享", exact: true }).click()
   await page.getByText("开启分享").first().waitFor({ timeout: 15000 })
 
@@ -106,8 +106,8 @@ const openShareDialogWithLink = async page => {
   const shareRow = page.getByText("开启分享", { exact: true }).locator("xpath=../..")
   const shareInput = shareRow.locator('input[role="switch"]')
   if ((await shareInput.getAttribute("aria-checked")) !== "true") {
-    await shareRow.evaluate(el =>
-      el.querySelector(".el-switch")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    await shareRow.evaluate((el) =>
+      el.querySelector(".el-switch")?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
     )
     await page.getByText("当前分享链接", { exact: true }).waitFor({ timeout: 15000 })
   }
@@ -115,18 +115,18 @@ const openShareDialogWithLink = async page => {
   await page.waitForTimeout(1200)
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T4:${roundName}:${mode}]`
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   try {
     // 1. 数据准备（ensure 语义，两轮复用）
@@ -139,7 +139,10 @@ const capturePass = async mode => {
       content: PUBLISHED_CONTENT,
       status: "published",
     })
-    logStep(`[T4:${roundName}]`, `published 文档状态：${publishedDoc.status ?? "（接口未回传，按树内标题复用）"}`)
+    logStep(
+      `[T4:${roundName}]`,
+      `published 文档状态：${publishedDoc.status ?? "（接口未回传，按树内标题复用）"}`,
+    )
     await ensureTrashedDocument(kb.id, token, {
       title: "T4 回收站文档",
       content: "# 回收站\n\n用于 T4 AppTabs 像素对比。",
@@ -201,7 +204,7 @@ const capturePass = async mode => {
       errorMessage: "读取文档树失败",
     })
     const board = flattenTree(Array.isArray(tree) ? tree : []).find(
-      node => node.type === "doc" && node.title === "T4 直用改造画板"
+      (node) => node.type === "doc" && node.title === "T4 直用改造画板",
     )
     if (!board) {
       await apiRequest("/knowledge/documents", {
@@ -229,7 +232,9 @@ const capturePass = async mode => {
         errorMessage: "创建画板文档失败",
       })
     }
-    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), { waitUntil: "domcontentloaded" })
+    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), {
+      waitUntil: "domcontentloaded",
+    })
     await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 20000 })
     await page.getByRole("button", { name: "模型配置", exact: true }).click()
     await page.getByText("当前配置").first().waitFor({ timeout: 15000 })
@@ -246,7 +251,7 @@ const capturePass = async mode => {
           const busy = document.querySelector('[class*="animate-spin"]')
           return !busy
         },
-        { timeout: 15000 }
+        { timeout: 15000 },
       )
       .catch(() => {})
     await page.waitForTimeout(600)

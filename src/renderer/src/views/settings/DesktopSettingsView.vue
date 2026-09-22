@@ -28,7 +28,8 @@ import {
 import { useDesktopSettings } from "@/composables/useDesktopSettings"
 import { useThemeMode } from "@/composables/useThemeMode"
 
-const { settings, desktopFeaturesUnavailable, setOpenAtLogin, setTrayVisible, openExternal } = useDesktopSettings()
+const { settings, desktopFeaturesUnavailable, setOpenAtLogin, setTrayVisible, openExternal } =
+  useDesktopSettings()
 const { colorTheme } = useThemeMode()
 
 const router = useRouter()
@@ -44,7 +45,8 @@ const isMac = computed(() => window.xiaoyeDesktop?.platform === "darwin")
 const autoLoginLabel = `电脑开机时，自动启动${PRODUCT_NAME}`
 const trayLabel = `在状态栏中显示${PRODUCT_NAME}图标，快速新建小记`
 const betaLabel = "开启后，可接受内测版更新推送，第一时间体验最新功能和问题修复"
-const lockDescription = "启用后，当应用空闲时，会自动进入锁屏模式，保护隐私安全。你也可以通过菜单栏主动进入锁屏模式"
+const lockDescription =
+  "启用后，当应用空闲时，会自动进入锁屏模式，保护隐私安全。你也可以通过菜单栏主动进入锁屏模式"
 
 /** EP 的 change 载荷是宽类型，这里统一收敛回设置项自己的值域。 */
 const handleThemeChange = (value: string | number | boolean | string[] | undefined) => {
@@ -104,7 +106,12 @@ const handleTrayChange = (value: string | number | boolean) => {
         <div class="kb-settings-item">
           <div class="kb-settings-row">
             <span>显示语言</span>
-            <el-select class="kb-settings-select" data-testid="change-language" disabled :model-value="settings.locale">
+            <el-select
+              class="kb-settings-select"
+              data-testid="change-language"
+              disabled
+              :model-value="settings.locale"
+            >
               <el-option
                 v-for="option in LOCALE_OPTIONS"
                 :key="option.value"
@@ -113,7 +120,9 @@ const handleTrayChange = (value: string | number | boolean) => {
               />
             </el-select>
           </div>
-          <p class="kb-settings-unavailable text-ink-quaternary">界面文案尚未接入多语言，暂不可切换。</p>
+          <p class="kb-settings-unavailable text-ink-quaternary">
+            界面文案尚未接入多语言，暂不可切换。
+          </p>
         </div>
       </div>
 
@@ -151,7 +160,9 @@ const handleTrayChange = (value: string | number | boolean) => {
           <div class="kb-settings-lock-actions">
             <el-button disabled>开启锁定</el-button>
           </div>
-          <p class="kb-settings-unavailable text-ink-quaternary">锁屏窗口与锁定密码尚未实现，暂不可开启。</p>
+          <p class="kb-settings-unavailable text-ink-quaternary">
+            锁屏窗口与锁定密码尚未实现，暂不可开启。
+          </p>
         </div>
       </div>
 
@@ -183,7 +194,11 @@ const handleTrayChange = (value: string | number | boolean) => {
           <div class="kb-settings-row-between">
             <span>
               {{ betaLabel }}
-              <a v-if="BETA_HELP_URL" class="kb-settings-help-inline" @click="openExternal(BETA_HELP_URL)">
+              <a
+                v-if="BETA_HELP_URL"
+                class="kb-settings-help-inline"
+                @click="openExternal(BETA_HELP_URL)"
+              >
                 了解更多
               </a>
             </span>

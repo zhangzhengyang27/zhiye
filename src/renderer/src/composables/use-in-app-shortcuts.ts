@@ -33,7 +33,9 @@ export function useInAppShortcuts() {
       return
     }
 
-    const row = SHORTCUT_ROWS.find(item => item.type === "mousetrap" && settings.shortcuts[item.key] === accelerator)
+    const row = SHORTCUT_ROWS.find(
+      (item) => item.type === "mousetrap" && settings.shortcuts[item.key] === accelerator,
+    )
     const command = row ? COMMAND_OF_SHORTCUT[row.key] : undefined
     if (!command) {
       return

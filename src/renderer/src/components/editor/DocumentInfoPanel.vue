@@ -59,7 +59,7 @@ const props = withDefaults(
     saveStatusLabel: undefined,
     shortcuts: () => [],
     meta: () => [],
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -84,14 +84,14 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (open) {
       window.addEventListener("keydown", handleKeydown)
     } else {
       window.removeEventListener("keydown", handleKeydown)
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 onBeforeUnmount(() => {
@@ -108,7 +108,7 @@ const quickActions = computed(() => {
     { id: "toggle-favorite", label: props.favorite ? "取消收藏" : "收藏文档" },
   ]
 
-  return actionMap.filter(action => props.visibleActions.includes(action.id))
+  return actionMap.filter((action) => props.visibleActions.includes(action.id))
 })
 
 /**
@@ -196,7 +196,9 @@ const handleQuickAction = (action: DocumentInfoAction) => {
               文档信息
             </div>
             <h3 class="mt-3 text-[18px] font-semibold tracking-[-0.02em] text-ink">大纲与元信息</h3>
-            <p class="mt-1 text-xs leading-5 text-ink-tertiary">在一处查看当前文档结构、协作成员和快捷操作。</p>
+            <p class="mt-1 text-xs leading-5 text-ink-tertiary">
+              在一处查看当前文档结构、协作成员和快捷操作。
+            </p>
           </div>
 
           <el-button
@@ -244,14 +246,21 @@ const handleQuickAction = (action: DocumentInfoAction) => {
               <p class="text-sm font-medium text-ink">内容大纲</p>
               <p class="mt-1 text-xs text-ink-quaternary">快速跳到对应标题附近。</p>
             </div>
-            <span class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary">
+            <span
+              class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
+            >
               {{ outlineItems.length }} 个标题
             </span>
           </div>
 
-          <div v-if="outlineItems.length === 0" class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center">
+          <div
+            v-if="outlineItems.length === 0"
+            class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center"
+          >
             <p class="text-sm font-medium text-ink-tertiary">还没有可用的大纲</p>
-            <p class="mt-1 text-xs leading-5 text-ink-quaternary">插入 H1-H4 标题后，这里会自动生成结构。</p>
+            <p class="mt-1 text-xs leading-5 text-ink-quaternary">
+              插入 H1-H4 标题后，这里会自动生成结构。
+            </p>
           </div>
 
           <div v-else class="mt-4 space-y-1.5">
@@ -275,12 +284,17 @@ const handleQuickAction = (action: DocumentInfoAction) => {
               <p class="text-sm font-medium text-ink">协作成员</p>
               <p class="mt-1 text-xs text-ink-quaternary">当前工作区里最近会参与这篇文档的成员。</p>
             </div>
-            <span class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary">
+            <span
+              class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
+            >
               {{ collaborators.length }} 人
             </span>
           </div>
 
-          <div v-if="collaborators.length === 0" class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center">
+          <div
+            v-if="collaborators.length === 0"
+            class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center"
+          >
             <p class="text-sm font-medium text-ink-tertiary">还没有协作成员信息</p>
           </div>
 
@@ -293,7 +307,12 @@ const handleQuickAction = (action: DocumentInfoAction) => {
               <div
                 class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-fill-muted text-[12px] font-semibold text-ink-secondary"
               >
-                <img v-if="member.avatar" :src="member.avatar" :alt="member.label" class="h-full w-full object-cover" />
+                <img
+                  v-if="member.avatar"
+                  :src="member.avatar"
+                  :alt="member.label"
+                  class="h-full w-full object-cover"
+                />
                 <span v-else>{{ member.label.slice(0, 1).toUpperCase() }}</span>
               </div>
               <div class="min-w-0 flex-1">
@@ -313,7 +332,9 @@ const handleQuickAction = (action: DocumentInfoAction) => {
               <p class="text-sm font-medium text-ink">快捷键</p>
               <p class="mt-1 text-xs text-ink-quaternary">把高频操作保持在稳定的按键路径里。</p>
             </div>
-            <span class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary">
+            <span
+              class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
+            >
               {{ shortcuts.length }} 项
             </span>
           </div>
@@ -327,7 +348,10 @@ const handleQuickAction = (action: DocumentInfoAction) => {
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <p class="text-[13px] font-medium text-ink">{{ shortcut.label }}</p>
-                  <p v-if="shortcut.description" class="mt-1 text-[11px] leading-5 text-ink-tertiary">
+                  <p
+                    v-if="shortcut.description"
+                    class="mt-1 text-[11px] leading-5 text-ink-tertiary"
+                  >
                     {{ shortcut.description }}
                   </p>
                 </div>
@@ -356,6 +380,10 @@ const handleQuickAction = (action: DocumentInfoAction) => {
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
-    <div v-if="open" class="fixed inset-0 z-[var(--kb-z-side-panel-overlay)] bg-black/20" @click="emit('close')" />
+    <div
+      v-if="open"
+      class="fixed inset-0 z-[var(--kb-z-side-panel-overlay)] bg-black/20"
+      @click="emit('close')"
+    />
   </Transition>
 </template>

@@ -47,7 +47,9 @@ const emit = defineEmits<{
       <div class="px-5 pt-5 pb-0">
         <div>
           <p class="text-sm font-semibold text-ink-secondary">新建分享配置</p>
-          <p class="mt-1 text-[12px] leading-5 text-ink-quaternary">先定义权限边界，再生成对外链接。</p>
+          <p class="mt-1 text-[12px] leading-5 text-ink-quaternary">
+            先定义权限边界，再生成对外链接。
+          </p>
         </div>
       </div>
 
@@ -61,10 +63,15 @@ const emit = defineEmits<{
           >
             <el-radio v-for="item in permissionOptions" :key="item.value" :value="item.value">
               <span class="block text-sm font-medium text-ink">{{ item.label }}</span>
-              <span v-if="item.description" class="mt-0.5 block text-xs text-ink-tertiary">{{ item.description }}</span>
+              <span v-if="item.description" class="mt-0.5 block text-xs text-ink-tertiary">{{
+                item.description
+              }}</span>
             </el-radio>
           </el-radio-group>
-          <p v-if="allowEditPermission === false" class="mt-2 text-[11px] leading-5 text-ink-quaternary">
+          <p
+            v-if="allowEditPermission === false"
+            class="mt-2 text-[11px] leading-5 text-ink-quaternary"
+          >
             当前文档只开放只读分享，避免在公共链接中出现未收敛的编辑行为。
           </p>
         </div>
@@ -73,7 +80,9 @@ const emit = defineEmits<{
           <div
             class="rounded-kb-2xl border px-4 py-3 transition"
             :class="
-              usePassword ? 'border-warning-light bg-warning-bg' : 'border-line bg-surface hover:border-brand-lighter'
+              usePassword
+                ? 'border-warning-light bg-warning-bg'
+                : 'border-line bg-surface hover:border-brand-lighter'
             "
           >
             <label
@@ -99,7 +108,11 @@ const emit = defineEmits<{
               <span class="min-w-0 flex-1">
                 <span class="block text-sm font-medium text-ink">访问密码</span>
                 <span class="mt-0.5 block text-xs text-ink-tertiary">
-                  {{ usePassword ? "已开启密码访问，需要同时分发密码。" : "关闭后，拿到链接即可直接访问。" }}
+                  {{
+                    usePassword
+                      ? "已开启密码访问，需要同时分发密码。"
+                      : "关闭后，拿到链接即可直接访问。"
+                  }}
                 </span>
               </span>
             </label>
@@ -120,7 +133,9 @@ const emit = defineEmits<{
           <el-segmented
             :model-value="expiresIn"
             :options="expiryOptions"
-            @update:model-value="emit('update:expiresIn', $event as 'never' | '1day' | '7days' | '30days')"
+            @update:model-value="
+              emit('update:expiresIn', $event as 'never' | '1day' | '7days' | '30days')
+            "
           >
             <template #default="{ item }">
               <AppIcon
@@ -146,7 +161,9 @@ const emit = defineEmits<{
       <div class="px-5 pt-5 pb-0">
         <div>
           <p class="text-sm font-semibold text-ink-secondary">分发建议</p>
-          <p class="mt-1 text-[12px] leading-5 text-ink-quaternary">根据当前配置给出更稳妥的分享建议。</p>
+          <p class="mt-1 text-[12px] leading-5 text-ink-quaternary">
+            根据当前配置给出更稳妥的分享建议。
+          </p>
         </div>
       </div>
 

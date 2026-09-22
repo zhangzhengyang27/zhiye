@@ -9,7 +9,10 @@ import { computed, ref } from "vue"
 import AppIcon from "@/components/common/AppIcon.vue"
 import UiIcon from "@/components/common/UiIcon.vue"
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue"
-import { trashKnowledgeDocument, type KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
+import {
+  trashKnowledgeDocument,
+  type KnowledgeDocumentTreeNode,
+} from "@/services/knowledge-documents"
 import { updateKnowledgeBasePreferences, type KnowledgeBaseItem } from "@/services/knowledge-base"
 
 const props = defineProps<{
@@ -35,7 +38,7 @@ interface FlatDoc {
 }
 
 const flatten = (nodes: KnowledgeDocumentTreeNode[], depth = 0): FlatDoc[] =>
-  nodes.flatMap(node => [
+  nodes.flatMap((node) => [
     {
       id: node.id,
       title: node.title,
@@ -54,7 +57,9 @@ const keyword = ref("")
 const sortOrder = ref<"tree" | "updatedAt" | "title">("tree")
 const filteredDocs = computed(() => {
   const query = keyword.value.trim().toLowerCase()
-  const list = query ? docs.value.filter(doc => doc.title.toLowerCase().includes(query)) : docs.value
+  const list = query
+    ? docs.value.filter((doc) => doc.title.toLowerCase().includes(query))
+    : docs.value
 
   if (sortOrder.value === "updatedAt") {
     return [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -81,11 +86,13 @@ const toggleChecked = (id: string, checked: boolean) => {
 }
 
 const allChecked = computed(
-  () => filteredDocs.value.length > 0 && filteredDocs.value.every(doc => checkedIds.value.has(doc.id))
+  () =>
+    filteredDocs.value.length > 0 &&
+    filteredDocs.value.every((doc) => checkedIds.value.has(doc.id)),
 )
 
 const toggleAllChecked = (checked: boolean) => {
-  checkedIds.value = checked ? new Set(filteredDocs.value.map(doc => doc.id)) : new Set()
+  checkedIds.value = checked ? new Set(filteredDocs.value.map((doc) => doc.id)) : new Set()
 }
 
 const exitBatchMode = () => {
@@ -101,8 +108,8 @@ const handleBatchTrash = async () => {
   batchTrashing.value = true
   try {
     const ids = [...checkedIds.value]
-    const results = await Promise.allSettled(ids.map(id => trashKnowledgeDocument(id)))
-    const failed = results.filter(result => result.status === "rejected").length
+    const results = await Promise.allSettled(ids.map((id) => trashKnowledgeDocument(id)))
+    const failed = results.filter((result) => result.status === "rejected").length
     if (failed > 0) {
       emit("notify", `${ids.length - failed} 篇已移入回收站，${failed} 篇失败。`, "info")
     } else {
@@ -127,7 +134,11 @@ const handleExpandLevelChange = async (value: number | null) => {
       defaultExpandLevel: value,
     })
     emit("preferencesUpdated", updated)
-    emit("notify", value === null ? "已恢复默认（目录全部折叠）。" : `目录默认展开至第 ${value} 级。`, "success")
+    emit(
+      "notify",
+      value === null ? "已恢复默认（目录全部折叠）。" : `目录默认展开至第 ${value} 级。`,
+      "success",
+    )
   } catch (error) {
     expandLevel.value = props.knowledgeBase.settings?.defaultExpandLevel ?? null
     emit("notify", error instanceof Error ? error.message : "保存默认展开级别失败", "error")
@@ -154,14 +165,17 @@ const typeIcon = (doc: FlatDoc) => {
   return "i-lucide-file-text"
 }
 
-const statusLabel = (status: string) => (status === "published" ? "已发布" : status === "archived" ? "已归档" : "草稿")
+const statusLabel = (status: string) =>
+  status === "published" ? "已发布" : status === "archived" ? "已归档" : "草稿"
 
 const requestTrash = (doc: FlatDoc) => {
   pendingTrashDoc.value = doc
   confirmOpen.value = true
 }
 
-const trashConfirmMessage = computed(() => `确认将「${pendingTrashDoc.value?.title || "无标题"}」移入回收站吗？`)
+const trashConfirmMessage = computed(
+  () => `确认将「${pendingTrashDoc.value?.title || "无标题"}」移入回收站吗？`,
+)
 
 const trashing = ref(false)
 
@@ -189,13 +203,21 @@ const handleConfirmTrash = async () => {
     <div class="flex flex-wrap items-center justify-between gap-3 px-2 pt-2">
       <div>
         <h2 class="text-base font-semibold text-ink">文档管理</h2>
-        <p class="mt-1 text-[13px] leading-5 text-ink-tertiary">平铺查看知识库内全部文档，快速定位与清理。</p>
+        <p class="mt-1 text-[13px] leading-5 text-ink-tertiary">
+          平铺查看知识库内全部文档，快速定位与清理。
+        </p>
       </div>
       <div class="flex items-center gap-2">
         <span class="rounded-full bg-fill-muted px-3 py-1 text-xs font-medium text-ink-tertiary">
           {{ filteredDocs.length }} 个
         </span>
-        <el-select v-model="sortOrder" class="w-32" :offset="6" :show-arrow="false" title="排序方式">
+        <el-select
+          v-model="sortOrder"
+          class="w-32"
+          :offset="6"
+          :show-arrow="false"
+          title="排序方式"
+        >
           <el-option label="按树序" value="tree" />
           <el-option label="按更新时间" value="updatedAt" />
           <el-option label="按标题" value="title" />
@@ -207,7 +229,9 @@ const handleConfirmTrash = async () => {
           :show-arrow="false"
           title="目录默认展开级别"
           :loading="expandLevelSaving"
-          @update:model-value="value => handleExpandLevelChange(Number(value) === 0 ? null : Number(value))"
+          @update:model-value="
+            (value) => handleExpandLevelChange(Number(value) === 0 ? null : Number(value))
+          "
         >
           <el-option label="默认展开：第 1 级" :value="1" />
           <el-option label="默认展开：第 2 级" :value="2" />
@@ -215,17 +239,26 @@ const handleConfirmTrash = async () => {
           <el-option label="默认展开：全部折叠" :value="0" />
         </el-select>
         <el-input v-model="keyword" type="text" placeholder="按标题筛选" class="w-48" />
-        <el-button v-if="canTrash" plain size="small" class="rounded-kb-lg" @click="batchMode = !batchMode">
+        <el-button
+          v-if="canTrash"
+          plain
+          size="small"
+          class="rounded-kb-lg"
+          @click="batchMode = !batchMode"
+        >
           <span class="truncate">{{ batchMode ? "退出批量" : "批量管理" }}</span>
         </el-button>
       </div>
     </div>
 
-    <div v-if="batchMode && canTrash && filteredDocs.length > 0" class="mt-3 flex items-center gap-3 px-2">
+    <div
+      v-if="batchMode && canTrash && filteredDocs.length > 0"
+      class="mt-3 flex items-center gap-3 px-2"
+    >
       <el-checkbox
         :model-value="allChecked"
         label="全选"
-        @update:model-value="value => toggleAllChecked(Boolean(value))"
+        @update:model-value="(value) => toggleAllChecked(Boolean(value))"
       />
       <span class="text-[12px] text-ink-tertiary">已选 {{ checkedIds.size }} 项</span>
       <el-button
@@ -236,7 +269,9 @@ const handleConfirmTrash = async () => {
         :disabled="checkedIds.size === 0"
         :loading="batchTrashing"
         @click="batchTrashConfirmOpen = true"
-        ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+        ><template #loading
+          ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+        /></template>
         <span class="truncate">移入回收站</span>
       </el-button>
     </div>
@@ -257,7 +292,7 @@ const handleConfirmTrash = async () => {
             :model-value="checkedIds.has(doc.id)"
             class="shrink-0"
             :aria-label="`选择 ${doc.title || '无标题'}`"
-            @update:model-value="value => toggleChecked(doc.id, Boolean(value))"
+            @update:model-value="(value) => toggleChecked(doc.id, Boolean(value))"
           />
           <span
             class="flex h-7 w-7 shrink-0 items-center justify-center rounded-kb-md bg-brand-faint text-brand"

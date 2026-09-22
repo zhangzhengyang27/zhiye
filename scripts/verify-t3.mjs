@@ -37,12 +37,12 @@ const check = (name, ok, detail = "") => {
 const computedOf = (locator, props) =>
   locator.evaluate((el, names) => {
     const cs = getComputedStyle(el)
-    return Object.fromEntries(names.map(n => [n, cs.getPropertyValue(n)]))
+    return Object.fromEntries(names.map((n) => [n, cs.getPropertyValue(n)]))
   }, props)
 
 /** token 颜色换算成 rgb 口径（借助临时隐藏元素） */
 const tokenRgb = (page, token = "--kb-brand") =>
-  page.evaluate(t => {
+  page.evaluate((t) => {
     const probe = document.createElement("div")
     probe.style.backgroundColor = `var(${t})`
     probe.style.display = "none"
@@ -52,16 +52,16 @@ const tokenRgb = (page, token = "--kb-brand") =>
     return color
   }, token)
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T3验证:${mode}]`
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
   try {
@@ -84,14 +84,16 @@ const capturePass = async mode => {
     await page.locator('button:has-text("更多分享设置")').click()
     await page.getByText("新建分享配置").first().waitFor({ timeout: 15000 })
     await page.waitForTimeout(400)
-    const shareSwitchRow = page.getByText("访问密码", { exact: true }).locator("xpath=ancestor::label[1]")
+    const shareSwitchRow = page
+      .getByText("访问密码", { exact: true })
+      .locator("xpath=ancestor::label[1]")
     const commentSwitch = shareSwitchRow.locator(".el-switch").first()
     const switchRootClass = await commentSwitch.getAttribute("class")
     check(
       `${prefix} switch：EP 原生根（div.el-switch 本体 + role=switch input 在根内）`,
       (switchRootClass ?? "").includes("el-switch") &&
         (await commentSwitch.locator('input[role="switch"]').count()) === 1,
-      switchRootClass ?? ""
+      switchRootClass ?? "",
     )
     const switchCore = commentSwitch.locator(".el-switch__core")
     const coreStyles = await computedOf(switchCore, [
@@ -118,12 +120,12 @@ const capturePass = async mode => {
         coreStyles.height === "24px" &&
         coreStyles["border-top-width"] === "0px" &&
         parseFloat(coreStyles["border-radius"]) >= 12,
-      JSON.stringify(coreStyles)
+      JSON.stringify(coreStyles),
     )
     check(
       `${prefix} switch 轨道：off 底 = --kb-border-input（非 EP 出厂 off 色）`,
       coreStyles["background-color"] === borderInputRgb,
-      coreStyles["background-color"]
+      coreStyles["background-color"],
     )
     const actionStyles = await computedOf(commentSwitch.locator(".el-switch__action"), [
       "width",
@@ -139,33 +141,35 @@ const capturePass = async mode => {
         actionStyles.left === "2px" &&
         actionStyles["background-color"] === "rgb(255, 255, 255)" &&
         actionStyles["box-shadow"] !== "none",
-      JSON.stringify(actionStyles)
+      JSON.stringify(actionStyles),
     )
 
     // 覆盖契约探针：h-7 压过 EP 出厂 height:32px 与 components auto
-    await commentSwitch.evaluate(el => el.classList.add("h-7"))
+    await commentSwitch.evaluate((el) => el.classList.add("h-7"))
     const switchProbed = await computedOf(commentSwitch, ["height"])
-    await commentSwitch.evaluate(el => el.classList.remove("h-7"))
+    await commentSwitch.evaluate((el) => el.classList.remove("h-7"))
     check(
       `${prefix} switch 覆盖契约：h-7 → 28px（EP 32px 已中和，utilities 赢）`,
       switchProbed.height === "28px",
-      switchProbed.height
+      switchProbed.height,
     )
 
     // 行为：点击开合
     await commentSwitch.click()
     await page.waitForTimeout(250)
-    const onAfterClick = (await shareSwitchRow.locator('input[role="switch"]').getAttribute("aria-checked")) === "true"
+    const onAfterClick =
+      (await shareSwitchRow.locator('input[role="switch"]').getAttribute("aria-checked")) === "true"
     const onCoreBg = await computedOf(switchCore, ["background-color"])
     check(
       `${prefix} switch 行为：点击开 → aria-checked + 底色 brand`,
       onAfterClick && onCoreBg["background-color"] === brandRgb,
-      `${onAfterClick} ${onCoreBg["background-color"]}`
+      `${onAfterClick} ${onCoreBg["background-color"]}`,
     )
     await commentSwitch.click()
     await page.waitForTimeout(250)
     const offAfterClick =
-      (await shareSwitchRow.locator('input[role="switch"]').getAttribute("aria-checked")) === "false"
+      (await shareSwitchRow.locator('input[role="switch"]').getAttribute("aria-checked")) ===
+      "false"
     check(`${prefix} switch 行为：再点关`, offAfterClick)
 
     // 行为：空格（壳时代契约：role=switch input 无原生空格激活，keydown 补齐）
@@ -180,7 +184,7 @@ const capturePass = async mode => {
     check(
       `${prefix} switch 行为：Space 开→关（keydown 契约补齐）`,
       onAfterSpace && offAfterSpace,
-      `${onAfterSpace} → ${offAfterSpace}`
+      `${onAfterSpace} → ${offAfterSpace}`,
     )
 
     // 行为：回车（EP 原生 withKeys(enter)）
@@ -194,7 +198,7 @@ const capturePass = async mode => {
     check(
       `${prefix} switch 行为：Enter 开→关（EP 原生）`,
       onAfterEnter && offAfterEnter,
-      `${onAfterEnter} → ${offAfterEnter}`
+      `${onAfterEnter} → ${offAfterEnter}`,
     )
 
     // ---- el-radio-group / el-radio（list 变体）：校准观感 ----
@@ -206,14 +210,19 @@ const capturePass = async mode => {
     await page.waitForTimeout(600)
 
     const permGroup = page.locator(".el-radio-group").first()
-    const groupStyles = await computedOf(permGroup, ["display", "flex-direction", "align-items", "gap"])
+    const groupStyles = await computedOf(permGroup, [
+      "display",
+      "flex-direction",
+      "align-items",
+      "gap",
+    ])
     check(
       `${prefix} radio 组：flex 行向 + items-center + gap-5（水平两档调用点）`,
       groupStyles.display === "flex" &&
         groupStyles["flex-direction"] === "row" &&
         groupStyles["align-items"] === "center" &&
         groupStyles.gap === "20px",
-      JSON.stringify(groupStyles)
+      JSON.stringify(groupStyles),
     )
     const viewRadio = permGroup.locator(".el-radio", { hasText: "可查看" })
     const editRadioForProbe = permGroup.locator(".el-radio", { hasText: "可编辑" })
@@ -231,7 +240,7 @@ const capturePass = async mode => {
         radioStyles["font-weight"] === "400" &&
         radioStyles["white-space"] === "normal" &&
         radioStyles["align-items"] === "flex-start",
-      JSON.stringify(radioStyles)
+      JSON.stringify(radioStyles),
     )
     // 「可编辑」初始未选中：圆点取其常态底色（「可查看」初始选中，底应为透明）
     const radioInner = editRadioForProbe.locator(".el-radio__inner")
@@ -258,32 +267,34 @@ const capturePass = async mode => {
         parseFloat(innerStyles["border-radius"]) >= 9 &&
         innerStyles["border-top-width"] === "1px" &&
         innerStyles["background-color"] === surfaceRgb,
-      JSON.stringify(innerStyles)
+      JSON.stringify(innerStyles),
     )
-    const checkedViewInnerBg = await computedOf(viewRadio.locator(".el-radio__inner"), ["background-color"])
+    const checkedViewInnerBg = await computedOf(viewRadio.locator(".el-radio__inner"), [
+      "background-color",
+    ])
     check(
       `${prefix} radio 选中圆点常态底：透明（初始选中「可查看」）`,
       checkedViewInnerBg["background-color"] === "rgba(0, 0, 0, 0)",
-      checkedViewInnerBg["background-color"]
+      checkedViewInnerBg["background-color"],
     )
     const radioLabel = viewRadio.locator(".el-radio__label")
     const labelStyles = await computedOf(radioLabel, ["padding-left", "min-width"])
     check(
       `${prefix} radio label：padding 清零（间距在项根 gap 10px）`,
       labelStyles["padding-left"] === "0px",
-      JSON.stringify(labelStyles)
+      JSON.stringify(labelStyles),
     )
     const radioGap = await computedOf(viewRadio, ["gap"])
     check(`${prefix} radio 项根 gap 10px（基线 gap-2.5）`, radioGap.gap === "10px", radioGap.gap)
 
     // 覆盖契约探针：h-7 压过 EP 32px；font-bold 压过 EP 500 与 components 400
-    await viewRadio.evaluate(el => el.classList.add("h-7", "font-bold"))
+    await viewRadio.evaluate((el) => el.classList.add("h-7", "font-bold"))
     const radioProbed = await computedOf(viewRadio, ["height", "font-weight"])
-    await viewRadio.evaluate(el => el.classList.remove("h-7", "font-bold"))
+    await viewRadio.evaluate((el) => el.classList.remove("h-7", "font-bold"))
     check(
       `${prefix} radio 覆盖契约：h-7/font-bold → 28px/700`,
       radioProbed.height === "28px" && radioProbed["font-weight"] === "700",
-      JSON.stringify(radioProbed)
+      JSON.stringify(radioProbed),
     )
 
     // 行为：点击选中互斥 + 摘要联动
@@ -295,7 +306,7 @@ const capturePass = async mode => {
     check(
       `${prefix} radio 行为：点「可编辑」→ 选中且「可查看」互斥取消`,
       editChecked && !viewChecked,
-      `${viewChecked} → ${editChecked}`
+      `${viewChecked} → ${editChecked}`,
     )
     const checkedInnerStyles = await computedOf(editRadio.locator(".el-radio__inner"), [
       "background-color",
@@ -305,19 +316,25 @@ const capturePass = async mode => {
       `${prefix} radio 选中观感：透明底 + brand 描边（EP 原生是实心圆，已接管）`,
       checkedInnerStyles["background-color"] === "rgba(0, 0, 0, 0)" &&
         checkedInnerStyles["border-top-color"] === brandRgb,
-      JSON.stringify(checkedInnerStyles)
+      JSON.stringify(checkedInnerStyles),
     )
-    const dotStyles = await editRadio.locator(".el-radio__inner").evaluate(el => {
+    const dotStyles = await editRadio.locator(".el-radio__inner").evaluate((el) => {
       const cs = getComputedStyle(el, "::after")
       return { width: cs.width, height: cs.height, backgroundColor: cs.backgroundColor }
     })
     check(
       `${prefix} radio 选中内点：8×8 brand（非 EP 4px 白点）`,
-      dotStyles.width === "8px" && dotStyles.height === "8px" && dotStyles.backgroundColor === brandRgb,
-      JSON.stringify(dotStyles)
+      dotStyles.width === "8px" &&
+        dotStyles.height === "8px" &&
+        dotStyles.backgroundColor === brandRgb,
+      JSON.stringify(dotStyles),
     )
     const summary = await page.locator("text=/可编辑 · 无密码/").first().textContent()
-    check(`${prefix} radio 联动：配置摘要变「可编辑 · 无密码 · …」`, Boolean(summary), summary?.trim() ?? "")
+    check(
+      `${prefix} radio 联动：配置摘要变「可编辑 · 无密码 · …」`,
+      Boolean(summary),
+      summary?.trim() ?? "",
+    )
 
     // 行为：原生方向键导航（EP 原生四方向；与基线「仅本方向」差异已记档）
     await editRadio.locator("input.el-radio__original").focus()
@@ -330,7 +347,12 @@ const capturePass = async mode => {
 
     // ---- el-segmented：校准观感（share 弹层唯一 segmented = 有效期组） ----
     const expirySeg = page.locator(".el-segmented", { hasText: "永久有效" }).first()
-    const segRootStyles = await computedOf(expirySeg, ["background-color", "border-radius", "padding", "min-height"])
+    const segRootStyles = await computedOf(expirySeg, [
+      "background-color",
+      "border-radius",
+      "padding",
+      "min-height",
+    ])
     const mutedRgb = await page.evaluate(() => {
       const probe = document.createElement("div")
       probe.style.backgroundColor = "var(--kb-muted-bg)"
@@ -346,7 +368,7 @@ const capturePass = async mode => {
         parseFloat(segRootStyles["border-radius"]) >= 12 &&
         segRootStyles.padding === "4px" &&
         segRootStyles["min-height"] === "0px",
-      JSON.stringify(segRootStyles)
+      JSON.stringify(segRootStyles),
     )
     const neverItem = expirySeg.locator(".el-segmented__item", { hasText: "永久有效" })
     const dayItem = expirySeg.locator(".el-segmented__item", { hasText: "7 天" })
@@ -366,32 +388,36 @@ const capturePass = async mode => {
         segItemStyles.padding === "6px 14px" &&
         parseFloat(segItemStyles["border-radius"]) >= 12 &&
         segItemStyles.color === tertiaryRgb,
-      JSON.stringify(segItemStyles)
+      JSON.stringify(segItemStyles),
     )
     const segLabel = await computedOf(dayItem.locator(".el-segmented__item-label"), ["line-height"])
     check(
       `${prefix} segmented 项文案：行高 22px（基线 text-sm 行盒）`,
       segLabel["line-height"] === "22px",
-      segLabel["line-height"]
+      segLabel["line-height"],
     )
     const highlight = expirySeg.locator(".el-segmented__item-selected")
-    const highlightStyles = await computedOf(highlight, ["background-color", "border-radius", "transition-duration"])
+    const highlightStyles = await computedOf(highlight, [
+      "background-color",
+      "border-radius",
+      "transition-duration",
+    ])
     check(
       `${prefix} segmented 高亮块：surface 药丸 + 瞬时切换（非 EP primary 底/0.3s 滑动）`,
       highlightStyles["background-color"] === surfaceRgb &&
         parseFloat(highlightStyles["border-radius"]) >= 12 &&
         highlightStyles["transition-duration"] === "0s",
-      JSON.stringify(highlightStyles)
+      JSON.stringify(highlightStyles),
     )
 
     // 覆盖契约探针：h-7 压过 EP min-height:32px（根高 28 < 32 若未中和会被撑回 32）
-    await expirySeg.evaluate(el => el.classList.add("h-7"))
+    await expirySeg.evaluate((el) => el.classList.add("h-7"))
     const segProbed = await computedOf(expirySeg, ["height"])
-    await expirySeg.evaluate(el => el.classList.remove("h-7"))
+    await expirySeg.evaluate((el) => el.classList.remove("h-7"))
     check(
       `${prefix} segmented 覆盖契约：h-7 → 28px（EP min-height 32px 已中和）`,
       segProbed.height === "28px",
-      segProbed.height
+      segProbed.height,
     )
 
     // 行为：切换选中 + 摘要联动
@@ -403,13 +429,13 @@ const capturePass = async mode => {
     check(
       `${prefix} segmented 行为：点「7 天」→ 选中互斥 + 摘要联动`,
       dayChecked && !neverChecked && summaryAfterDay === 1,
-      `day=${dayChecked} never=${neverChecked}`
+      `day=${dayChecked} never=${neverChecked}`,
     )
     const selectedLabelColor = await computedOf(dayItem, ["color"])
     check(
       `${prefix} segmented 选中文字：text-ink 档`,
       selectedLabelColor.color === "rgb(38, 38, 38)" || selectedLabelColor.color !== tertiaryRgb,
-      selectedLabelColor.color
+      selectedLabelColor.color,
     )
 
     await page.keyboard.press("Escape")
@@ -427,7 +453,7 @@ const capturePass = async mode => {
     check(
       `${prefix} textarea 根：13px 字号 + baseline 对齐（非 EP 14px/bottom）`,
       taRootStyles["font-size"] === "13px" && taRootStyles["vertical-align"] === "baseline",
-      JSON.stringify(taRootStyles)
+      JSON.stringify(taRootStyles),
     )
     const taInner = kbTextarea.locator(".el-textarea__inner")
     const taInnerStyles = await computedOf(taInner, [
@@ -448,21 +474,24 @@ const capturePass = async mode => {
         taInnerStyles.resize === "none" &&
         taInnerStyles["line-height"] === "20px" &&
         taInnerStyles["caret-color"] === brandRgb,
-      JSON.stringify(taInnerStyles)
+      JSON.stringify(taInnerStyles),
     )
-    const innerColorFollowsRoot = await kbTextarea.evaluate(el => {
+    const innerColorFollowsRoot = await kbTextarea.evaluate((el) => {
       const inner = el.querySelector(".el-textarea__inner")
       return getComputedStyle(inner).color === getComputedStyle(el).color
     })
-    check(`${prefix} textarea 暗色契约：inner 字色强制跟随根（inherit !important）`, innerColorFollowsRoot)
-    const nativeAttrs = await taInner.evaluate(el => ({
+    check(
+      `${prefix} textarea 暗色契约：inner 字色强制跟随根（inherit !important）`,
+      innerColorFollowsRoot,
+    )
+    const nativeAttrs = await taInner.evaluate((el) => ({
       rows: el.getAttribute("rows"),
       maxlength: el.getAttribute("maxlength"),
     }))
     check(
       `${prefix} textarea 原生属性：rows=3 与 maxlength=200 透传到原生元素`,
       nativeAttrs.rows === "3" && nativeAttrs.maxlength === "200",
-      JSON.stringify(nativeAttrs)
+      JSON.stringify(nativeAttrs),
     )
     // 盒面契约：五个调用点曾各画一套（圆角 10/12/16、底色三种、聚焦 border vs
     // ring-4），现收成校准默认档——断言 computed 盒面而非 class 字面量
@@ -490,7 +519,7 @@ const capturePass = async mode => {
         taRootBox["padding-left"] === "12px" &&
         taRootBox.resize === "none" &&
         taRootBox.overflow === "hidden",
-      JSON.stringify(taRootBox)
+      JSON.stringify(taRootBox),
     )
     await taInner.focus()
     // transition: border-color 150ms——computed 读到的是插值，须等动画落定
@@ -500,29 +529,37 @@ const capturePass = async mode => {
     check(
       `${prefix} textarea 聚焦：根 :focus-within 描边转 brand（inner 是幽灵面，焦点判定在根）`,
       focusBorder["border-top-color"] === brandRgb,
-      focusBorder["border-top-color"]
+      focusBorder["border-top-color"],
     )
-    const rootClasses = await kbTextarea.evaluate(el => el.className)
+    const rootClasses = await kbTextarea.evaluate((el) => el.className)
     check(
       `${prefix} textarea 模板级探针：调用方 class（w-full/resize-none/leading-5）落根且不再自带盒面`,
       rootClasses.includes("el-textarea") &&
         rootClasses.includes("w-full") &&
         rootClasses.includes("resize-none") &&
         !/rounded-/.test(rootClasses),
-      rootClasses.slice(0, 80)
+      rootClasses.slice(0, 80),
     )
 
     // 覆盖契约探针：text-[14px]（源码出现过的 arbitrary utility）压过 EP 14px 与 components 13px
-    await kbTextarea.evaluate(el => el.classList.add("text-[14px]"))
+    await kbTextarea.evaluate((el) => el.classList.add("text-[14px]"))
     const taProbed = await computedOf(kbTextarea, ["font-size"])
-    await kbTextarea.evaluate(el => el.classList.remove("text-[14px]"))
-    check(`${prefix} textarea 覆盖契约：text-[14px] → 14px`, taProbed["font-size"] === "14px", taProbed["font-size"])
+    await kbTextarea.evaluate((el) => el.classList.remove("text-[14px]"))
+    check(
+      `${prefix} textarea 覆盖契约：text-[14px] → 14px`,
+      taProbed["font-size"] === "14px",
+      taProbed["font-size"],
+    )
 
     // 行为：输入 → v-model 落到原生 textarea
     await taInner.fill("用于 T3 验证的描述")
     await page.waitForTimeout(200)
     const typedValue = await taInner.inputValue()
-    check(`${prefix} textarea 行为：输入联动 v-model`, typedValue === "用于 T3 验证的描述", typedValue)
+    check(
+      `${prefix} textarea 行为：输入联动 v-model`,
+      typedValue === "用于 T3 验证的描述",
+      typedValue,
+    )
     await taInner.fill("")
 
     await page.keyboard.press("Escape")
@@ -536,14 +573,14 @@ const capturePass = async mode => {
     await page.waitForTimeout(500)
 
     const styleSeg = page.locator(".el-segmented").first()
-    const segWidth = await styleSeg.evaluate(el => {
+    const segWidth = await styleSeg.evaluate((el) => {
       const parent = el.parentElement
       return { seg: el.getBoundingClientRect().width, parent: parent.getBoundingClientRect().width }
     })
     check(
       `${prefix} style segmented 模板探针：调用方 w-full 落根并撑满（ utilities 赢过 EP inline-flex 内容宽）`,
       Math.abs(segWidth.seg - segWidth.parent) < 2 && segWidth.seg > 100,
-      JSON.stringify(segWidth)
+      JSON.stringify(segWidth),
     )
     const relaxItem = styleSeg.locator(".el-segmented__item", { hasText: "宽松" })
     const defaultItem = styleSeg.locator(".el-segmented__item", { hasText: "常规" })
@@ -551,7 +588,10 @@ const capturePass = async mode => {
     await page.waitForTimeout(300)
     const relaxSelected = (await relaxItem.getAttribute("class")).includes("is-selected")
     const defaultSelected = (await defaultItem.getAttribute("class")).includes("is-selected")
-    check(`${prefix} style segmented 行为：点「宽松」→ 选中迁移（互斥）`, relaxSelected && !defaultSelected)
+    check(
+      `${prefix} style segmented 行为：点「宽松」→ 选中迁移（互斥）`,
+      relaxSelected && !defaultSelected,
+    )
     await defaultItem.click()
     await page.waitForTimeout(200)
 
@@ -569,7 +609,7 @@ const capturePass = async mode => {
 
 const light = await capturePass("light")
 const dark = await capturePass("dark")
-const failed = results.filter(r => !r.ok)
+const failed = results.filter((r) => !r.ok)
 console.log(`\n断言 ${results.length} 项，失败 ${failed.length} 项`)
 if (failed.length > 0) {
   for (const f of failed) console.error(`❌ ${f.name} — ${f.detail}`)
@@ -584,8 +624,9 @@ const MIN_CHECKS = 60
 const passAborted = !light || !dark
 if (passAborted || results.length < MIN_CHECKS) {
   console.error(
-    `⚠ 本轮仅执行 ${results.length} 条断言（下限 ${MIN_CHECKS}${passAborted ? "，且有 pass 异常中断" : ""}）：后续断言未执行，不得视为通过`
+    `⚠ 本轮仅执行 ${results.length} 条断言（下限 ${MIN_CHECKS}${passAborted ? "，且有 pass 异常中断" : ""}）：后续断言未执行，不得视为通过`,
   )
 }
-if (!light || !dark || failed.length > 0 || passAborted || results.length < MIN_CHECKS) process.exit(1)
+if (!light || !dark || failed.length > 0 || passAborted || results.length < MIN_CHECKS)
+  process.exit(1)
 console.log("T3 验证全部通过")

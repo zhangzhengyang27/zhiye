@@ -67,7 +67,7 @@ const dateRange = computed<[string, string] | null>({
     props.filterDateFrom && props.filterDateTo
       ? ([props.filterDateFrom, props.filterDateTo] as [string, string])
       : null,
-  set: value => {
+  set: (value) => {
     emit("update:filterDateFrom", value?.[0] ?? "")
     emit("update:filterDateTo", value?.[1] ?? "")
   },
@@ -110,7 +110,11 @@ const dateRange = computed<[string, string] | null>({
         </el-button>
       </div>
 
-      <el-button type="primary" class="py-2 font-semibold" :disabled="props.loading" @click="emit('search')"
+      <el-button
+        type="primary"
+        class="py-2 font-semibold"
+        :disabled="props.loading"
+        @click="emit('search')"
         ><span class="truncate">{{ props.loading ? "搜索中…" : "搜索" }}</span>
       </el-button>
     </div>

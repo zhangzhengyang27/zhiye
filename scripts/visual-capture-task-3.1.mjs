@@ -18,7 +18,8 @@ import {
 } from "./lib/knowledge-smoke-utils.mjs"
 
 const OUT_DIR =
-  process.env.TASK31_OUT_DIR || "/Users/xiaoye/Desktop/AI/知识库/xiaoye/output/visual/ep-migration/task-3.1/after"
+  process.env.TASK31_OUT_DIR ||
+  "/Users/xiaoye/Desktop/AI/知识库/xiaoye/output/visual/ep-migration/task-3.1/after"
 const VIEWPORT = { width: 1247, height: 952 }
 const CONTENT =
   "# EP 迁移基线文档\n\n用于 Element Plus 迁移前后的像素对比。\n\n- 列表项一\n- 列表项二\n\n**加粗文本**与正文。\n"
@@ -31,19 +32,19 @@ const shot = async (page, name) => {
   logStep("[Task3.1]", `✅ ${name}`)
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[Task3.1:${mode}]`
   const failures = []
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, smokeConfig.baseUrl).toString()
+  const url = (path) => new URL(path, smokeConfig.baseUrl).toString()
 
   try {
     await loginThroughUi(page, prefix)
@@ -67,7 +68,10 @@ const capturePass = async mode => {
       }
       await row.click({ button: "right" })
       await page.getByRole("menuitem", { name: "移动..." }).click()
-      await page.locator('[role="dialog"]').filter({ hasText: "移动至" }).waitFor({ state: "visible", timeout: 10_000 })
+      await page
+        .locator('[role="dialog"]')
+        .filter({ hasText: "移动至" })
+        .waitFor({ state: "visible", timeout: 10_000 })
       await page.waitForTimeout(800)
       await shot(page, `move-dialog-${mode}`)
       await page.keyboard.press("Escape")

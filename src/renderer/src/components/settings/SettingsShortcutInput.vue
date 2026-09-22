@@ -99,15 +99,28 @@ const handleActionClick = () => {
   >
     <!-- 输入框恒空（语雀同写法：只挂 readonly + onKeyDown，不传 value）——
          显示文字只有下面这层浮标，避免浮层半透明底色透出输入框文字形成重影 -->
-    <el-input ref="inputRef" :data-testid="`shortcut-${props.shortcutKey}`" readonly @keydown="handleKeydown" />
+    <el-input
+      ref="inputRef"
+      :data-testid="`shortcut-${props.shortcutKey}`"
+      readonly
+      @keydown="handleKeydown"
+    />
     <p class="kb-shortcut-tip">{{ shown }}</p>
     <el-tooltip :content="showsReset ? '重置快捷键' : '取消快捷键'" placement="top">
       <span
         class="kb-shortcut-action"
-        :data-testid="showsReset ? `shortcut-revert-${props.shortcutKey}` : `shortcut-cancel-${props.shortcutKey}`"
+        :data-testid="
+          showsReset
+            ? `shortcut-revert-${props.shortcutKey}`
+            : `shortcut-cancel-${props.shortcutKey}`
+        "
         @click.stop="handleActionClick"
       >
-        <UiIcon :icon="showsReset ? 'ph:arrow-counter-clockwise' : 'ph:x'" :width="14" :height="14" />
+        <UiIcon
+          :icon="showsReset ? 'ph:arrow-counter-clockwise' : 'ph:x'"
+          :width="14"
+          :height="14"
+        />
       </span>
     </el-tooltip>
   </div>

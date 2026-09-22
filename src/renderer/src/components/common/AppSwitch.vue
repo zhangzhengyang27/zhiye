@@ -76,7 +76,7 @@ const props = withDefaults(
     description: "",
     checkedIcon: undefined,
     uncheckedIcon: undefined,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -96,9 +96,9 @@ const trackClass = computed(() => (props.modelValue ? "bg-brand" : "bg-line-inpu
 /** 默认 w-full 让整行（含文案）都可点；调用方传 w-auto 等宽度类时以调用方为准 */
 const switchClass = computed(() =>
   cn(
-    "kb-app-switch flex w-full cursor-pointer items-center gap-3 rounded-lg text-left outline-none transition",
-    String(attrs.class ?? "")
-  )
+    "kb-app-switch flex w-full cursor-pointer items-center gap-3 rounded-kb-md text-left outline-none transition",
+    String(attrs.class ?? ""),
+  ),
 )
 
 /** 外层文案/padding 区点击转发 el-switch 根（EP switchValue 有 disabled 守卫） */
@@ -145,7 +145,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="outerRef" v-bind="forwardedAttrs" :class="[switchClass, { 'kb-app-switch--disabled': disabled }]">
+  <div
+    ref="outerRef"
+    v-bind="forwardedAttrs"
+    :class="[switchClass, { 'kb-app-switch--disabled': disabled }]"
+  >
     <span
       class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200"
       :class="trackClass"
@@ -173,7 +177,9 @@ onBeforeUnmount(() => {
 
     <span v-if="label || description || $slots.default" class="min-w-0 flex-1">
       <span v-if="label" class="block text-sm font-medium text-ink">{{ label }}</span>
-      <span v-if="description" class="mt-0.5 block text-xs text-ink-tertiary">{{ description }}</span>
+      <span v-if="description" class="mt-0.5 block text-xs text-ink-tertiary">{{
+        description
+      }}</span>
       <slot />
     </span>
   </div>

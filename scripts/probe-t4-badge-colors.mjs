@@ -20,9 +20,9 @@ const DOC_TITLE = "T4 直用改造文档"
 
 const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
 const prefix = `[T4探针:${mode}]`
-const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
-await context.addInitScript(scheme => {
+await context.addInitScript((scheme) => {
   globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
 }, mode)
 
@@ -43,7 +43,7 @@ try {
   const badges = await page.evaluate(() => {
     // AppBadge 根 span：inline-flex + rounded-full 的 span（壳时代特征）
     const spans = Array.from(document.querySelectorAll("span.inline-flex.rounded-full"))
-    return spans.slice(0, 14).map(el => {
+    return spans.slice(0, 14).map((el) => {
       const cs = getComputedStyle(el)
       return {
         text: (el.textContent ?? "").trim().slice(0, 14),

@@ -6,7 +6,10 @@
 import { computed, inject, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import UiIcon from "@/components/common/UiIcon.vue"
-import { createKnowledgeDocumentFromTemplate, listKnowledgeDocumentTemplates } from "@/services/knowledge-documents"
+import {
+  createKnowledgeDocumentFromTemplate,
+  listKnowledgeDocumentTemplates,
+} from "@/services/knowledge-documents"
 import type { KnowledgeDocumentItem } from "@/services/knowledge-documents"
 import { getApiErrorMessage } from "@/services/http-client"
 import { useTransientToast } from "@/composables/use-transient-toast"
@@ -51,7 +54,7 @@ const createFromTemplate = async (templateId: string) => {
     return
   }
 
-  const tpl = templates.value.find(template => template.id === templateId)
+  const tpl = templates.value.find((template) => template.id === templateId)
   if (!tpl) {
     return
   }
@@ -66,7 +69,7 @@ const createFromTemplate = async (templateId: string) => {
         kbId: kbId.value,
         docId: document.id,
         editorType: document.editorType,
-      })
+      }),
     )
     // 新文档要立刻出现在目录树里，否则回到工作台时看不到
     void workspaceContext.refreshTree()
@@ -105,14 +108,19 @@ const goBackToWorkspace = () => {
       <div class="mt-6 flex items-end justify-between gap-4">
         <div>
           <h1 class="text-2xl font-semibold tracking-tight text-ink">模板中心</h1>
-          <p class="mt-2 text-sm leading-6 text-ink-tertiary">从模板中获取灵感，一键生成新文档副本。</p>
+          <p class="mt-2 text-sm leading-6 text-ink-tertiary">
+            从模板中获取灵感，一键生成新文档副本。
+          </p>
         </div>
         <span class="shrink-0 text-xs text-ink-quaternary">共 {{ templates.length }} 个模板</span>
       </div>
     </header>
 
     <section class="mx-auto mt-6 max-w-5xl">
-      <div v-if="errorMessage" class="rounded-2xl border border-error-light bg-error-bg px-4 py-3 text-sm text-error">
+      <div
+        v-if="errorMessage"
+        class="rounded-kb-2xl border border-error-light bg-error-bg px-4 py-3 text-sm text-error"
+      >
         {{ errorMessage }}
       </div>
 
@@ -122,7 +130,7 @@ const goBackToWorkspace = () => {
 
       <div
         v-else-if="templates.length === 0 && !errorMessage"
-        class="rounded-[28px] bg-surface px-6 py-16 text-center shadow-[0_10px_28px_rgba(0,0,0,0.05)]"
+        class="rounded-[28px] bg-surface px-6 py-16 text-center shadow-[var(--kb-surface-shadow)]"
       >
         <span
           class="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] border border-line bg-muted text-ink-quaternary"
@@ -145,7 +153,7 @@ const goBackToWorkspace = () => {
         <article
           v-for="tpl in templates"
           :key="tpl.id"
-          class="group flex flex-col rounded-[22px] border border-line bg-surface p-5 transition hover:border-brand-lighter hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]"
+          class="group flex flex-col rounded-[22px] border border-line bg-surface p-5 transition hover:border-brand-lighter hover:shadow-[var(--kb-elevated-shadow)]"
         >
           <div class="flex items-start gap-3">
             <span
@@ -154,7 +162,9 @@ const goBackToWorkspace = () => {
               <AppIcon name="i-lucide-layout-template" class="h-4 w-4" />
             </span>
             <div class="min-w-0 flex-1">
-              <h3 class="truncate text-sm font-semibold text-ink" :title="tpl.title">{{ tpl.title }}</h3>
+              <h3 class="truncate text-sm font-semibold text-ink" :title="tpl.title">
+                {{ tpl.title }}
+              </h3>
               <p v-if="tpl.updatedAt" class="mt-1 text-xs text-ink-quaternary">
                 更新于 {{ formatDate(tpl.updatedAt) }}
               </p>
@@ -167,7 +177,9 @@ const goBackToWorkspace = () => {
               :loading="creatingId === tpl.id"
               :disabled="Boolean(creatingId)"
               @click="createFromTemplate(tpl.id)"
-              ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+              ><template #loading
+                ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+              /></template>
               <span class="truncate">使用模板创建</span>
             </el-button>
           </div>

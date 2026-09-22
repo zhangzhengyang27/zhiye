@@ -28,7 +28,7 @@ const CLUSTER_BLOCK = 16
 const CLUSTER_TOP = 6
 
 /** 解析 CLI 参数：--baseline/--current 成对可重复、--tolerance、--out。 */
-export const parseArgs = argv => {
+export const parseArgs = (argv) => {
   const pairs = []
   let tolerance = 8
   let out = null
@@ -48,7 +48,8 @@ export const parseArgs = argv => {
       i += 1
     } else if (arg === "--tolerance") {
       tolerance = Number(value)
-      if (!Number.isInteger(tolerance) || tolerance < 0) throw new Error("--tolerance 必须是非负整数")
+      if (!Number.isInteger(tolerance) || tolerance < 0)
+        throw new Error("--tolerance 必须是非负整数")
       i += 1
     } else if (arg === "--out") {
       if (!value) throw new Error("--out 缺少输出路径")
@@ -77,7 +78,7 @@ const paethPredict = (a, b, c) => {
  * 解码 PNG 为 RGBA 像素（8-bit/非交错/color type 0|2|4|6）。
  * 返回 { width, height, data: Buffer(width*height*4) }。
  */
-export const decodePng = filePath => {
+export const decodePng = (filePath) => {
   const file = fs.readFileSync(filePath)
   if (!file.subarray(0, 8).equals(PNG_SIGNATURE)) {
     throw new Error(`${filePath}: 不是 PNG 文件（签名不符）`)
@@ -110,7 +111,8 @@ export const decodePng = filePath => {
       const compression = data[10]
       const filterMethod = data[11]
       interlace = data[12]
-      if (compression !== 0 || filterMethod !== 0) throw new Error(`${filePath}: 不支持的压缩/滤波方法`)
+      if (compression !== 0 || filterMethod !== 0)
+        throw new Error(`${filePath}: 不支持的压缩/滤波方法`)
       seenIhdr = true
     } else if (type === "IDAT") {
       idatParts.push(data)
@@ -124,14 +126,17 @@ export const decodePng = filePath => {
   if (!seenIhdr || !seenIend) throw new Error(`${filePath}: IHDR/IEND 缺失`)
   if (width <= 0 || height <= 0) throw new Error(`${filePath}: 尺寸非法`)
   if (bitDepth !== 8) throw new Error(`${filePath}: 仅支持 bit depth 8（实际 ${bitDepth}）`)
-  if (![0, 2, 4, 6].includes(colorType)) throw new Error(`${filePath}: 仅支持 color type 0/2/4/6（实际 ${colorType}）`)
+  if (![0, 2, 4, 6].includes(colorType))
+    throw new Error(`${filePath}: 仅支持 color type 0/2/4/6（实际 ${colorType}）`)
   if (interlace !== 0) throw new Error(`${filePath}: 不支持 Adam7 交错格式`)
 
   const channels = { 0: 1, 2: 3, 4: 2, 6: 4 }[colorType]
   const bytesPerRow = width * channels
   const raw = zlib.inflateSync(Buffer.concat(idatParts))
   if (raw.length !== (bytesPerRow + 1) * height) {
-    throw new Error(`${filePath}: 解压后数据长度不符（期望 ${(bytesPerRow + 1) * height}，实际 ${raw.length}）`)
+    throw new Error(
+      `${filePath}: 解压后数据长度不符（期望 ${(bytesPerRow + 1) * height}，实际 ${raw.length}）`,
+    )
   }
 
   // 逐行 defilter（PNG spec 滤波 0-4）
@@ -195,7 +200,8 @@ export const clusterDiffs = (width, height, isMajorAt) => {
   const hot = new Uint8Array(bw * bh)
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      if (isMajorAt(x, y)) hot[Math.floor(y / CLUSTER_BLOCK) * bw + Math.floor(x / CLUSTER_BLOCK)] = 1
+      if (isMajorAt(x, y))
+        hot[Math.floor(y / CLUSTER_BLOCK) * bw + Math.floor(x / CLUSTER_BLOCK)] = 1
     }
   }
   const clusters = []
@@ -234,7 +240,12 @@ export const clusterDiffs = (width, height, isMajorAt) => {
       }
     }
     clusters.push({
-      bboxPx: [minX * CLUSTER_BLOCK, minY * CLUSTER_BLOCK, (maxX + 1) * CLUSTER_BLOCK, (maxY + 1) * CLUSTER_BLOCK],
+      bboxPx: [
+        minX * CLUSTER_BLOCK,
+        minY * CLUSTER_BLOCK,
+        (maxX + 1) * CLUSTER_BLOCK,
+        (maxY + 1) * CLUSTER_BLOCK,
+      ],
       blocks,
     })
   }
@@ -246,7 +257,10 @@ export const clusterDiffs = (width, height, isMajorAt) => {
 export const comparePair = (baseline, current, tolerance) => {
   if (baseline.width !== current.width || baseline.height !== current.height) {
     return {
-      sizeMismatch: { baseline: [baseline.width, baseline.height], current: [current.width, current.height] },
+      sizeMismatch: {
+        baseline: [baseline.width, baseline.height],
+        current: [current.width, current.height],
+      },
     }
   }
 
@@ -304,7 +318,9 @@ export const comparePair = (baseline, current, tolerance) => {
     meanDeltaAny: differingAny ? Math.round(deltaSumAny / differingAny) : 0,
     meanDeltaMajor: majorBeyondTolerance ? Math.round(deltaSumMajor / majorBeyondTolerance) : 0,
     bbox: hasMajor ? [minX, minY, maxX, maxY] : null,
-    clusters: hasMajor ? clusterDiffs(width, height, (x, y) => majorFlags[y * width + x] === 1) : [],
+    clusters: hasMajor
+      ? clusterDiffs(width, height, (x, y) => majorFlags[y * width + x] === 1)
+      : [],
   }
 }
 
@@ -324,7 +340,7 @@ const run = () => {
     console.log(
       result.sizeMismatch
         ? `${name}: 尺寸不一致 ${JSON.stringify(result.sizeMismatch)}`
-        : `${name}: exactSame=${result.exactSame}/${result.totalPixels} minor(≤${tolerance})=${result.minorWithinTolerance} major(>${tolerance})=${result.majorBeyondTolerance} bbox=${JSON.stringify(result.bbox)}`
+        : `${name}: exactSame=${result.exactSame}/${result.totalPixels} minor(≤${tolerance})=${result.minorWithinTolerance} major(>${tolerance})=${result.majorBeyondTolerance} bbox=${JSON.stringify(result.bbox)}`,
     )
   }
 

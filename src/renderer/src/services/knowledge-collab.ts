@@ -121,7 +121,7 @@ export const openDocCollabChannel = (options: OpenCollabChannelOptions): DocColl
       startHeartbeat()
     })
     socket.addEventListener("message", handleMessage)
-    socket.addEventListener("close", event => {
+    socket.addEventListener("close", (event) => {
       socket = null
       if (heartbeatTimer !== null) {
         window.clearInterval(heartbeatTimer)

@@ -57,7 +57,7 @@ const props = withDefaults(
     placeholder: "",
     disabled: false,
     autofocus: false,
-  }
+  },
 )
 
 // textarea 是另一套 DOM 结构（el-input type=textarea + 校准层 .el-textarea 段负责），不经过本组件幽灵化样式
@@ -125,8 +125,8 @@ const inputClass = computed(() =>
     // 聚焦描边与禁用态由 scoped :focus-within/.is-disabled 接管（div 上 :focus/:disabled 伪类永不命中）。
     "kb-el-input w-full rounded-[10px] border border-line bg-muted text-[13px] text-ink transition",
     "h-9 px-3",
-    String(attrs.class ?? "")
-  )
+    String(attrs.class ?? ""),
+  ),
 )
 </script>
 

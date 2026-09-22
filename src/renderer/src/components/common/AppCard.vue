@@ -16,7 +16,10 @@ const cardAttrs = computed(() => {
 })
 
 const cardClass = computed(() =>
-  cn("rounded-2xl border border-line bg-surface shadow-[var(--kb-card-shadow)]", String(attrs.class ?? ""))
+  cn(
+    "rounded-kb-2xl border border-line bg-surface shadow-[var(--kb-card-shadow)]",
+    String(attrs.class ?? ""),
+  ),
 )
 </script>
 

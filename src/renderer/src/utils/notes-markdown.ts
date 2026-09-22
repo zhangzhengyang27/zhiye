@@ -36,7 +36,12 @@ export const parseNoteSegments = (content: string): NoteSegment[] => {
 
     const link = line.match(LINK_PATTERN)
     if (link && !line.startsWith("!")) {
-      return { kind: "attachment" as const, label: link[1] ?? "附件", url: link[2] ?? "", lineIndex }
+      return {
+        kind: "attachment" as const,
+        label: link[1] ?? "附件",
+        url: link[2] ?? "",
+        lineIndex,
+      }
     }
 
     return { kind: "text" as const, text: line, lineIndex }

@@ -80,7 +80,10 @@ const normalizeLegacyBoardNode = (value: unknown): KnowledgeLegacyBoardNode | nu
   }
 }
 
-const normalizeLegacyConnector = (value: unknown, nodeIds: Set<string>): KnowledgeLegacyBoardConnector | null => {
+const normalizeLegacyConnector = (
+  value: unknown,
+  nodeIds: Set<string>,
+): KnowledgeLegacyBoardConnector | null => {
   if (!isRecord(value)) {
     return null
   }
@@ -105,16 +108,18 @@ const normalizeLegacyBoardDocument = (value: unknown): KnowledgeLegacyBoardDocum
     return null
   }
 
-  const nodes = Array.isArray(value.nodes) ? value.nodes.map(normalizeLegacyBoardNode).filter(Boolean) : []
+  const nodes = Array.isArray(value.nodes)
+    ? value.nodes.map(normalizeLegacyBoardNode).filter(Boolean)
+    : []
   const normalizedNodes = nodes as KnowledgeLegacyBoardNode[]
 
   if (normalizedNodes.length === 0) {
     return null
   }
 
-  const nodeIds = new Set(normalizedNodes.map(node => node.id))
+  const nodeIds = new Set(normalizedNodes.map((node) => node.id))
   const connectors = Array.isArray(value.connectors)
-    ? value.connectors.map(item => normalizeLegacyConnector(item, nodeIds)).filter(Boolean)
+    ? value.connectors.map((item) => normalizeLegacyConnector(item, nodeIds)).filter(Boolean)
     : []
 
   return {
@@ -123,8 +128,11 @@ const normalizeLegacyBoardDocument = (value: unknown): KnowledgeLegacyBoardDocum
       x: toFiniteNumber((value.viewport as Record<string, unknown> | undefined)?.x, 280),
       y: toFiniteNumber((value.viewport as Record<string, unknown> | undefined)?.y, 180),
       zoom: Math.min(
-        Math.max(toFiniteNumber((value.viewport as Record<string, unknown> | undefined)?.zoom, 1), 0.3),
-        2.4
+        Math.max(
+          toFiniteNumber((value.viewport as Record<string, unknown> | undefined)?.zoom, 1),
+          0.3,
+        ),
+        2.4,
       ),
     },
     nodes: normalizedNodes,
@@ -194,7 +202,7 @@ const convertLegacyNodeToSkeletons = (node: KnowledgeLegacyBoardNode) => {
 
 const convertLegacyConnectorToSkeleton = (
   connector: KnowledgeLegacyBoardConnector,
-  nodesById: Map<string, KnowledgeLegacyBoardNode>
+  nodesById: Map<string, KnowledgeLegacyBoardNode>,
 ) => {
   const fromNode = nodesById.get(connector.fromNodeId)
   const toNode = nodesById.get(connector.toNodeId)
@@ -233,7 +241,9 @@ const isWrappedExcalidrawBoardDocument = (value: unknown): value is Record<strin
   )
 }
 
-const convertWrappedExcalidrawBoardDocument = (value: Record<string, unknown>): KnowledgeBoardDocument => {
+const convertWrappedExcalidrawBoardDocument = (
+  value: Record<string, unknown>,
+): KnowledgeBoardDocument => {
   return normalizeExcalidrawBoardDocument({
     type: EXCALIDRAW_SCENE_TYPE,
     version: EXCALIDRAW_SCENE_VERSION,
@@ -246,13 +256,13 @@ const convertWrappedExcalidrawBoardDocument = (value: Record<string, unknown>): 
 
 /** 转换旧版画板ToExcalidraw文档。 */
 export const convertLegacyBoardToExcalidrawDocument = (
-  legacyDocument: KnowledgeLegacyBoardDocument
+  legacyDocument: KnowledgeLegacyBoardDocument,
 ): KnowledgeBoardDocument => {
-  const nodesById = new Map(legacyDocument.nodes.map(node => [node.id, node]))
+  const nodesById = new Map(legacyDocument.nodes.map((node) => [node.id, node]))
   const skeletons = [
     ...legacyDocument.nodes.flatMap(convertLegacyNodeToSkeletons),
     ...legacyDocument.connectors
-      .map(connector => convertLegacyConnectorToSkeleton(connector, nodesById))
+      .map((connector) => convertLegacyConnectorToSkeleton(connector, nodesById))
       .filter(Boolean),
   ] as ExcalidrawElementSkeletonInput
 
@@ -263,7 +273,7 @@ export const convertLegacyBoardToExcalidrawDocument = (
     source: EXCALIDRAW_SCENE_SOURCE,
     elements: cloneSerializable(
       convertToExcalidrawElements(skeletons) as Array<Record<string, unknown>>,
-      [] as Array<Record<string, unknown>>
+      [] as Array<Record<string, unknown>>,
     ),
     appState: {
       viewBackgroundColor: DEFAULT_KNOWLEDGE_BOARD_BACKGROUND,

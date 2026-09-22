@@ -75,7 +75,7 @@ const props = withDefaults(
     rows: 4,
     placeholder: "",
     disabled: false,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -130,8 +130,8 @@ const textareaClass = computed(() =>
     // cursor-text 对齐原生 textarea 的整盒文本光标（基线中 padding 区也是 textarea 自身）。
     "kb-el-textarea w-full resize-y overflow-hidden cursor-text rounded-[10px] border border-line bg-muted px-3 py-2 text-[13px] leading-5 text-ink outline-none transition",
     "focus-within:border-brand",
-    String(attrs.class ?? "")
-  )
+    String(attrs.class ?? ""),
+  ),
 )
 </script>
 

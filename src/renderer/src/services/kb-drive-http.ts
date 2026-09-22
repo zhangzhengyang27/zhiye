@@ -98,7 +98,7 @@ export const AI_REQUEST_TIMEOUT_MS = 180_000
 export const requestKbDriveApi = async <T>(
   path: string,
   options: KbDriveRequestOptions = {},
-  token?: string | null
+  token?: string | null,
 ): Promise<T> => {
   const { timeoutMs, signal, ...requestInit } = options
   const resolvedToken = await resolveAccessToken(token)
@@ -106,7 +106,8 @@ export const requestKbDriveApi = async <T>(
 
   // 显式 signal 与超时信号合并：任一触发即中止
   const timeoutSignal = timeoutMs ? AbortSignal.timeout(timeoutMs) : null
-  const requestSignal = signal && timeoutSignal ? AbortSignal.any([signal, timeoutSignal]) : (signal ?? timeoutSignal)
+  const requestSignal =
+    signal && timeoutSignal ? AbortSignal.any([signal, timeoutSignal]) : (signal ?? timeoutSignal)
 
   const requestInitWithAuth: AuthAwareFetchInit = {
     ...requestInit,

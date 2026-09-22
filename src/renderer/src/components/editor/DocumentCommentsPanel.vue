@@ -46,7 +46,7 @@ const props = withDefaults(
     submitting: false,
     loading: false,
     actionBusy: false,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -72,11 +72,11 @@ const canSubmit = computed(() => draft.value.trim().length > 0)
 
 watch(
   () => props.composeQuote,
-  quote => {
+  (quote) => {
     if (quote != null) {
       void nextTick(() => draftInputRef.value?.focus())
     }
-  }
+  },
 )
 
 const submitCompose = () => {
@@ -148,9 +148,14 @@ const handleReplyKeydown = (parentId: string) => (event: KeyboardEvent) => {
 
     <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
       <!-- 撰写态：划词评论草稿 -->
-      <div v-if="composeQuote != null" class="rounded-kb-xl border border-brand-lighter bg-brand-faint p-3">
+      <div
+        v-if="composeQuote != null"
+        class="rounded-kb-xl border border-brand-lighter bg-brand-faint p-3"
+      >
         <p class="text-[12px] font-medium text-brand">评论选中的内容</p>
-        <p class="mt-2 line-clamp-3 rounded-kb-md bg-surface px-2.5 py-2 text-[12px] leading-5 text-ink-secondary">
+        <p
+          class="mt-2 line-clamp-3 rounded-kb-md bg-surface px-2.5 py-2 text-[12px] leading-5 text-ink-secondary"
+        >
           「{{ composeQuote }}」
         </p>
         <el-input
@@ -164,7 +169,9 @@ const handleReplyKeydown = (parentId: string) => (event: KeyboardEvent) => {
           @keydown="handleComposeKeydown"
         />
         <div class="mt-2 flex items-center justify-end gap-2">
-          <el-button text size="small" @click="emit('cancel-compose')"><span class="truncate">取消</span> </el-button>
+          <el-button text size="small" @click="emit('cancel-compose')"
+            ><span class="truncate">取消</span>
+          </el-button>
           <el-button
             type="primary"
             size="small"
@@ -172,7 +179,9 @@ const handleReplyKeydown = (parentId: string) => (event: KeyboardEvent) => {
             :disabled="!canSubmit"
             :loading="submitting"
             @click="submitCompose"
-            ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            ><template #loading
+              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+            /></template>
             <span class="truncate">发布评论</span>
           </el-button>
         </div>
@@ -182,7 +191,10 @@ const handleReplyKeydown = (parentId: string) => (event: KeyboardEvent) => {
         <div v-for="index in 3" :key="index" class="h-24 animate-pulse rounded-kb-xl bg-muted" />
       </div>
 
-      <div v-else-if="comments.length === 0 && composeQuote == null" class="py-16 text-center text-ink-tertiary">
+      <div
+        v-else-if="comments.length === 0 && composeQuote == null"
+        class="py-16 text-center text-ink-tertiary"
+      >
         <AppIcon name="i-lucide-message-circle" class="mx-auto h-8 w-8 text-ink-quaternary" />
         <p class="mt-3 text-sm">还没有讨论</p>
         <p class="mt-1 text-[12px] text-ink-quaternary">划选正文内容即可发起针对内容的讨论。</p>
@@ -237,7 +249,9 @@ const handleReplyKeydown = (parentId: string) => (event: KeyboardEvent) => {
             size="small"
             class="text-[11px] text-ink-tertiary [line-height:inherit]"
             @click="replyingId = replyingId === item.id ? null : item.id"
-            ><span class="truncate">回复{{ item.replies.length > 0 ? ` (${item.replies.length})` : "" }}</span>
+            ><span class="truncate"
+              >回复{{ item.replies.length > 0 ? ` (${item.replies.length})` : "" }}</span
+            >
           </el-button>
           <el-button
             text
@@ -259,13 +273,18 @@ const handleReplyKeydown = (parentId: string) => (event: KeyboardEvent) => {
 
         <div v-if="item.replies.length > 0" class="mt-2 space-y-2 border-t border-line pt-2">
           <div v-for="reply in item.replies" :key="reply.id" class="flex items-start gap-2">
-            <AppIcon name="i-lucide-corner-down-right" class="mt-1 h-3 w-3 shrink-0 text-ink-quaternary" />
+            <AppIcon
+              name="i-lucide-corner-down-right"
+              class="mt-1 h-3 w-3 shrink-0 text-ink-quaternary"
+            />
             <div class="min-w-0 flex-1">
               <p class="text-[12px] leading-5 text-ink-secondary">
                 <span class="font-medium">{{ reply.authorName }}</span>
                 <span class="ml-2 text-[11px] text-ink-quaternary">{{ reply.createdAtText }}</span>
               </p>
-              <p class="whitespace-pre-wrap text-[12px] leading-5 text-ink-secondary">{{ reply.content }}</p>
+              <p class="whitespace-pre-wrap text-[12px] leading-5 text-ink-secondary">
+                {{ reply.content }}
+              </p>
             </div>
           </div>
         </div>

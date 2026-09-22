@@ -39,7 +39,7 @@ const props = withDefaults(
     documentStatusLabel: "",
     saveStatusLabel: "",
     allowEditPermission: undefined,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -73,7 +73,6 @@ const {
   shareTips,
   sortedShares,
   latestShareSummary,
-  sortedShares,
   loading,
   creating,
   getShareUrl,
@@ -93,9 +92,13 @@ const {
 const qrShare = ref<DocumentShare | null>(null)
 
 const metaChips = computed(() =>
-  [props.workspaceName, props.documentModeLabel, props.documentSchemeLabel, props.documentStatusLabel, props.saveStatusLabel].filter(
-    Boolean
-  )
+  [
+    props.workspaceName,
+    props.documentModeLabel,
+    props.documentSchemeLabel,
+    props.documentStatusLabel,
+    props.saveStatusLabel,
+  ].filter(Boolean),
 )
 
 const latestShareCreatedAt = computed(() => {
@@ -123,7 +126,7 @@ const handleDeleteShare = (shareId: string) => {
     :model-value="visible"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('close')"
+    @update:model-value="(value) => !value && emit('close')"
   >
     <template #header>
       <KbDialogHeader
@@ -134,7 +137,9 @@ const handleDeleteShare = (shareId: string) => {
     </template>
 
     <div v-if="metaChips.length" class="flex flex-wrap items-center gap-1.5">
-      <el-tag v-for="chip in metaChips" :key="chip" size="small" type="info" disable-transitions>{{ chip }}</el-tag>
+      <el-tag v-for="chip in metaChips" :key="chip" size="small" type="info" disable-transitions>{{
+        chip
+      }}</el-tag>
     </div>
 
     <div class="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -176,7 +181,12 @@ const handleDeleteShare = (shareId: string) => {
         />
 
         <div class="mt-4 flex justify-end">
-          <el-button type="primary" :loading="creating" :disabled="!canCreateShare" @click="handleCreateShare">
+          <el-button
+            type="primary"
+            :loading="creating"
+            :disabled="!canCreateShare"
+            @click="handleCreateShare"
+          >
             创建链接
           </el-button>
         </div>
@@ -199,7 +209,7 @@ const handleDeleteShare = (shareId: string) => {
     :loading="deleting"
     @confirm="confirmDeleteShare"
     @cancel="cancelDeleteShare"
-    @update:open="value => !value && cancelDeleteShare()"
+    @update:open="(value) => !value && cancelDeleteShare()"
   />
 
   <ShareQrDialog

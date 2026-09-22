@@ -11,10 +11,18 @@ import { useTransientToast } from "@/composables/use-transient-toast"
 import { getApiErrorStatus } from "@/services/http-client"
 import { resolveWebBaseUrl } from "@/services/desktop-bridge"
 import { logger } from "@/utils/logger"
-import { addKnowledgeFavorite, checkKnowledgeFavorite, removeKnowledgeFavorite } from "@/services/knowledge-favorites"
+import {
+  addKnowledgeFavorite,
+  checkKnowledgeFavorite,
+  removeKnowledgeFavorite,
+} from "@/services/knowledge-favorites"
 import { uploadKnowledgeAsset } from "@/services/knowledge-oss"
 import { getKnowledgeBaseMembers, type KnowledgeBaseMember } from "@/services/knowledge-permissions"
-import { openDocCollabChannel, type CollabPresenceMember, type DocCollabChannel } from "@/services/knowledge-collab"
+import {
+  openDocCollabChannel,
+  type CollabPresenceMember,
+  type DocCollabChannel,
+} from "@/services/knowledge-collab"
 import {
   deleteKnowledgeDocumentVersion,
   getKnowledgeDocument,
@@ -39,7 +47,10 @@ import {
   extractDocumentPlainText,
   type DocumentOutlineItem,
 } from "@/utils/document-content-metadata"
-import { getSharedMarkdown, renderKnowledgeDocumentHtmlWithMermaid } from "@/utils/knowledge-markdown"
+import {
+  getSharedMarkdown,
+  renderKnowledgeDocumentHtmlWithMermaid,
+} from "@/utils/knowledge-markdown"
 import { useAuthStore } from "@/stores/auth"
 import {
   createComment,
@@ -94,15 +105,25 @@ const EDITOR_TOOLBAR_ITEMS = [
   // Lake 内置查找替换（⇧⌘F 唤起面板；内核 search 插件提供 search/replaceText/replaceAll 命令）
   "search",
 ]
-const DocumentInfoPanel = defineAsyncComponent(() => import("@/components/editor/DocumentInfoPanel.vue"))
-const DocumentStyleSettingsDialog = defineAsyncComponent(
-  () => import("@/components/editor/DocumentStyleSettingsDialog.vue")
+const DocumentInfoPanel = defineAsyncComponent(
+  () => import("@/components/editor/DocumentInfoPanel.vue"),
 )
-const EditorShortcutPanel = defineAsyncComponent(() => import("@/components/editor/EditorShortcutPanel.vue"))
-const EditorSelectionToolbar = defineAsyncComponent(() => import("@/components/editor/EditorSelectionToolbar.vue"))
+const DocumentStyleSettingsDialog = defineAsyncComponent(
+  () => import("@/components/editor/DocumentStyleSettingsDialog.vue"),
+)
+const EditorShortcutPanel = defineAsyncComponent(
+  () => import("@/components/editor/EditorShortcutPanel.vue"),
+)
+const EditorSelectionToolbar = defineAsyncComponent(
+  () => import("@/components/editor/EditorSelectionToolbar.vue"),
+)
 const ShareDialog = defineAsyncComponent(() => import("@/components/share/ShareDialog.vue"))
-const VersionCompareDialog = defineAsyncComponent(() => import("@/components/version/VersionCompareDialog.vue"))
-const DocumentVersionsPanel = defineAsyncComponent(() => import("@/components/version/DocumentVersionsPanel.vue"))
+const VersionCompareDialog = defineAsyncComponent(
+  () => import("@/components/version/VersionCompareDialog.vue"),
+)
+const DocumentVersionsPanel = defineAsyncComponent(
+  () => import("@/components/version/DocumentVersionsPanel.vue"),
+)
 const ConfirmDialog = defineAsyncComponent(() => import("@/components/common/ConfirmDialog.vue"))
 
 const loadDocumentExportTools = () => import("@/utils/document-export")
@@ -191,7 +212,7 @@ const handleMentionSelect = (member: KnowledgeBaseMember) => {
       data: `@${member.user.displayName} `,
       bubbles: true,
       cancelable: true,
-    })
+    }),
   )
   showToastMessage(`已插入 @${member.user.displayName}`, "success")
 }
@@ -209,7 +230,7 @@ const handleAiInsertToEnd = (text: string) => {
   // getContent(scheme) 取当前全文 → 追加生成块 → setContent(scheme) 重设，与光标位置无关。
   const paragraphs = text
     .split(/\n{2,}/)
-    .map(paragraph => paragraph.trim())
+    .map((paragraph) => paragraph.trim())
     .filter(Boolean)
   if (!paragraphs.length) {
     showToastMessage("没有可插入的内容。", "error")
@@ -218,7 +239,9 @@ const handleAiInsertToEnd = (text: string) => {
   const targetScheme = scheme.value === "text/html" ? "text/html" : "text/markdown"
   const current = editor.getContent(targetScheme) || ""
   const appended =
-    targetScheme === "text/html" ? paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join("") : paragraphs.join("\n\n")
+    targetScheme === "text/html"
+      ? paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")
+      : paragraphs.join("\n\n")
   const next = current.trimEnd() + (current.trimEnd() ? "\n\n" : "") + appended + "\n\n"
   editor.setContent(next, targetScheme)
   showToastMessage("已插入到文档末尾", "success")
@@ -239,7 +262,8 @@ const favorited = ref(false)
 
 /** 版本面板「本地缓存」分区：展示未保存改动 / 保存失败等仅存在于本地的状态 */
 const versionsLocalCacheItems = computed(() => {
-  const items: Array<{ key: string; title: string; detail: string; tone?: "default" | "warning" }> = []
+  const items: Array<{ key: string; title: string; detail: string; tone?: "default" | "warning" }> =
+    []
 
   if (saveError.value) {
     items.push({
@@ -282,7 +306,9 @@ const docStyle = ref<DocEditorStyle>({ ...DEFAULT_DOC_STYLE })
 /** 存储值可能被手改/损坏：字号收敛到滑杆区间并取整，段间距只认合法档位 */
 const normalizeDocStyle = (value: Partial<DocEditorStyle> | null | undefined): DocEditorStyle => {
   const parsed = Number(value?.fontSize)
-  const fontSize = Number.isFinite(parsed) ? Math.min(20, Math.max(12, Math.round(parsed))) : DEFAULT_DOC_STYLE.fontSize
+  const fontSize = Number.isFinite(parsed)
+    ? Math.min(20, Math.max(12, Math.round(parsed)))
+    : DEFAULT_DOC_STYLE.fontSize
   return { fontSize, paragraphSpacing: value?.paragraphSpacing === "relax" ? "relax" : "default" }
 }
 
@@ -299,7 +325,10 @@ const writeLocalDocStyle = () => {
   if (!docId.value) return
 
   try {
-    window.localStorage.setItem(DOC_STYLE_STORAGE_PREFIX + docId.value, JSON.stringify(docStyle.value))
+    window.localStorage.setItem(
+      DOC_STYLE_STORAGE_PREFIX + docId.value,
+      JSON.stringify(docStyle.value),
+    )
   } catch {
     // 存储不可用（隐私模式/配额）时静默降级：样式仅本次会话内生效
   }
@@ -323,7 +352,10 @@ const persistEditorStyleToServer = async (style: DocEditorStyle) => {
 /** 文档加载时应用样式：服务端有配置用服务端，否则回落本地并迁移一次 */
 const applyServerDocStyle = (document: KnowledgeDocumentItem) => {
   const serverStyle = document.editorStyle
-  if (serverStyle && (serverStyle.fontSize !== undefined || serverStyle.paragraphSpacing !== undefined)) {
+  if (
+    serverStyle &&
+    (serverStyle.fontSize !== undefined || serverStyle.paragraphSpacing !== undefined)
+  ) {
     docStyle.value = normalizeDocStyle(serverStyle)
     writeLocalDocStyle()
     return
@@ -378,8 +410,10 @@ const toManagerComment = (record: CommentRecord) => ({
     name: record.user?.displayName || record.user?.name || "用户",
     avatar: record.user?.avatar ?? "",
   },
-  highlight: isHighlightAnchor(record.position) ? (record.position as unknown as HighlightSelection) : undefined,
-  replies: (record.replies ?? []).map(reply => ({
+  highlight: isHighlightAnchor(record.position)
+    ? (record.position as unknown as HighlightSelection)
+    : undefined,
+  replies: (record.replies ?? []).map((reply) => ({
     id: reply.id,
     content: reply.content,
     user: {
@@ -396,8 +430,8 @@ const toManagerComment = (record: CommentRecord) => ({
 /** 服务端评论树 → 面板展示模型 */
 const toCommentItems = (records: CommentRecord[]): DocCommentItem[] =>
   records
-    .filter(record => !record.parentId)
-    .map(record => ({
+    .filter((record) => !record.parentId)
+    .map((record) => ({
       id: record.id,
       content: record.content,
       authorName: record.user?.displayName || record.user?.name || "用户",
@@ -407,7 +441,7 @@ const toCommentItems = (records: CommentRecord[]): DocCommentItem[] =>
       quote: isHighlightAnchor(record.position)
         ? String((record.position as unknown as HighlightSelection).text ?? "")
         : null,
-      replies: (record.replies ?? []).map(reply => ({
+      replies: (record.replies ?? []).map((reply) => ({
         id: reply.id,
         content: reply.content,
         authorName: reply.user?.displayName || reply.user?.name || "用户",
@@ -430,8 +464,8 @@ const reloadDocComments = async () => {
     if (docId.value !== requestedDocId) {
       return
     }
-    commentManager?.hydrate(records.map(toManagerComment))
-    commentItems.value = toCommentItems(records)
+    commentManager?.hydrate(records.items.map(toManagerComment))
+    commentItems.value = toCommentItems(records.items)
   } catch (error) {
     logger.warn("KnowledgeDocEditorView", "load comments failed:", error)
   } finally {
@@ -600,7 +634,9 @@ const isPreviewMode = computed(() => route.query.preview === "1")
  * 无编辑权限的读者（reader）自动进入。正文只读 + 文末互动区。
  */
 const isReadingMode = computed(() => isPreviewMode.value || !canEdit.value)
-const docUpdatedAtText = computed(() => (snapshot.value?.updatedAt ? formatDateTime(snapshot.value.updatedAt) : "—"))
+const docUpdatedAtText = computed(() =>
+  snapshot.value?.updatedAt ? formatDateTime(snapshot.value.updatedAt) : "—",
+)
 const readingCommentDraft = ref("")
 const readingCommentsAnchor = ref<HTMLElement | null>(null)
 
@@ -661,7 +697,7 @@ const submitReadingComment = async () => {
   }
 }
 
-watch(isReadingMode, reading => {
+watch(isReadingMode, (reading) => {
   // 阅读态不提供侧栏面板入口；进入时收起避免残留
   if (reading) {
     closeAllSidePanels()
@@ -676,16 +712,18 @@ const allVersionsSelected = computed(() => {
     return false
   }
 
-  return versions.value.every(version => selectedVersionIds.value.includes(version.id))
+  return versions.value.every((version) => selectedVersionIds.value.includes(version.id))
 })
-const versionDeleteBusy = computed(() => batchDeletingVersions.value || deletingVersionId.value !== null)
+const versionDeleteBusy = computed(
+  () => batchDeletingVersions.value || deletingVersionId.value !== null,
+)
 // 顶栏协作者头像堆叠：对齐语雀心智，仅展示“其他协作者”（自己在右上角全局头像体现）
 const collaboratorsForHeader = computed(() =>
-  workspaceMembers.value.filter(member => member.userId !== authStore.user?.id)
+  workspaceMembers.value.filter((member) => member.userId !== authStore.user?.id),
 )
 const visibleCollaborators = computed(() => collaboratorsForHeader.value.slice(0, 3))
 const remainingCollaboratorCount = computed(() =>
-  Math.max(collaboratorsForHeader.value.length - visibleCollaborators.value.length, 0)
+  Math.max(collaboratorsForHeader.value.length - visibleCollaborators.value.length, 0),
 )
 const collaboratorsDialogOpen = ref(false)
 const collaboratorsDialog = useDialogBehavior({
@@ -694,7 +732,7 @@ const collaboratorsDialog = useDialogBehavior({
 // P-C1 协作感知：WS 房间在线成员与本人保存广播
 const collabChannel = ref<DocCollabChannel | null>(null)
 const onlinePresence = ref<CollabPresenceMember[]>([])
-const onlineUserIds = computed(() => new Set(onlinePresence.value.map(m => m.userId)))
+const onlineUserIds = computed(() => new Set(onlinePresence.value.map((m) => m.userId)))
 const onlineCollabCount = computed(() => onlinePresence.value.length)
 const collaboratorButtonTitle = computed(() => {
   const base = `查看协作者（${collaboratorsForHeader.value.length} 人`
@@ -743,7 +781,11 @@ const handleAddDocCollaborator = async () => {
 
   docCollabBusy.value = true
   try {
-    await addDocumentCollaborator(docId.value!, { email, role: inviteRole.value }, authStore.accessToken)
+    await addDocumentCollaborator(
+      docId.value!,
+      { email, role: inviteRole.value },
+      authStore.accessToken,
+    )
     inviteEmail.value = ""
     showToastMessage("协作者已添加。", "success")
     await loadDocCollaborators()
@@ -754,15 +796,25 @@ const handleAddDocCollaborator = async () => {
   }
 }
 
-const handleDocCollaboratorRoleChange = async (collaborator: DocumentCollaboratorItem, role: "editor" | "reader") => {
+const handleDocCollaboratorRoleChange = async (
+  collaborator: DocumentCollaboratorItem,
+  role: "editor" | "reader",
+) => {
   if (collaborator.role === role || docCollabBusy.value) {
     return
   }
 
   docCollabBusy.value = true
   try {
-    const updated = await updateDocumentCollaborator(docId.value!, collaborator.id, { role }, authStore.accessToken)
-    docCollaborators.value = docCollaborators.value.map(item => (item.id === updated.id ? updated : item))
+    const updated = await updateDocumentCollaborator(
+      docId.value!,
+      collaborator.id,
+      { role },
+      authStore.accessToken,
+    )
+    docCollaborators.value = docCollaborators.value.map((item) =>
+      item.id === updated.id ? updated : item,
+    )
     showToastMessage(`已设为${docCollabRoleLabel[updated.role]}。`, "success")
   } catch (error) {
     showToastMessage(error instanceof Error ? error.message : "修改角色失败。", "error")
@@ -779,7 +831,7 @@ const handleRemoveDocCollaborator = async (collaborator: DocumentCollaboratorIte
   docCollabBusy.value = true
   try {
     await removeDocumentCollaborator(docId.value!, collaborator.id, authStore.accessToken)
-    docCollaborators.value = docCollaborators.value.filter(item => item.id !== collaborator.id)
+    docCollaborators.value = docCollaborators.value.filter((item) => item.id !== collaborator.id)
     showToastMessage("协作者已移除。", "success")
   } catch (error) {
     showToastMessage(error instanceof Error ? error.message : "移除协作者失败。", "error")
@@ -788,7 +840,7 @@ const handleRemoveDocCollaborator = async (collaborator: DocumentCollaboratorIte
   }
 }
 
-watch(collaboratorsDialogOpen, open => {
+watch(collaboratorsDialogOpen, (open) => {
   if (open) {
     void loadDocCollaborators()
   }
@@ -869,7 +921,7 @@ const saveStatusLabel = computed(() => {
 
 /** 干净态文案：刚保存过就报「已保存 时刻」（语雀顶栏口径），否则报已加载最新版本 */
 const loadedStateLabel = computed(() =>
-  hasSavedInSession.value ? `已保存 ${formatClockTime(lastSavedAt.value)}` : "已加载最新版本"
+  hasSavedInSession.value ? `已保存 ${formatClockTime(lastSavedAt.value)}` : "已加载最新版本",
 )
 
 const savePrimaryActionLabel = computed(() => {
@@ -964,7 +1016,10 @@ const documentInfoStats = computed(() => [
 const documentInfoMeta = computed(() => [
   { label: "创建者", value: docCreatorLabel.value || "—" },
   { label: "创建时间", value: docCreatedAt.value ? formatDateTime(docCreatedAt.value) : "—" },
-  { label: "更新时间", value: snapshot.value?.updatedAt ? formatDateTime(snapshot.value.updatedAt) : "—" },
+  {
+    label: "更新时间",
+    value: snapshot.value?.updatedAt ? formatDateTime(snapshot.value.updatedAt) : "—",
+  },
 ])
 
 const documentInfoShortcuts = computed(() => {
@@ -984,7 +1039,7 @@ const documentInfoShortcuts = computed(() => {
 })
 
 const infoPanelCollaborators = computed(() =>
-  workspaceMembers.value.slice(0, 8).map(member => ({
+  workspaceMembers.value.slice(0, 8).map((member) => ({
     id: member.id,
     label: member.user.displayName || member.user.email || "协作者",
     role:
@@ -996,7 +1051,7 @@ const infoPanelCollaborators = computed(() =>
             ? "编辑者"
             : "阅读者",
     avatar: member.user.avatar || null,
-  }))
+  })),
 )
 
 const handleEditorReady = (editor: unknown) => {
@@ -1136,8 +1191,8 @@ const clearVersionSelection = () => {
 }
 
 const syncSelectedVersions = () => {
-  const validVersionIds = new Set(versions.value.map(version => version.id))
-  selectedVersionIds.value = selectedVersionIds.value.filter(id => validVersionIds.has(id))
+  const validVersionIds = new Set(versions.value.map((version) => version.id))
+  selectedVersionIds.value = selectedVersionIds.value.filter((id) => validVersionIds.has(id))
 }
 
 const toggleVersionSelection = (versionId: string) => {
@@ -1146,7 +1201,7 @@ const toggleVersionSelection = (versionId: string) => {
   }
 
   if (selectedVersionIds.value.includes(versionId)) {
-    selectedVersionIds.value = selectedVersionIds.value.filter(id => id !== versionId)
+    selectedVersionIds.value = selectedVersionIds.value.filter((id) => id !== versionId)
     return
   }
 
@@ -1158,7 +1213,9 @@ const toggleAllVersions = () => {
     return
   }
 
-  selectedVersionIds.value = allVersionsSelected.value ? [] : versions.value.map(version => version.id)
+  selectedVersionIds.value = allVersionsSelected.value
+    ? []
+    : versions.value.map((version) => version.id)
 }
 
 const normalizeDocument = (document: KnowledgeDocumentItem) => {
@@ -1244,7 +1301,7 @@ const loadDocument = async () => {
           kbId: workspaceContext.kbId.value,
           docId: document.id,
           editorType: document.editorType,
-        })
+        }),
       )
       return
     }
@@ -1253,7 +1310,7 @@ const loadDocument = async () => {
     void loadCollaborators()
     recordKnowledgeDocumentView(targetDocId).catch(() => undefined)
     checkKnowledgeFavorite(targetDocId)
-      .then(result => {
+      .then((result) => {
         if (seq === documentLoadSeq) {
           favorited.value = result.favorited
         }
@@ -1331,7 +1388,9 @@ const saveDocument = async (options?: { silent?: boolean; auto?: boolean }) => {
   // 仅保存路径同步：不用于打开态的脏检查（内核序列化与存储原文存在恒定格式差异）。
   const liveEditor = editorInstance.value as YuqueEditorRef | null
   if (liveEditor && isOnline.value) {
-    const liveContent = liveEditor.getContent(scheme.value === "text/html" ? "text/html" : "text/markdown")
+    const liveContent = liveEditor.getContent(
+      scheme.value === "text/html" ? "text/html" : "text/markdown",
+    )
     if (liveContent && liveContent !== content.value) {
       content.value = liveContent
     }
@@ -1435,7 +1494,7 @@ const saveDocument = async (options?: { silent?: boolean; auto?: boolean }) => {
     if (!options?.silent) {
       showToastMessage(
         retryable ? `${saveError.value} 已加入重试队列。` : saveError.value,
-        retryable ? "info" : "error"
+        retryable ? "info" : "error",
       )
     }
 
@@ -1448,7 +1507,10 @@ const saveDocument = async (options?: { silent?: boolean; auto?: boolean }) => {
     }
 
     if (pendingSaveRequest.value && isOnline.value && !saving.value && !autoSaving.value) {
-      const delay = pendingSaveRequest.value.reason === "retry" ? Math.min(12000, 1500 * 2 ** retryAttempt.value) : 160
+      const delay =
+        pendingSaveRequest.value.reason === "retry"
+          ? Math.min(12000, 1500 * 2 ** retryAttempt.value)
+          : 160
       retrySaveTimer.value = window.setTimeout(() => {
         retrySaveTimer.value = null
         void flushPendingSave()
@@ -1458,7 +1520,13 @@ const saveDocument = async (options?: { silent?: boolean; auto?: boolean }) => {
 }
 
 const flushPendingSave = async () => {
-  if (!pendingSaveRequest.value || !isOnline.value || saving.value || autoSaving.value || !isDirty.value) {
+  if (
+    !pendingSaveRequest.value ||
+    !isOnline.value ||
+    saving.value ||
+    autoSaving.value ||
+    !isDirty.value
+  ) {
     return false
   }
 
@@ -1519,7 +1587,10 @@ const deleteDocument = () => {
         await trashKnowledgeDocument(docId.value)
         await workspaceContext.refreshTree()
         showToastMessage("文档已移入回收站。", "success")
-        router.push({ name: "knowledge-workspace-home", params: { kbId: workspaceContext.kbId.value } })
+        router.push({
+          name: "knowledge-workspace-home",
+          params: { kbId: workspaceContext.kbId.value },
+        })
       } catch (error) {
         showToastMessage(error instanceof Error ? error.message : "删除失败。", "error")
       }
@@ -1673,8 +1744,10 @@ const deleteSelectedVersions = () => {
 
         const fallbackMessage = error instanceof Error ? error.message : "批量删除历史版本失败。"
         showToastMessage(
-          deletedCount > 0 ? `已删除 ${deletedCount} 个历史版本，剩余删除失败：${fallbackMessage}` : fallbackMessage,
-          deletedCount > 0 ? "info" : "error"
+          deletedCount > 0
+            ? `已删除 ${deletedCount} 个历史版本，剩余删除失败：${fallbackMessage}`
+            : fallbackMessage,
+          deletedCount > 0 ? "info" : "error",
         )
       } finally {
         deletingVersionId.value = null
@@ -1707,11 +1780,16 @@ const printDocument = async () => {
   const win = window.open("", "_blank")
   if (!win) return
   win.document.write(
-    await renderKnowledgeDocumentHtmlWithMermaid(title.value, content.value, editorContentType.value, markdown)
+    await renderKnowledgeDocumentHtmlWithMermaid(
+      title.value,
+      content.value,
+      editorContentType.value,
+      markdown,
+    ),
   )
   win.document.close()
 
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     win.onload = () => resolve()
     window.setTimeout(() => resolve(), 300)
   })
@@ -1754,8 +1832,10 @@ const copyDocumentAsMarkdown = async () => {
   if (!markdownText.trim()) {
     // HTML 文档在编辑器未就绪时拿不到内核模型，无法就地转 Markdown（与空文档区分提示）
     showToastMessage(
-      editor ? "文档内容为空，没有可复制的内容。" : "编辑器尚未就绪，无法转换 Markdown，请稍后重试。",
-      "info"
+      editor
+        ? "文档内容为空，没有可复制的内容。"
+        : "编辑器尚未就绪，无法转换 Markdown，请稍后重试。",
+      "info",
     )
     return
   }
@@ -1880,10 +1960,10 @@ const setupCollabChannel = () => {
     token,
     kbId,
     docId: docId.value,
-    onPresence: members => {
+    onPresence: (members) => {
       onlinePresence.value = members
     },
-    onDocChanged: actor => {
+    onDocChanged: (actor) => {
       if (isDirty.value) {
         showToastMessage(`${actor.displayName || "协作者"} 已更新文档，请留意冲突提示。`, "info")
       } else {
@@ -2022,7 +2102,7 @@ const jumpToOutlineItem = async (itemId: string) => {
     return
   }
 
-  const targetIndex = outlineItems.value.findIndex(item => item.id === itemId)
+  const targetIndex = outlineItems.value.findIndex((item) => item.id === itemId)
 
   if (targetIndex < 0 || typeof document === "undefined") {
     return
@@ -2031,8 +2111,8 @@ const jumpToOutlineItem = async (itemId: string) => {
   requestAnimationFrame(() => {
     const headings = Array.from(
       document.querySelectorAll<HTMLElement>(
-        ".yuque-doc-editor__surface h1, .yuque-doc-editor__surface h2, .yuque-doc-editor__surface h3, .yuque-doc-editor__surface h4"
-      )
+        ".yuque-doc-editor__surface h1, .yuque-doc-editor__surface h2, .yuque-doc-editor__surface h3, .yuque-doc-editor__surface h4",
+      ),
     )
 
     headings[targetIndex]?.scrollIntoView({
@@ -2138,7 +2218,10 @@ const copyKnowledgeWorkspacePageLink = async (target: "home" | "overview") => {
 
   try {
     await navigator.clipboard.writeText(href)
-    showToastMessage(target === "home" ? "知识库主页链接已复制。" : "知识库目录链接已复制。", "success")
+    showToastMessage(
+      target === "home" ? "知识库主页链接已复制。" : "知识库目录链接已复制。",
+      "success",
+    )
   } catch {
     showToastMessage("复制空间链接失败，请稍后重试。", "error")
   }
@@ -2164,7 +2247,11 @@ const exportMenuItems = computed<DropdownMenuItem[][]>(() => [
     { label: "导出为 Markdown", icon: "i-lucide-file-text", onSelect: () => void exportMarkdown() },
     { label: "导出为 PDF", icon: "i-lucide-file-down", onSelect: () => void exportPDF() },
     { label: "导出为 Word", icon: "i-lucide-file-type", onSelect: () => void exportWord() },
-    { label: "导出为语雀文档 (.lake)", icon: "i-lucide-file-json", onSelect: () => void exportLake() },
+    {
+      label: "导出为语雀文档 (.lake)",
+      icon: "i-lucide-file-json",
+      onSelect: () => void exportLake(),
+    },
   ],
 ])
 
@@ -2199,7 +2286,9 @@ const moreMenuItems = computed<DropdownMenuItem[][]>(() => {
     [
       { type: "label", label: "视图与面板" },
       {
-        label: activeSidePanel.value ? `切换右侧面板（当前${activeSidePanelLabel.value}）` : "打开右侧面板",
+        label: activeSidePanel.value
+          ? `切换右侧面板（当前${activeSidePanelLabel.value}）`
+          : "打开右侧面板",
         icon: "i-lucide-panels-top-left",
         children: [
           {
@@ -2257,9 +2346,21 @@ const moreMenuItems = computed<DropdownMenuItem[][]>(() => {
         label: "复制与打开",
         icon: "i-lucide-link-2",
         children: [
-          { label: "复制标题链接", icon: "i-lucide-brackets", onSelect: () => void copyCurrentDocumentMarkdownLink() },
-          { label: "复制当前链接", icon: "i-lucide-link-2", onSelect: () => void copyCurrentDocumentLink() },
-          { label: "复制为 Markdown", icon: "i-lucide-clipboard-type", onSelect: () => void copyDocumentAsMarkdown() },
+          {
+            label: "复制标题链接",
+            icon: "i-lucide-brackets",
+            onSelect: () => void copyCurrentDocumentMarkdownLink(),
+          },
+          {
+            label: "复制当前链接",
+            icon: "i-lucide-link-2",
+            onSelect: () => void copyCurrentDocumentLink(),
+          },
+          {
+            label: "复制为 Markdown",
+            icon: "i-lucide-clipboard-type",
+            onSelect: () => void copyDocumentAsMarkdown(),
+          },
           {
             label: "在新标签打开",
             icon: "i-lucide-square-arrow-out-up-right",
@@ -2306,10 +2407,18 @@ const moreMenuItems = computed<DropdownMenuItem[][]>(() => {
         icon: "i-lucide-download",
         children: [
           { label: "打印文档", icon: "i-lucide-printer", onSelect: () => void printDocument() },
-          { label: "导出为 Markdown", icon: "i-lucide-file-text", onSelect: () => void exportMarkdown() },
+          {
+            label: "导出为 Markdown",
+            icon: "i-lucide-file-text",
+            onSelect: () => void exportMarkdown(),
+          },
           { label: "导出为 PDF", icon: "i-lucide-file-down", onSelect: () => void exportPDF() },
           { label: "导出为 Word", icon: "i-lucide-file-type", onSelect: () => void exportWord() },
-          { label: "导出为语雀文档 (.lake)", icon: "i-lucide-file-json", onSelect: () => void exportLake() },
+          {
+            label: "导出为语雀文档 (.lake)",
+            icon: "i-lucide-file-json",
+            onSelect: () => void exportLake(),
+          },
         ],
       },
     ],
@@ -2365,16 +2474,16 @@ watch(
     remoteConflict.value = null
     void loadDocument()
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 watch(
   () => versionsDialogOpen.value,
-  open => {
+  (open) => {
     if (!open) {
       clearVersionSelection()
     }
-  }
+  },
 )
 
 watch([title, status, scheme, content], () => {
@@ -2389,7 +2498,7 @@ const waitUntilSaveIdle = async (timeoutMs = 8000) => {
   const deadline = Date.now() + timeoutMs
 
   while ((saving.value || autoSaving.value) && Date.now() < deadline) {
-    await new Promise<void>(resolve => window.setTimeout(resolve, 30))
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 30))
   }
 }
 
@@ -2478,7 +2587,11 @@ onBeforeUnmount(() => {
             placeholder="无标题文档"
             class="w-full border-none bg-transparent px-0 text-[15px] font-medium text-ink outline-none placeholder:text-ink-quaternary"
           />
-          <span v-else class="block truncate text-[15px] font-medium text-ink" :title="title || '无标题文档'">
+          <span
+            v-else
+            class="block truncate text-[15px] font-medium text-ink"
+            :title="title || '无标题文档'"
+          >
             {{ title || "无标题文档" }}
           </span>
         </div>
@@ -2509,7 +2622,9 @@ onBeforeUnmount(() => {
             "
             :title="favorited ? '取消收藏' : '收藏文档'"
             @click="toggleFavorite"
-            ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            ><template #loading
+              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+            /></template>
             <UiIcon
               v-if="!togglingFavorite"
               :icon="favorited ? 'i-lucide-star' : 'i-lucide-star-off'"
@@ -2573,7 +2688,9 @@ onBeforeUnmount(() => {
             "
             title="历史版本"
             @click="openVersions"
-            ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            ><template #loading
+              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+            /></template>
             <UiIcon
               v-if="!(versionsLoading && versionsDialogOpen)"
               icon="i-lucide-clock"
@@ -2613,7 +2730,9 @@ onBeforeUnmount(() => {
             :loading="saving && !autoSaving"
             class="h-8 border-line-input bg-surface px-3 text-ink-secondary py-0"
             @click="saveDocument()"
-            ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            ><template #loading
+              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+            /></template>
             <span class="truncate">{{ savePrimaryActionLabel }}</span>
           </el-button>
           <el-button
@@ -2691,13 +2810,18 @@ onBeforeUnmount(() => {
 
     <div v-if="loading" class="flex flex-1 items-center justify-center bg-surface p-6">
       <div class="kb-card-elevated px-10 py-12 text-center">
-        <AppIcon name="i-lucide-loader-circle" class="mx-auto h-8 w-8 animate-spin text-ink-quaternary" />
+        <AppIcon
+          name="i-lucide-loader-circle"
+          class="mx-auto h-8 w-8 animate-spin text-ink-quaternary"
+        />
         <p class="mt-3 text-sm text-ink-tertiary">加载中…</p>
       </div>
     </div>
 
     <div v-else-if="errorMessage" class="flex flex-1 items-center justify-center bg-surface p-6">
-      <div class="max-w-md rounded-kb-3xl border border-error-light bg-surface px-8 py-10 text-center">
+      <div
+        class="max-w-md rounded-kb-3xl border border-error-light bg-surface px-8 py-10 text-center"
+      >
         <AppIcon name="i-lucide-alert-circle" class="mx-auto h-16 w-16 text-error-hover" />
         <p class="mt-4 text-base text-ink-secondary">{{ errorMessage }}</p>
         <el-button
@@ -2709,7 +2833,10 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="!loading && !errorMessage" class="relative min-h-0 flex flex-1 overflow-hidden bg-surface">
+    <div
+      v-if="!loading && !errorMessage"
+      class="relative min-h-0 flex flex-1 overflow-hidden bg-surface"
+    >
       <!-- 阅读态：本层为滚动容器（正文自适应高度 + 文末互动区同流滚动）；编辑态 contents 保持原布局 -->
       <div :class="isReadingMode ? 'min-h-0 w-full flex-1 overflow-y-auto' : 'contents'">
         <!-- 阅读态标题兜底：doc-hero-title 宿主节点在工具栏之后，阅读态无工具栏故静态渲染 -->
@@ -2737,10 +2864,19 @@ onBeforeUnmount(() => {
           <template #surface-header>
             <!-- 语雀编辑页的正文大标题：渲染进 lake 工具栏下方的宿主节点 -->
             <Teleport v-if="docTitleHost" :to="docTitleHost">
-              <input v-if="canEdit" v-model="title" type="text" placeholder="无标题文档" class="doc-hero-title" />
+              <input
+                v-if="canEdit"
+                v-model="title"
+                type="text"
+                placeholder="无标题文档"
+                class="doc-hero-title"
+              />
               <h1 v-else class="doc-hero-title">{{ title || "无标题文档" }}</h1>
             </Teleport>
-            <div v-if="headerFeedbackItems.length > 0 && !isReadingMode" class="w-full px-8 pt-4 sm:px-12 lg:px-[72px]">
+            <div
+              v-if="headerFeedbackItems.length > 0 && !isReadingMode"
+              class="w-full px-8 pt-4 sm:px-12 lg:px-[72px]"
+            >
               <div class="flex flex-wrap items-center gap-2">
                 <button
                   v-for="item in headerFeedbackItems"
@@ -2752,7 +2888,10 @@ onBeforeUnmount(() => {
                 >
                   <AppIcon :name="item.icon" class="h-3.5 w-3.5 shrink-0" />
                   <span class="truncate">{{ item.label }}</span>
-                  <span v-if="item.detail" class="hidden max-w-[280px] truncate text-[11px] opacity-75 2xl:inline">
+                  <span
+                    v-if="item.detail"
+                    class="hidden max-w-[280px] truncate text-[11px] opacity-75 2xl:inline"
+                  >
                     {{ item.detail }}
                   </span>
                 </button>
@@ -2762,7 +2901,10 @@ onBeforeUnmount(() => {
 
           <template #surface-footer>
             <!-- 对齐语雀：字数固定在编辑区左下角（footer 随高度链贴底）；阅读态不展示 -->
-            <div v-if="!isReadingMode" class="inline-flex items-center pb-3 pl-5 text-[12px] text-ink-quaternary">
+            <div
+              v-if="!isReadingMode"
+              class="inline-flex items-center pb-3 pl-5 text-[12px] text-ink-quaternary"
+            >
               {{ editorWordCountLabel }}
             </div>
           </template>
@@ -2843,16 +2985,25 @@ onBeforeUnmount(() => {
                   >
                     {{ item.quote }}
                   </p>
-                  <p class="mt-1 whitespace-pre-wrap break-words text-[13px] leading-6 text-ink-secondary">
+                  <p
+                    class="mt-1 whitespace-pre-wrap break-words text-[13px] leading-6 text-ink-secondary"
+                  >
                     {{ item.content }}
                   </p>
-                  <div v-if="item.replies.length > 0" class="mt-2 space-y-2 border-l-2 border-line pl-3">
+                  <div
+                    v-if="item.replies.length > 0"
+                    class="mt-2 space-y-2 border-l-2 border-line pl-3"
+                  >
                     <div v-for="reply in item.replies" :key="reply.id">
                       <div class="flex flex-wrap items-center gap-x-2">
                         <span class="text-[12px] font-medium text-ink">{{ reply.authorName }}</span>
-                        <span class="text-[11px] text-ink-quaternary">{{ reply.createdAtText }}</span>
+                        <span class="text-[11px] text-ink-quaternary">{{
+                          reply.createdAtText
+                        }}</span>
                       </div>
-                      <p class="mt-0.5 whitespace-pre-wrap break-words text-[12px] leading-5 text-ink-secondary">
+                      <p
+                        class="mt-0.5 whitespace-pre-wrap break-words text-[12px] leading-5 text-ink-secondary"
+                      >
                         {{ reply.content }}
                       </p>
                     </div>
@@ -2907,8 +3058,8 @@ onBeforeUnmount(() => {
         @switch-tab="handleSidePanelSwitch"
         @submit="submitDocComment"
         @cancel-compose="cancelCommentCompose"
-        @resolve="id => handleCommentResolve(id, true)"
-        @unresolve="id => handleCommentResolve(id, false)"
+        @resolve="(id) => handleCommentResolve(id, true)"
+        @unresolve="(id) => handleCommentResolve(id, false)"
         @delete="handleCommentDelete"
         @reply="handleCommentReply"
         @scroll-to="scrollCommentIntoView"
@@ -2945,7 +3096,7 @@ onBeforeUnmount(() => {
       title="协作者"
       close-on-click-modal
       close-on-press-escape
-      @update:model-value="value => !value && (collaboratorsDialogOpen = false)"
+      @update:model-value="(value) => !value && (collaboratorsDialogOpen = false)"
     >
       <template #header>
         <KbDialogHeader
@@ -3016,7 +3167,9 @@ onBeforeUnmount(() => {
                 :alt="collaborator.user.displayName || collaborator.user.email"
                 class="h-full w-full object-cover"
               />
-              <span v-else>{{ (collaborator.user.displayName || collaborator.user.email).slice(0, 1) }}</span>
+              <span v-else>{{
+                (collaborator.user.displayName || collaborator.user.email).slice(0, 1)
+              }}</span>
             </div>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-1.5">
@@ -3029,7 +3182,9 @@ onBeforeUnmount(() => {
                   >（我）</span
                 >
               </div>
-              <div class="truncate text-[12px] text-ink-tertiary">{{ collaborator.user.email }}</div>
+              <div class="truncate text-[12px] text-ink-tertiary">
+                {{ collaborator.user.email }}
+              </div>
             </div>
 
             <el-dropdown
@@ -3037,7 +3192,9 @@ onBeforeUnmount(() => {
               trigger="click"
               placement="bottom-end"
               :show-arrow="false"
-              @command="(role: 'editor' | 'reader') => handleDocCollaboratorRoleChange(collaborator, role)"
+              @command="
+                (role: 'editor' | 'reader') => handleDocCollaboratorRoleChange(collaborator, role)
+              "
             >
               <button
                 type="button"
@@ -3051,7 +3208,9 @@ onBeforeUnmount(() => {
                   <el-dropdown-item command="editor" :disabled="collaborator.role === 'editor'"
                     >可编辑</el-dropdown-item
                   >
-                  <el-dropdown-item command="reader" :disabled="collaborator.role === 'reader'">只读</el-dropdown-item>
+                  <el-dropdown-item command="reader" :disabled="collaborator.role === 'reader'"
+                    >只读</el-dropdown-item
+                  >
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -3075,7 +3234,9 @@ onBeforeUnmount(() => {
           </li>
         </ul>
         <p v-else class="mt-2 px-1 text-[12px] text-ink-quaternary">
-          {{ canManageDocCollaborators ? "还没有文档协作者，通过上方邮箱邀请。" : "暂无文档协作者。" }}
+          {{
+            canManageDocCollaborators ? "还没有文档协作者，通过上方邮箱邀请。" : "暂无文档协作者。"
+          }}
         </p>
       </div>
 
@@ -3104,7 +3265,9 @@ onBeforeUnmount(() => {
               <span class="truncate text-[13px] font-medium text-ink">
                 {{ member.user.displayName || member.user.email }}
               </span>
-              <span v-if="member.userId === authStore.user?.id" class="shrink-0 text-[11px] text-ink-quaternary"
+              <span
+                v-if="member.userId === authStore.user?.id"
+                class="shrink-0 text-[11px] text-ink-quaternary"
                 >（我）</span
               >
             </div>

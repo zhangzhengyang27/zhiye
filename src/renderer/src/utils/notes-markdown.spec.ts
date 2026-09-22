@@ -4,14 +4,25 @@ import { parseNoteSegments, toggleTodoLine } from "./notes-markdown"
 describe("parseNoteSegments（#17 小记 markdown-lite）", () => {
   it("解析待办行（未勾/已勾）", () => {
     const segments = parseNoteSegments("- [ ] 买牛奶\n- [x] 交报告")
-    expect(segments[0]).toMatchObject({ kind: "todo", checked: false, text: "买牛奶", lineIndex: 0 })
+    expect(segments[0]).toMatchObject({
+      kind: "todo",
+      checked: false,
+      text: "买牛奶",
+      lineIndex: 0,
+    })
     expect(segments[1]).toMatchObject({ kind: "todo", checked: true, text: "交报告", lineIndex: 1 })
   })
 
   it("解析图片与附件行", () => {
-    const segments = parseNoteSegments("![截图](https://x.com/a.png)\n[会议纪要.docx](https://x.com/b.docx)")
+    const segments = parseNoteSegments(
+      "![截图](https://x.com/a.png)\n[会议纪要.docx](https://x.com/b.docx)",
+    )
     expect(segments[0]).toMatchObject({ kind: "image", url: "https://x.com/a.png" })
-    expect(segments[1]).toMatchObject({ kind: "attachment", label: "会议纪要.docx", url: "https://x.com/b.docx" })
+    expect(segments[1]).toMatchObject({
+      kind: "attachment",
+      label: "会议纪要.docx",
+      url: "https://x.com/b.docx",
+    })
   })
 
   it("普通文本与空行归为文本段并保留行号", () => {
@@ -23,7 +34,7 @@ describe("parseNoteSegments（#17 小记 markdown-lite）", () => {
 
   it("非法语法行兜底为文本", () => {
     const segments = parseNoteSegments("![没有闭合的图片(https://x)\n[空url]()")
-    expect(segments.every(s => s.kind === "text")).toBe(true)
+    expect(segments.every((s) => s.kind === "text")).toBe(true)
   })
 })
 

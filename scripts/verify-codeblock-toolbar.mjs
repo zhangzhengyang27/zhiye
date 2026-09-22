@@ -27,13 +27,19 @@ try {
   await loginThroughUi(page, "[验证]")
   const token = await readAccessToken(page)
   const kb = await ensureKnowledgeBase(token, "[验证]", "Smoke Workspace 编辑器工具栏验证")
-  const doc = await ensureDocument(kb.id, token, { title: "工具栏代码块验证", content: "验证代码块按钮。" })
+  const doc = await ensureDocument(kb.id, token, {
+    title: "工具栏代码块验证",
+    content: "验证代码块按钮。",
+  })
   logStep("[验证]", `打开文档 ${doc.title}（kb=${kb.name}）`)
 
   // 文档页存在未读数轮询/协作 WS，networkidle 永不空闲，与 workspace-smoke 同款用 domcontentloaded
-  await page.goto(new URL(`/knowledge/${kb.id}/doc/${doc.id}`, "http://127.0.0.1:4173").toString(), {
-    waitUntil: "domcontentloaded",
-  })
+  await page.goto(
+    new URL(`/knowledge/${kb.id}/doc/${doc.id}`, "http://127.0.0.1:4173").toString(),
+    {
+      waitUntil: "domcontentloaded",
+    },
+  )
 
   const toolbar = page.locator(".ne-ui").first()
   await toolbar.waitFor({ state: "visible", timeout: 30_000 })
@@ -74,12 +80,22 @@ try {
 
   // 5. 只读/预览模式不渲染按钮（show-code-block-button 与 editable 同源关闭；
   //    预览态内核只读分支不初始化 Lake 引擎，等 surface 出现即可）
-  await page.goto(new URL(`/knowledge/${kb.id}/doc/${doc.id}?preview=1`, "http://127.0.0.1:4173").toString(), {
-    waitUntil: "domcontentloaded",
-  })
-  await page.locator(".yuque-doc-editor__surface").first().waitFor({ state: "visible", timeout: 30_000 })
+  await page.goto(
+    new URL(`/knowledge/${kb.id}/doc/${doc.id}?preview=1`, "http://127.0.0.1:4173").toString(),
+    {
+      waitUntil: "domcontentloaded",
+    },
+  )
+  await page
+    .locator(".yuque-doc-editor__surface")
+    .first()
+    .waitFor({ state: "visible", timeout: 30_000 })
   await page.waitForTimeout(800)
-  assert.equal(await page.locator(".lake-toolbar-codeblock-btn").count(), 0, "预览模式不应出现代码块按钮")
+  assert.equal(
+    await page.locator(".lake-toolbar-codeblock-btn").count(),
+    0,
+    "预览模式不应出现代码块按钮",
+  )
   logStep("[验证]", "✅ 预览模式无代码块按钮")
   await page.waitForTimeout(800)
   await page.screenshot({ path: `${shotDir}/codeblock-toolbar.png`, fullPage: false })

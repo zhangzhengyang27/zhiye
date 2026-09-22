@@ -63,7 +63,10 @@ export interface UpdateSharedDocumentPayload {
 /**
  * 创建文档分享链接。
  */
-export async function createDocumentShare(documentId: string, payload: CreateSharePayload): Promise<DocumentShare> {
+export async function createDocumentShare(
+  documentId: string,
+  payload: CreateSharePayload,
+): Promise<DocumentShare> {
   return await requestKbDriveApi<DocumentShare>(`/knowledge/documents/${documentId}/shares`, {
     method: "POST",
     body: JSON.stringify(payload),
@@ -101,7 +104,7 @@ export async function verifyShare(shareKey: string, password?: string): Promise<
  */
 export async function updateSharedDocument(
   shareKey: string,
-  payload: UpdateSharedDocumentPayload
+  payload: UpdateSharedDocumentPayload,
 ): Promise<SharedDocument> {
   return await requestKbDriveApi<SharedDocument>(`/public/shares/${shareKey}`, {
     method: "PATCH",
@@ -112,9 +115,13 @@ export async function updateSharedDocument(
 /**
  * 更新分享设置（B2e 站内公开搜索开关）。
  */
-export const updateShareSettings = (shareId: string, payload: { searchable?: boolean }, token?: string | null) =>
+export const updateShareSettings = (
+  shareId: string,
+  payload: { searchable?: boolean },
+  token?: string | null,
+) =>
   requestKbDriveApi<{ id: string; searchable: boolean }>(
     `/knowledge/documents/shares/${shareId}`,
     { method: "PATCH", body: JSON.stringify(payload) },
-    token
+    token,
   )

@@ -92,7 +92,7 @@ const props = withDefaults(
     variant: "list",
     orientation: "vertical",
     disabled: false,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -142,7 +142,9 @@ const handleKeydown = (event: KeyboardEvent) => {
     return
   }
 
-  const inputs = Array.from(root.querySelectorAll<HTMLInputElement>("input[type=radio]")).filter(el => !el.disabled)
+  const inputs = Array.from(root.querySelectorAll<HTMLInputElement>("input[type=radio]")).filter(
+    (el) => !el.disabled,
+  )
   if (inputs.length === 0) {
     return
   }
@@ -161,9 +163,11 @@ const handleKeydown = (event: KeyboardEvent) => {
 const radioGroupClass = computed(() =>
   cn(
     "kb-el-radio-group",
-    props.orientation === "vertical" ? "kb-el-radio-group--vertical gap-3" : "kb-el-radio-group--horizontal gap-5",
-    String(attrs.class ?? "")
-  )
+    props.orientation === "vertical"
+      ? "kb-el-radio-group--vertical gap-3"
+      : "kb-el-radio-group--horizontal gap-5",
+    String(attrs.class ?? ""),
+  ),
 )
 
 const segmentedClass = computed(() => cn("kb-el-segmented", String(attrs.class ?? "")))
@@ -188,7 +192,9 @@ const segmentedClass = computed(() => cn("kb-el-segmented", String(attrs.class ?
       class="kb-el-radio"
     >
       <span class="block text-sm font-medium text-ink">{{ item.label }}</span>
-      <span v-if="item.description" class="mt-0.5 block text-xs text-ink-tertiary">{{ item.description }}</span>
+      <span v-if="item.description" class="mt-0.5 block text-xs text-ink-tertiary">{{
+        item.description
+      }}</span>
     </el-radio>
   </el-radio-group>
 
@@ -204,7 +210,11 @@ const segmentedClass = computed(() => cn("kb-el-segmented", String(attrs.class ?
     @keydown="handleKeydown"
   >
     <template #default="{ item }">
-      <AppIcon v-if="isSelected(item as RadioItem)" name="i-lucide-check" class="h-3.5 w-3.5 text-success" />
+      <AppIcon
+        v-if="isSelected(item as RadioItem)"
+        name="i-lucide-check"
+        class="h-3.5 w-3.5 text-success"
+      />
       {{ (item as RadioItem).label }}
     </template>
   </el-segmented>

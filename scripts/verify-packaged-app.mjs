@@ -14,8 +14,9 @@ const context = cdp.contexts()[0]
 assert.ok(context, "应能拿到 CDP context")
 
 // Electron 主窗口（跳过 DevTools 等）
-const page = context.pages().find(p => !p.url().startsWith("devtools")) ?? (await context.newPage())
-const step = msg => console.log(`[打包验证] ${msg}`)
+const page =
+  context.pages().find((p) => !p.url().startsWith("devtools")) ?? (await context.newPage())
+const step = (msg) => console.log(`[打包验证] ${msg}`)
 // SPA 同路由 goto 的 load 事件可能不触发，全部容错并用后续选择器等待确认
 const safeGoto = async (url, waitMs = 1500) => {
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15_000 }).catch(() => {})
@@ -23,7 +24,9 @@ const safeGoto = async (url, waitMs = 1500) => {
 }
 
 // 1. 登录（若已有会话则跳过）。SPA 已在同路由时 goto 的 load 事件可能不触发，容错处理
-await page.goto(`${APP_URL}/auth/login`, { waitUntil: "domcontentloaded", timeout: 15_000 }).catch(() => {})
+await page
+  .goto(`${APP_URL}/auth/login`, { waitUntil: "domcontentloaded", timeout: 15_000 })
+  .catch(() => {})
 await page
   .locator("input")
   .first()
@@ -31,7 +34,10 @@ await page
   .catch(() => {})
 await page.waitForTimeout(1000)
 
-if (page.url().includes("auth/login") || (await page.getByRole("button", { name: "登录并进入" }).count()) > 0) {
+if (
+  page.url().includes("auth/login") ||
+  (await page.getByRole("button", { name: "登录并进入" }).count()) > 0
+) {
   await page
     .locator("input[placeholder*='账号'], input[placeholder*='邮箱']")
     .first()
@@ -67,7 +73,7 @@ const docInfo = await page.evaluate(async () => {
   const headers = { Authorization: `Bearer ${session.accessToken}` }
   const res = await fetch(`${apiBase}/knowledge/knowledge-bases`, { headers })
   const kbs = await res.json()
-  const findDoc = nodes => {
+  const findDoc = (nodes) => {
     for (const node of nodes) {
       if (node.type === "doc") {
         return node
@@ -107,7 +113,9 @@ const docInfo = await page.evaluate(async () => {
   }
   for (const kb of kbs) {
     const tree = await (
-      await fetch(`${apiBase}/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, { headers })
+      await fetch(`${apiBase}/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, {
+        headers,
+      })
     ).json()
     const doc = findDoc(Array.isArray(tree) ? tree : [])
     if (doc) {
@@ -127,9 +135,13 @@ step("✅ Lake 编辑器在打包环境加载成功（app:// 静态资源链路�
 
 // 4. 编辑器资源加载校验：确认无 doc.umd.js 404
 const failedAssets = []
-page.on("requestfailed", req => failedAssets.push(req.url()))
+page.on("requestfailed", (req) => failedAssets.push(req.url()))
 await page.waitForTimeout(800)
-assert.equal(failedAssets.filter(u => /yuque-assets/.test(u)).length, 0, "yuque-assets 资源不应加载失败")
+assert.equal(
+  failedAssets.filter((u) => /yuque-assets/.test(u)).length,
+  0,
+  "yuque-assets 资源不应加载失败",
+)
 
 console.log("[打包验证] 🎉 打包产物运行验证全部通过")
 await page.screenshot({ path: "output/visual-baseline/packaged-app-editor.png" })

@@ -15,7 +15,9 @@ export const EXCALIDRAW_SCENE_SOURCE = "xiaoye"
 const createEmptyObject = () => Object.create(null) as Record<string, unknown>
 
 const normalizeBoardAppState = (value: unknown) => {
-  const appState = isRecord(value) ? cloneSerializable(value, createEmptyObject()) : createEmptyObject()
+  const appState = isRecord(value)
+    ? cloneSerializable(value, createEmptyObject())
+    : createEmptyObject()
 
   if (typeof appState.viewBackgroundColor !== "string" || !appState.viewBackgroundColor.trim()) {
     appState.viewBackgroundColor = DEFAULT_KNOWLEDGE_BOARD_BACKGROUND
@@ -65,14 +67,19 @@ export const normalizeExcalidrawBoardDocument = (value: unknown): KnowledgeBoard
   return {
     type: EXCALIDRAW_SCENE_TYPE,
     version: Number.isFinite(value.version) ? value.version : EXCALIDRAW_SCENE_VERSION,
-    source: typeof value.source === "string" && value.source.trim() ? value.source : EXCALIDRAW_SCENE_SOURCE,
+    source:
+      typeof value.source === "string" && value.source.trim()
+        ? value.source
+        : EXCALIDRAW_SCENE_SOURCE,
     elements: Array.isArray(value.elements)
       ? cloneSerializable(
-          value.elements.filter(item => isRecord(item)),
-          [] as Array<Record<string, unknown>>
+          value.elements.filter((item) => isRecord(item)),
+          [] as Array<Record<string, unknown>>,
         )
       : [],
     appState: normalizeBoardAppState(value.appState),
-    files: isRecord(value.files) ? cloneSerializable(value.files, createEmptyObject()) : createEmptyObject(),
+    files: isRecord(value.files)
+      ? cloneSerializable(value.files, createEmptyObject())
+      : createEmptyObject(),
   }
 }

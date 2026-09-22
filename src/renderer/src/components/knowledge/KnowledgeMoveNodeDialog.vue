@@ -15,7 +15,10 @@
 import { computed, ref } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
 import { getApiErrorMessage } from "@/services/http-client"
-import { updateKnowledgeDocument, type KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
+import {
+  updateKnowledgeDocument,
+  type KnowledgeDocumentTreeNode,
+} from "@/services/knowledge-documents"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import { useDialogBehavior } from "@/composables/use-dialog-behavior"
 import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
@@ -56,7 +59,7 @@ const collectDescendantIds = (node: KnowledgeDocumentTreeNode): string[] => {
   const walk = (target: KnowledgeDocumentTreeNode) => {
     ids.push(target.id)
 
-    target.children.forEach(child => {
+    target.children.forEach((child) => {
       walk(child)
     })
   }
@@ -78,8 +81,8 @@ const allowedFolderTree = computed<FolderNodeInfo[]>(() => {
 
   const walk = (nodes: KnowledgeDocumentTreeNode[], prefix: string): FolderNodeInfo[] =>
     nodes
-      .filter(item => item.type === "folder" && !excluded.has(item.id))
-      .map(item => {
+      .filter((item) => item.type === "folder" && !excluded.has(item.id))
+      .map((item) => {
         const path = prefix ? `${prefix} / ${item.title}` : item.title
 
         return {
@@ -99,10 +102,10 @@ const visibleRows = computed<FolderRow[]>(() => {
   const rows: FolderRow[] = []
 
   const subtreeHasMatch = (node: FolderNodeInfo): boolean =>
-    node.path.toLowerCase().includes(kw) || node.children.some(child => subtreeHasMatch(child))
+    node.path.toLowerCase().includes(kw) || node.children.some((child) => subtreeHasMatch(child))
 
   const visit = (nodes: FolderNodeInfo[], depth: number) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (searching && !subtreeHasMatch(node)) {
         return
       }
@@ -200,7 +203,7 @@ const openDialog = (node: KnowledgeDocumentTreeNode) => {
   const all = new Set<string>()
 
   const walk = (nodes: KnowledgeDocumentTreeNode[]) => {
-    nodes.forEach(item => {
+    nodes.forEach((item) => {
       if (item.type === "folder") {
         all.add(item.id)
         walk(item.children)
@@ -252,7 +255,9 @@ const dialog = useDialogBehavior({
         />
       </div>
 
-      <div class="max-h-[320px] overflow-y-auto rounded-kb-2xl border border-line bg-surface-soft p-2">
+      <div
+        class="max-h-[320px] overflow-y-auto rounded-kb-2xl border border-line bg-surface-soft p-2"
+      >
         <button
           type="button"
           class="flex h-8 w-full items-center gap-2 rounded-kb-md px-2 text-left text-[13px] transition"
@@ -260,7 +265,12 @@ const dialog = useDialogBehavior({
           @click="movingTargetId = ''"
         >
           <span class="w-5 shrink-0" />
-          <Icon icon="ph:book-open-text" :width="14" :height="14" class="shrink-0 text-ink-tertiary" />
+          <Icon
+            icon="ph:book-open-text"
+            :width="14"
+            :height="14"
+            class="shrink-0 text-ink-tertiary"
+          />
           <span class="truncate">根目录</span>
         </button>
 
@@ -296,7 +306,10 @@ const dialog = useDialogBehavior({
           <span class="truncate">{{ row.title }}</span>
         </div>
 
-        <div v-if="visibleRows.length === 0" class="px-3 py-8 text-center text-[13px] text-ink-quaternary">
+        <div
+          v-if="visibleRows.length === 0"
+          class="px-3 py-8 text-center text-[13px] text-ink-quaternary"
+        >
           没有匹配的目录
         </div>
       </div>
@@ -306,7 +319,9 @@ const dialog = useDialogBehavior({
       <div class="flex justify-end gap-3">
         <el-button plain @click="closeMoveDialog"><span class="truncate">取消</span> </el-button>
         <el-button type="primary" :loading="movingSubmitting" @click="submitMove"
-          ><template #loading><Icon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+          ><template #loading
+            ><Icon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
           <span class="truncate">确定</span>
         </el-button>
       </div>

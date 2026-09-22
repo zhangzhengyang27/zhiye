@@ -36,7 +36,10 @@ export interface KnowledgeBasePermissions {
 /**
  * 获取知识库成员列表。
  */
-export const getKnowledgeBaseMembers = (kbId: string, token?: string | null): Promise<KnowledgeBaseMember[]> => {
+export const getKnowledgeBaseMembers = (
+  kbId: string,
+  token?: string | null,
+): Promise<KnowledgeBaseMember[]> => {
   return requestKbDriveApi(`/knowledge/knowledge-bases/${kbId}/members`, undefined, token)
 }
 
@@ -49,7 +52,7 @@ export const addKnowledgeBaseMember = (
     email: string
     role: "admin" | "editor" | "reader"
   },
-  token?: string | null
+  token?: string | null,
 ): Promise<KnowledgeBaseMember> => {
   return requestKbDriveApi(
     `/knowledge/knowledge-bases/${kbId}/members`,
@@ -57,7 +60,7 @@ export const addKnowledgeBaseMember = (
       method: "POST",
       body: JSON.stringify(data),
     },
-    token
+    token,
   )
 }
 
@@ -70,7 +73,7 @@ export const updateKnowledgeBaseMemberRole = (
   data: {
     role: "admin" | "editor" | "reader"
   },
-  token?: string | null
+  token?: string | null,
 ): Promise<KnowledgeBaseMember> => {
   return requestKbDriveApi(
     `/knowledge/knowledge-bases/${kbId}/members/${userId}`,
@@ -78,7 +81,7 @@ export const updateKnowledgeBaseMemberRole = (
       method: "PUT",
       body: JSON.stringify(data),
     },
-    token
+    token,
   )
 }
 
@@ -88,14 +91,14 @@ export const updateKnowledgeBaseMemberRole = (
 export const removeKnowledgeBaseMember = (
   kbId: string,
   userId: string,
-  token?: string | null
+  token?: string | null,
 ): Promise<{ success: boolean }> => {
   return requestKbDriveApi(
     `/knowledge/knowledge-bases/${kbId}/members/${userId}`,
     {
       method: "DELETE",
     },
-    token
+    token,
   )
 }
 
@@ -107,7 +110,7 @@ export const updateKnowledgeBaseVisibility = (
   data: {
     visibility: "public" | "private"
   },
-  token?: string | null
+  token?: string | null,
 ): Promise<{ visibility: string }> => {
   return requestKbDriveApi(
     `/knowledge/knowledge-bases/${kbId}/settings`,
@@ -115,7 +118,7 @@ export const updateKnowledgeBaseVisibility = (
       method: "PUT",
       body: JSON.stringify(data),
     },
-    token
+    token,
   )
 }
 
@@ -124,7 +127,7 @@ export const updateKnowledgeBaseVisibility = (
  */
 export const checkKnowledgeBasePermissions = (
   kbId: string,
-  token?: string | null
+  token?: string | null,
 ): Promise<KnowledgeBasePermissions> => {
   return requestKbDriveApi(`/knowledge/knowledge-bases/${kbId}/permissions/check`, undefined, token)
 }

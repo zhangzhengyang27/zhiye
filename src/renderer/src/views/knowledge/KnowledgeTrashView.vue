@@ -72,25 +72,27 @@ const confirmDialog = ref<{ open: boolean; message: string; onConfirm: () => voi
 
 const knowledgeBaseItems = computed(() => [
   { label: "全部知识库", value: ALL_KB_VALUE },
-  ...kbOptions.value.map(item => ({ label: item.name, value: item.id })),
+  ...kbOptions.value.map((item) => ({ label: item.name, value: item.id })),
 ])
 
 const filteredDocItems = computed(() => {
   const normalizedKeyword = searchKeyword.value.trim().toLowerCase()
 
-  return (docTrash.value?.items ?? []).filter(item => {
+  return (docTrash.value?.items ?? []).filter((item) => {
     if (!normalizedKeyword) {
       return true
     }
 
-    return [item.title, item.kb.name].some(field => field.toLowerCase().includes(normalizedKeyword))
+    return [item.title, item.kb.name].some((field) =>
+      field.toLowerCase().includes(normalizedKeyword),
+    )
   })
 })
 
 const filteredKbItems = computed(() => {
   const normalizedKeyword = searchKeyword.value.trim().toLowerCase()
 
-  return (kbTrash.value?.items ?? []).filter(item => {
+  return (kbTrash.value?.items ?? []).filter((item) => {
     if (!normalizedKeyword) {
       return true
     }
@@ -99,14 +101,15 @@ const filteredKbItems = computed(() => {
   })
 })
 
-const resolveEditorLabel = (editorType?: string | null) => getKnowledgeDocumentEditorLabel(editorType)
+const resolveEditorLabel = (editorType?: string | null) =>
+  getKnowledgeDocumentEditorLabel(editorType)
 
 const selectAll = computed(() => {
   if (filteredDocItems.value.length === 0) {
     return false
   }
 
-  return filteredDocItems.value.every(item => selectedDocIds.value.includes(item.id))
+  return filteredDocItems.value.every((item) => selectedDocIds.value.includes(item.id))
 })
 
 const selectIndeterminate = computed(() => {
@@ -114,12 +117,14 @@ const selectIndeterminate = computed(() => {
     return false
   }
 
-  const selectedVisibleCount = filteredDocItems.value.filter(item => selectedDocIds.value.includes(item.id)).length
+  const selectedVisibleCount = filteredDocItems.value.filter((item) =>
+    selectedDocIds.value.includes(item.id),
+  ).length
   return selectedVisibleCount > 0 && selectedVisibleCount < filteredDocItems.value.length
 })
 
 const trashListCount = computed(() =>
-  tab.value === "docs" ? (docTrash.value?.total ?? 0) : (kbTrash.value?.total ?? 0)
+  tab.value === "docs" ? (docTrash.value?.total ?? 0) : (kbTrash.value?.total ?? 0),
 )
 
 const TRASH_PAGE_SIZE = 100
@@ -129,8 +134,12 @@ const loadingMore = ref(false)
 // 筛选/切 tab 的过期序号守卫：慢响应晚归不得覆盖当前视角的列表
 let trashLoadSeq = 0
 
-const hasMoreDocTrash = computed(() => (docTrash.value?.total ?? 0) > (docTrash.value?.items?.length ?? 0))
-const hasMoreKbTrash = computed(() => (kbTrash.value?.total ?? 0) > (kbTrash.value?.items?.length ?? 0))
+const hasMoreDocTrash = computed(
+  () => (docTrash.value?.total ?? 0) > (docTrash.value?.items?.length ?? 0),
+)
+const hasMoreKbTrash = computed(
+  () => (kbTrash.value?.total ?? 0) > (kbTrash.value?.items?.length ?? 0),
+)
 
 const loadDocTrash = async () => {
   const seq = ++trashLoadSeq
@@ -146,8 +155,8 @@ const loadDocTrash = async () => {
 
   docTrashPage.value = 1
   docTrash.value = result
-  const validIds = new Set(result.items.map(item => item.id))
-  selectedDocIds.value = selectedDocIds.value.filter(id => validIds.has(id))
+  const validIds = new Set(result.items.map((item) => item.id))
+  selectedDocIds.value = selectedDocIds.value.filter((id) => validIds.has(id))
 }
 
 const loadKbTrash = async () => {
@@ -266,7 +275,7 @@ const changeTab = async (nextTab: "docs" | "kbs") => {
 
 const toggleSelectDoc = (id: string) => {
   if (selectedDocIds.value.includes(id)) {
-    selectedDocIds.value = selectedDocIds.value.filter(item => item !== id)
+    selectedDocIds.value = selectedDocIds.value.filter((item) => item !== id)
     return
   }
 
@@ -279,12 +288,15 @@ const toggleSelectAll = () => {
   }
 
   if (selectAll.value) {
-    const visibleIds = new Set(filteredDocItems.value.map(item => item.id))
-    selectedDocIds.value = selectedDocIds.value.filter(id => !visibleIds.has(id))
+    const visibleIds = new Set(filteredDocItems.value.map((item) => item.id))
+    selectedDocIds.value = selectedDocIds.value.filter((id) => !visibleIds.has(id))
     return
   }
 
-  const merged = new Set([...selectedDocIds.value, ...filteredDocItems.value.map(item => item.id)])
+  const merged = new Set([
+    ...selectedDocIds.value,
+    ...filteredDocItems.value.map((item) => item.id),
+  ])
   selectedDocIds.value = Array.from(merged)
 }
 
@@ -378,7 +390,7 @@ const clearAllDocs = () => {
   const scopeText =
     selectedKbId.value === ALL_KB_VALUE
       ? "所有已删除文档"
-      : `「${knowledgeBaseItems.value.find(item => item.value === selectedKbId.value)?.label ?? "当前知识库"}」内已删除的文档`
+      : `「${knowledgeBaseItems.value.find((item) => item.value === selectedKbId.value)?.label ?? "当前知识库"}」内已删除的文档`
 
   confirmDialog.value = {
     open: true,
@@ -386,7 +398,9 @@ const clearAllDocs = () => {
     onConfirm: async () => {
       submitting.value = true
       try {
-        await clearKnowledgeDocumentTrash(selectedKbId.value === ALL_KB_VALUE ? undefined : selectedKbId.value)
+        await clearKnowledgeDocumentTrash(
+          selectedKbId.value === ALL_KB_VALUE ? undefined : selectedKbId.value,
+        )
         selectedDocIds.value = []
         await loadDocTrash()
       } catch (error) {
@@ -472,7 +486,9 @@ onMounted(() => {
               class="rounded-[10px] border-line bg-surface px-4 text-[13px] text-ink-secondary font-semibold"
               :disabled="loadingMore"
               @click="loadMoreDocTrash"
-              >{{ loadingMore ? "加载中…" : `加载更多（共 ${docTrash?.total ?? 0} 条）` }}</el-button
+              >{{
+                loadingMore ? "加载中…" : `加载更多（共 ${docTrash?.total ?? 0} 条）`
+              }}</el-button
             >
           </div>
           <div v-else-if="tab === 'kbs' && hasMoreKbTrash" class="flex justify-center pb-6">

@@ -114,7 +114,7 @@ const activeTab = ref<(typeof tabDefinitions)[number]["value"]>("edited")
 
 /** activeTab 恒为 tabDefinitions 中的合法值，find 不会落空；索引兜底交给运行时恒真分支 */
 const activeDefinition = computed(() => {
-  const matched = tabDefinitions.find(tab => tab.value === activeTab.value)
+  const matched = tabDefinitions.find((tab) => tab.value === activeTab.value)
   if (matched) {
     return matched
   }
@@ -129,8 +129,11 @@ const activeDefinition = computed(() => {
 
 /** 新建文档的目标知识库：优先上次活跃的知识库，否则取列表第一个 */
 const createDocTargetKbId = computed(() => {
-  const stored = typeof window === "undefined" ? "" : (window.localStorage.getItem(LAST_ACTIVE_KB_STORAGE_KEY) ?? "")
-  if (stored && knowledgeBases.value.some(item => item.id === stored)) {
+  const stored =
+    typeof window === "undefined"
+      ? ""
+      : (window.localStorage.getItem(LAST_ACTIVE_KB_STORAGE_KEY) ?? "")
+  if (stored && knowledgeBases.value.some((item) => item.id === stored)) {
     return stored
   }
 
@@ -140,7 +143,7 @@ const createDocTargetKbId = computed(() => {
 /** 语雀式筛选：类型（文档/画板）+ 归属（知识库） */
 const kbFilterOptions = computed(() => [
   { label: "归属：全部知识库", value: "__all_kb__" },
-  ...knowledgeBases.value.map(item => ({ label: `归属：${item.name}`, value: item.id })),
+  ...knowledgeBases.value.map((item) => ({ label: `归属：${item.name}`, value: item.id })),
 ])
 
 const typeFilterOptions = [
@@ -155,7 +158,7 @@ const creatorFilterOptions = [
 ]
 
 const visibleItems = computed(() =>
-  items.value.filter(item => {
+  items.value.filter((item) => {
     if (selectedKbId.value !== "__all_kb__" && item.kbId !== selectedKbId.value) {
       return false
     }
@@ -168,8 +171,10 @@ const visibleItems = computed(() =>
       return true
     }
 
-    return selectedType.value === "board" ? item.editorType === "board" : item.editorType !== "board"
-  })
+    return selectedType.value === "board"
+      ? item.editorType === "board"
+      : item.editorType !== "board"
+  }),
 )
 
 // 对齐语雀：日期列为短格式（MM-DD HH:mm），不带动作前缀
@@ -187,7 +192,7 @@ const openDoc = (item: KnowledgeDashboardDocumentItem) => {
       kbId: item.kbId,
       docId: item.id,
       editorType: item.editorType,
-    })
+    }),
   )
 }
 
@@ -308,7 +313,7 @@ watch(activeTab, () => {
 onMounted(() => {
   void load()
   void listKnowledgeBases()
-    .then(bases => {
+    .then((bases) => {
       knowledgeBases.value = bases
     })
     .catch(() => {
@@ -329,15 +334,19 @@ onMounted(() => {
             v-for="item in startCards"
             :key="item.id"
             type="button"
-            class="group flex items-center gap-3 rounded-[12px] border border-line bg-surface px-4 py-3.5 text-left transition duration-150 hover:border-brand-lighter hover:shadow-[0_4px_12px_rgba(15,23,42,0.05)]"
+            class="group flex items-center gap-3 rounded-[12px] border border-line bg-surface px-4 py-3.5 text-left transition duration-150 hover:border-brand-lighter hover:shadow-[var(--kb-panel-shadow)]"
             @click="handleQuickSelect(item)"
           >
             <Icon :icon="item.icon" :width="22" :height="22" class="shrink-0 text-ink-secondary" />
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-[14px] font-medium text-ink" :title="item.title">{{ item.title }}</span>
-              <span class="block truncate text-[12px] leading-4 text-ink-tertiary" :title="item.subtitle">{{
-                item.subtitle
+              <span class="block truncate text-[14px] font-medium text-ink" :title="item.title">{{
+                item.title
               }}</span>
+              <span
+                class="block truncate text-[12px] leading-4 text-ink-tertiary"
+                :title="item.subtitle"
+                >{{ item.subtitle }}</span
+              >
             </span>
             <Icon
               v-if="item.id === 'doc'"
@@ -353,7 +362,9 @@ onMounted(() => {
         <h2 class="mt-8 text-[18px] font-semibold leading-7 text-ink">文档</h2>
 
         <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div class="inline-flex items-center gap-0.5 rounded-[8px] bg-black/5 p-0.5 dark:bg-white/10">
+          <div
+            class="inline-flex items-center gap-0.5 rounded-[8px] bg-black/5 p-0.5 dark:bg-white/10"
+          >
             <button
               v-for="tab in tabDefinitions"
               :key="tab.value"
@@ -397,7 +408,11 @@ onMounted(() => {
               </button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item v-for="option in typeFilterOptions" :key="option.value" :command="option.value">
+                  <el-dropdown-item
+                    v-for="option in typeFilterOptions"
+                    :key="option.value"
+                    :command="option.value"
+                  >
                     {{ option.label }}
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -423,7 +438,11 @@ onMounted(() => {
               </button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item v-for="option in kbFilterOptions" :key="option.value" :command="option.value">
+                  <el-dropdown-item
+                    v-for="option in kbFilterOptions"
+                    :key="option.value"
+                    :command="option.value"
+                  >
                     {{ option.label }}
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -449,7 +468,11 @@ onMounted(() => {
               </button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item v-for="option in creatorFilterOptions" :key="option.value" :command="option.value">
+                  <el-dropdown-item
+                    v-for="option in creatorFilterOptions"
+                    :key="option.value"
+                    :command="option.value"
+                  >
                     {{ option.label }}
                   </el-dropdown-item>
                 </el-dropdown-menu>
@@ -464,7 +487,7 @@ onMounted(() => {
 
         <div v-else-if="loading" class="mt-4 divide-y divide-line border-b border-line">
           <div v-for="index in 6" :key="index" class="flex items-center gap-3 py-5">
-            <div class="h-6 w-6 shrink-0 animate-pulse rounded-md bg-grey-200" />
+            <div class="h-6 w-6 shrink-0 animate-pulse rounded-kb-sm bg-grey-200" />
             <div class="h-4 w-1/3 animate-pulse rounded bg-grey-200" />
             <div class="ml-auto h-4 w-24 animate-pulse rounded bg-grey-200" />
           </div>
@@ -488,7 +511,9 @@ onMounted(() => {
         >
           <Icon icon="ph:funnel" :width="36" :height="36" class="mb-4 text-ink-quaternary" />
           <p class="text-base font-medium text-ink-secondary">没有符合筛选条件的文档</p>
-          <p class="mt-2 max-w-sm text-sm leading-6 text-ink-tertiary">调整类型、归属或创建者筛选后即可看到结果。</p>
+          <p class="mt-2 max-w-sm text-sm leading-6 text-ink-tertiary">
+            调整类型、归属或创建者筛选后即可看到结果。
+          </p>
         </div>
 
         <div v-else class="mt-1 divide-y divide-line border-b border-line">
@@ -499,7 +524,9 @@ onMounted(() => {
             @click="openDoc(item)"
           >
             <span class="flex min-w-0 items-center gap-2.5">
-              <span class="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--kb-blue-500)]">
+              <span
+                class="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--kb-blue-500)]"
+              >
                 <Icon
                   :icon="item.editorType === 'board' ? 'ph:frame-corners' : 'ph:file-text'"
                   :width="20"
@@ -511,7 +538,9 @@ onMounted(() => {
               </span>
             </span>
             <span class="hidden min-w-0 truncate text-[13px] text-ink-tertiary sm:block">
-              <template v-if="item.creator">{{ item.creator.displayName }} / {{ item.kb?.name || "知识库" }}</template>
+              <template v-if="item.creator"
+                >{{ item.creator.displayName }} / {{ item.kb?.name || "知识库" }}</template
+              >
               <template v-else>{{ item.kb?.name || "知识库" }}</template>
             </span>
             <span class="shrink-0 text-right text-[13px] text-ink-quaternary">

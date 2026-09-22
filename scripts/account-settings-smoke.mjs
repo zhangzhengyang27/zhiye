@@ -186,7 +186,7 @@ async function loginThroughUi(page, currentPassword) {
   await page.getByRole("textbox", { name: "密码" }).fill(currentPassword)
 
   await Promise.all([
-    page.waitForURL(url => url.pathname === "/knowledge", { timeout }),
+    page.waitForURL((url) => url.pathname === "/knowledge", { timeout }),
     page.getByRole("button", { name: "登录并进入" }).click(),
   ])
 }
@@ -197,7 +197,7 @@ async function openAccountPageFromSidebar(page, userLabel) {
   // title 兜底链与 KnowledgeSidebarMenu.currentUserLabel 同源，头像图加载失败也不影响定位
   await page.locator("aside").getByTitle(userLabel).click()
 
-  await page.waitForURL(url => url.pathname === "/account", { timeout })
+  await page.waitForURL((url) => url.pathname === "/account", { timeout })
 
   await profileRowInput(page, "昵称").waitFor({
     state: "visible",
@@ -207,12 +207,14 @@ async function openAccountPageFromSidebar(page, userLabel) {
 
 async function saveProfile(page) {
   const saveResponse = page.waitForResponse(
-    response => {
+    (response) => {
       return (
-        response.url().includes("/api/users/me") && response.request().method() === "PATCH" && response.status() === 200
+        response.url().includes("/api/users/me") &&
+        response.request().method() === "PATCH" &&
+        response.status() === 200
       )
     },
-    { timeout }
+    { timeout },
   )
 
   await page.getByRole("button", { name: "保存修改" }).click()
@@ -223,14 +225,14 @@ async function saveProfile(page) {
 
 async function changePasswordThroughUi(page, currentPassword, nextPassword) {
   const passwordResponse = page.waitForResponse(
-    response => {
+    (response) => {
       return (
         response.url().includes("/api/users/me/change-password") &&
         response.request().method() === "POST" &&
         response.status() === 201
       )
     },
-    { timeout }
+    { timeout },
   )
 
   // 09-07 账号页重设计后修改密码收进 AppDialog：先点「修改密码」打开弹窗再填写
@@ -250,7 +252,8 @@ async function restoreByApi() {
     return
   }
 
-  const candidatePasswords = cleanupState.passwordState === "new" ? [newPassword, password] : [password, newPassword]
+  const candidatePasswords =
+    cleanupState.passwordState === "new" ? [newPassword, password] : [password, newPassword]
 
   let activeSession = null
 
@@ -296,7 +299,11 @@ async function restoreByApi() {
 }
 
 async function main() {
-  assert.notEqual(password, newPassword, "SMOKE_NEW_PASSWORD 生成失败，请显式提供一个与 SMOKE_PASSWORD 不同的新密码。")
+  assert.notEqual(
+    password,
+    newPassword,
+    "SMOKE_NEW_PASSWORD 生成失败，请显式提供一个与 SMOKE_PASSWORD 不同的新密码。",
+  )
 
   const browser = await chromium.launch({
     headless: !headed,
@@ -308,13 +315,13 @@ async function main() {
   const avatarFixturePath = await createAvatarFixture()
   let failureScreenshotPath
 
-  page.on("console", message => {
+  page.on("console", (message) => {
     if (message.type() === "error") {
       consoleErrors.push(message.text())
     }
   })
 
-  page.on("pageerror", error => {
+  page.on("pageerror", (error) => {
     pageErrors.push(error.message)
   })
 
@@ -328,7 +335,10 @@ async function main() {
     })
 
     await loginThroughUi(page, password)
-    await openAccountPageFromSidebar(page, sidebarUserLabelFromProfile(cleanupState.originalProfile))
+    await openAccountPageFromSidebar(
+      page,
+      sidebarUserLabelFromProfile(cleanupState.originalProfile),
+    )
 
     const nicknameSuffix = String(Date.now()).slice(-6)
     const nextDisplayName = `联调${nicknameSuffix}`
@@ -348,14 +358,14 @@ async function main() {
     })
 
     const uploadResponse = page.waitForResponse(
-      response => {
+      (response) => {
         return (
           response.url().includes("/api/knowledge/oss/upload") &&
           response.request().method() === "POST" &&
           response.status() === 201
         )
       },
-      { timeout }
+      { timeout },
     )
 
     await page.getByRole("button", { name: "确认裁剪" }).click()
@@ -371,7 +381,11 @@ async function main() {
       token: originalLogin.accessToken,
       errorMessage: "回读账号资料失败",
     })
-    assert.match(profileAfterAvatarSave?.avatar ?? "", /^https?:\/\/.+/, "头像上传后未写入有效对象存储地址")
+    assert.match(
+      profileAfterAvatarSave?.avatar ?? "",
+      /^https?:\/\/.+/,
+      "头像上传后未写入有效对象存储地址",
+    )
 
     logStep("验证修改密码链路")
     await changePasswordThroughUi(page, password, newPassword)
@@ -379,7 +393,7 @@ async function main() {
 
     logStep("验证新密码可重新登录")
     await Promise.all([
-      page.waitForURL(url => url.pathname === "/auth/login", { timeout }),
+      page.waitForURL((url) => url.pathname === "/auth/login", { timeout }),
       page.getByRole("button", { name: "退出登录" }).click(),
     ])
 
@@ -411,7 +425,9 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error(`${STEP_PREFIX} ${error instanceof Error ? error.stack || error.message : String(error)}`)
+main().catch((error) => {
+  console.error(
+    `${STEP_PREFIX} ${error instanceof Error ? error.stack || error.message : String(error)}`,
+  )
   process.exitCode = 1
 })

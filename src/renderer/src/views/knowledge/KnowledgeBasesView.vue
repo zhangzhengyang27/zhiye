@@ -82,8 +82,15 @@ onMounted(() => {
 
         <p v-if="errorMessage" class="mt-4 text-kb-sm text-error">{{ errorMessage }}</p>
 
-        <div v-if="loading && !sectionCollapsed" class="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="index in 6" :key="index" class="h-[55px] animate-pulse rounded-[10px] bg-grey-200" />
+        <div
+          v-if="loading && !sectionCollapsed"
+          class="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          <div
+            v-for="index in 6"
+            :key="index"
+            class="h-[55px] animate-pulse rounded-[10px] bg-grey-200"
+          />
         </div>
 
         <div
@@ -100,12 +107,15 @@ onMounted(() => {
         </div>
 
         <!-- 卡片网格：紧凑单卡（书本图标 + 名称 + 描述），点击进入工作台 -->
-        <div v-else-if="!sectionCollapsed" class="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-else-if="!sectionCollapsed"
+          class="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <button
             v-for="kb in knowledgeBases"
             :key="kb.id"
             type="button"
-            class="flex items-center gap-2.5 rounded-[10px] border border-line/70 bg-surface px-3 py-2 text-left transition duration-150 hover:border-brand-lighter hover:shadow-[0_4px_12px_rgba(15,23,42,0.05)]"
+            class="flex items-center gap-2.5 rounded-[10px] border border-line/70 bg-surface px-3 py-2 text-left transition duration-150 hover:border-brand-lighter hover:shadow-[var(--kb-panel-shadow)]"
             @click="openKb(kb)"
           >
             <Icon
@@ -115,10 +125,15 @@ onMounted(() => {
               class="shrink-0 text-[var(--kb-blue-500)] dark:text-[var(--kb-blue-400)]"
             />
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-[13px] font-medium leading-5 text-ink" :title="kb.name">{{
-                kb.name
-              }}</span>
-              <span class="block truncate text-[12px] leading-4 text-ink-tertiary" :title="kb.description || ''">
+              <span
+                class="block truncate text-[13px] font-medium leading-5 text-ink"
+                :title="kb.name"
+                >{{ kb.name }}</span
+              >
+              <span
+                class="block truncate text-[12px] leading-4 text-ink-tertiary"
+                :title="kb.description || ''"
+              >
                 {{ kb.description || "暂无描述" }}
               </span>
             </span>

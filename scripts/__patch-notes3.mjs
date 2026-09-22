@@ -8,13 +8,13 @@ c = c.replace(
   `import Icon from "@/components/common/UiIcon.vue"`,
   `import Icon from "@/components/common/UiIcon.vue"
 import NoteContentBody from "@/components/knowledge/NoteContentBody.vue"
-import { uploadKnowledgeAsset } from "@/services/knowledge-oss"`
+import { uploadKnowledgeAsset } from "@/services/knowledge-oss"`,
 )
 c = c.replace(
   `import { createNote, deleteNote, listNotes, updateNote, type Note } from "@/services/notes"`,
   `import { nextTick, ref } from "vue"
 import { createNote, deleteNote, listNotes, updateNote, type Note } from "@/services/notes"
-import { toggleTodoLine } from "@/utils/notes-markdown"`
+import { toggleTodoLine } from "@/utils/notes-markdown"`,
 )
 
 // 2) script additions
@@ -147,7 +147,7 @@ c = c.replace(
             <textarea
               ref="draftTextareaRef"
               v-model="draftContent"
-              rows="10"`
+              rows="10"`,
 )
 
 writeFileSync(p, c)

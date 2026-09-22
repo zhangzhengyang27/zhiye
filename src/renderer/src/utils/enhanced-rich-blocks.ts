@@ -96,11 +96,11 @@ export const statusBlockDefaults: StatusBlockAttrs = {
 }
 
 /** 用于校验提示块变体的候选集合。 */
-const CALLOUT_VARIANT_SET = new Set<CalloutVariant>(calloutVariants.map(item => item.value))
+const CALLOUT_VARIANT_SET = new Set<CalloutVariant>(calloutVariants.map((item) => item.value))
 /** 用于校验状态块色调的候选集合。 */
-const STATUS_TONE_SET = new Set<StatusTone>(statusToneOptions.map(item => item.value))
+const STATUS_TONE_SET = new Set<StatusTone>(statusToneOptions.map((item) => item.value))
 /** 用于校验嵌入类型的候选集合。 */
-const EMBED_KIND_SET = new Set<EmbedKind>(embedKindOptions.map(item => item.value))
+const EMBED_KIND_SET = new Set<EmbedKind>(embedKindOptions.map((item) => item.value))
 
 const normalizeNullableString = (value: unknown) => {
   if (typeof value !== "string") {
@@ -155,9 +155,13 @@ export const escapeHtml = (value: string) =>
     .replace(/'/g, "&#39;")
 
 /** 规范化提示块块属性。 */
-export const normalizeCalloutBlockAttrs = (input?: Partial<CalloutBlockAttrs> | null): CalloutBlockAttrs => {
+export const normalizeCalloutBlockAttrs = (
+  input?: Partial<CalloutBlockAttrs> | null,
+): CalloutBlockAttrs => {
   const variant =
-    input?.variant && CALLOUT_VARIANT_SET.has(input.variant) ? input.variant : calloutBlockDefaults.variant
+    input?.variant && CALLOUT_VARIANT_SET.has(input.variant)
+      ? input.variant
+      : calloutBlockDefaults.variant
 
   return {
     variant,
@@ -166,7 +170,9 @@ export const normalizeCalloutBlockAttrs = (input?: Partial<CalloutBlockAttrs> | 
 }
 
 /** 规范化详情块属性。 */
-export const normalizeDetailsBlockAttrs = (input?: Partial<DetailsBlockAttrs> | null): DetailsBlockAttrs => {
+export const normalizeDetailsBlockAttrs = (
+  input?: Partial<DetailsBlockAttrs> | null,
+): DetailsBlockAttrs => {
   return {
     title: normalizeString(input?.title, detailsBlockDefaults.title),
     open: normalizeBoolean(input?.open, detailsBlockDefaults.open),
@@ -174,7 +180,9 @@ export const normalizeDetailsBlockAttrs = (input?: Partial<DetailsBlockAttrs> | 
 }
 
 /** 规范化Attachment块属性。 */
-export const normalizeAttachmentBlockAttrs = (input?: Partial<AttachmentBlockAttrs> | null): AttachmentBlockAttrs => {
+export const normalizeAttachmentBlockAttrs = (
+  input?: Partial<AttachmentBlockAttrs> | null,
+): AttachmentBlockAttrs => {
   return {
     url: normalizeNullableString(input?.url),
     name: normalizeNullableString(input?.name),
@@ -214,7 +222,9 @@ export const detectEmbedKind = (url: string | null | undefined): EmbedKind => {
 }
 
 /** 规范化嵌入块属性。 */
-export const normalizeEmbedBlockAttrs = (input?: Partial<EmbedBlockAttrs> | null): EmbedBlockAttrs => {
+export const normalizeEmbedBlockAttrs = (
+  input?: Partial<EmbedBlockAttrs> | null,
+): EmbedBlockAttrs => {
   const url = normalizeNullableString(input?.url)
   const kind = input?.kind && EMBED_KIND_SET.has(input.kind) ? input.kind : detectEmbedKind(url)
 
@@ -226,8 +236,11 @@ export const normalizeEmbedBlockAttrs = (input?: Partial<EmbedBlockAttrs> | null
 }
 
 /** 规范化状态块属性。 */
-export const normalizeStatusBlockAttrs = (input?: Partial<StatusBlockAttrs> | null): StatusBlockAttrs => {
-  const tone = input?.tone && STATUS_TONE_SET.has(input.tone) ? input.tone : statusBlockDefaults.tone
+export const normalizeStatusBlockAttrs = (
+  input?: Partial<StatusBlockAttrs> | null,
+): StatusBlockAttrs => {
+  const tone =
+    input?.tone && STATUS_TONE_SET.has(input.tone) ? input.tone : statusBlockDefaults.tone
 
   return {
     label: normalizeString(input?.label, statusBlockDefaults.label),
@@ -237,12 +250,14 @@ export const normalizeStatusBlockAttrs = (input?: Partial<StatusBlockAttrs> | nu
 
 /** 返回提示块变体在界面上的显示名称。 */
 export const getCalloutVariantLabel = (variant: CalloutVariant) => {
-  return calloutVariants.find(item => item.value === variant)?.label || calloutBlockDefaults.variant
+  return (
+    calloutVariants.find((item) => item.value === variant)?.label || calloutBlockDefaults.variant
+  )
 }
 
 /** 获取状态色调标签。 */
 export const getStatusToneLabel = (tone: StatusTone) => {
-  return statusToneOptions.find(item => item.value === tone)?.label || statusBlockDefaults.tone
+  return statusToneOptions.find((item) => item.value === tone)?.label || statusBlockDefaults.tone
 }
 
 /** 返回附件块优先展示的文件名。 */

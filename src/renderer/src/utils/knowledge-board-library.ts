@@ -13,7 +13,7 @@ export const normalizeKnowledgeBoardLibraryBinaryFiles = (value: unknown) => {
     return [] as KnowledgeBoardLibraryBinaryFile[]
   }
 
-  return value.flatMap(item => {
+  return value.flatMap((item) => {
     if (!isRecord(item)) {
       return []
     }
@@ -21,7 +21,8 @@ export const normalizeKnowledgeBoardLibraryBinaryFiles = (value: unknown) => {
     const id = typeof item.id === "string" ? item.id.trim() : ""
     const mimeType = typeof item.mimeType === "string" ? item.mimeType.trim() : ""
     const dataURL = typeof item.dataURL === "string" ? item.dataURL.trim() : ""
-    const created = typeof item.created === "number" && Number.isFinite(item.created) ? item.created : Date.now()
+    const created =
+      typeof item.created === "number" && Number.isFinite(item.created) ? item.created : Date.now()
 
     if (!id || !mimeType || !dataURL) {
       return []
@@ -37,14 +38,16 @@ export const normalizeKnowledgeBoardLibraryBinaryFiles = (value: unknown) => {
           ...(typeof item.lastRetrieved === "number" && Number.isFinite(item.lastRetrieved)
             ? { lastRetrieved: item.lastRetrieved }
             : {}),
-          ...(typeof item.version === "number" && Number.isFinite(item.version) ? { version: item.version } : {}),
+          ...(typeof item.version === "number" && Number.isFinite(item.version)
+            ? { version: item.version }
+            : {}),
         } satisfies KnowledgeBoardLibraryBinaryFile,
         {
           id,
           mimeType,
           dataURL,
           created,
-        }
+        },
       ),
     ]
   })
@@ -78,7 +81,7 @@ export const extractKnowledgeBoardLibraryImageFileIds = (items: KnowledgeBoardLi
 /** 提取知识画板素材库二进制文件。 */
 export const extractKnowledgeBoardLibraryBinaryFiles = (
   items: KnowledgeBoardLibraryItem[],
-  files: Record<string, unknown>
+  files: Record<string, unknown>,
 ) => {
   const referencedIds = new Set(extractKnowledgeBoardLibraryImageFileIds(items))
 
@@ -87,16 +90,16 @@ export const extractKnowledgeBoardLibraryBinaryFiles = (
   }
 
   return normalizeKnowledgeBoardLibraryBinaryFiles(
-    Object.values(files).filter(item => {
+    Object.values(files).filter((item) => {
       return isRecord(item) && typeof item.id === "string" && referencedIds.has(item.id)
-    })
+    }),
   )
 }
 
 /** 合并知识画板素材库二进制文件。 */
 export const mergeKnowledgeBoardLibraryBinaryFiles = (
   currentFiles: KnowledgeBoardLibraryBinaryFile[],
-  nextFiles: KnowledgeBoardLibraryBinaryFile[]
+  nextFiles: KnowledgeBoardLibraryBinaryFile[],
 ) => {
   const merged = new Map<string, KnowledgeBoardLibraryBinaryFile>()
 
@@ -108,8 +111,10 @@ export const mergeKnowledgeBoardLibraryBinaryFiles = (
 }
 
 /** 根据远端素材资源构造 Excalidraw 可读的二进制文件缓存条目。 */
-export const createKnowledgeBoardLibraryBinaryFilesFromAssets = (assets: KnowledgeBoardLibraryAsset[]) => {
-  return assets.map(asset => ({
+export const createKnowledgeBoardLibraryBinaryFilesFromAssets = (
+  assets: KnowledgeBoardLibraryAsset[],
+) => {
+  return assets.map((asset) => ({
     id: asset.fileId,
     mimeType: asset.mimeType,
     dataURL: asset.url,
@@ -121,17 +126,17 @@ export const createKnowledgeBoardLibraryBinaryFilesFromAssets = (assets: Knowled
 /** 清理知识画板素材库二进制文件。 */
 export const pruneKnowledgeBoardLibraryBinaryFiles = (
   files: KnowledgeBoardLibraryBinaryFile[],
-  items: KnowledgeBoardLibraryItem[]
+  items: KnowledgeBoardLibraryItem[],
 ) => {
   const referencedIds = new Set(extractKnowledgeBoardLibraryImageFileIds(items))
 
-  return files.filter(file => referencedIds.has(file.id))
+  return files.filter((file) => referencedIds.has(file.id))
 }
 
 /** 将素材库中的二进制文件缓存还原为浏览器 File 对象。 */
 export const knowledgeBoardLibraryBinaryFileToFile = async (
   file: KnowledgeBoardLibraryBinaryFile,
-  fallbackName?: string
+  fallbackName?: string,
 ) => {
   const response = await fetch(file.dataURL)
 

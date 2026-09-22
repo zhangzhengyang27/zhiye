@@ -24,7 +24,9 @@ const emit = defineEmits<{
 <template>
   <div class="grid gap-4 p-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.95fr)]">
     <div class="rounded-kb-3xl bg-muted p-6">
-      <div class="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-xs font-medium text-brand">
+      <div
+        class="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-1 text-xs font-medium text-brand"
+      >
         <Icon icon="ph:magnifying-glass" :width="14" :height="14" />
         尚未开始搜索
       </div>
@@ -54,21 +56,29 @@ const emit = defineEmits<{
 
     <div class="space-y-4">
       <div class="rounded-kb-3xl bg-muted px-5 py-5">
-        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-ink-quaternary">可搜索范围</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-ink-quaternary">
+          可搜索范围
+        </p>
         <div class="mt-4 space-y-3 text-sm text-ink-secondary">
           <div class="rounded-kb-2xl bg-surface px-4 py-3">
             <p class="font-medium text-ink">标题与正文</p>
-            <p class="mt-1 text-xs leading-5 text-ink-tertiary">适合先做全局定位，再切换到更精确的标题搜索。</p>
+            <p class="mt-1 text-xs leading-5 text-ink-tertiary">
+              适合先做全局定位，再切换到更精确的标题搜索。
+            </p>
           </div>
           <div class="rounded-kb-2xl bg-surface px-4 py-3">
             <p class="font-medium text-ink">状态与创建时间</p>
-            <p class="mt-1 text-xs leading-5 text-ink-tertiary">可快速排除草稿、历史文档或非当前阶段内容。</p>
+            <p class="mt-1 text-xs leading-5 text-ink-tertiary">
+              可快速排除草稿、历史文档或非当前阶段内容。
+            </p>
           </div>
         </div>
       </div>
 
       <div class="rounded-kb-3xl bg-surface px-5 py-5">
-        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-ink-quaternary">下一步动作</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-ink-quaternary">
+          下一步动作
+        </p>
         <div class="mt-4 flex flex-wrap gap-2">
           <el-button
             type="primary"
@@ -76,7 +86,9 @@ const emit = defineEmits<{
             @click="emit('apply-suggested-search', '规范', 'title')"
             ><span class="truncate">先搜标题中的规范</span>
           </el-button>
-          <el-button plain @click="emit('back-overview')"><span class="truncate">回到概览看上下文</span> </el-button>
+          <el-button plain @click="emit('back-overview')"
+            ><span class="truncate">回到概览看上下文</span>
+          </el-button>
         </div>
         <p class="mt-4 text-xs leading-5 text-ink-tertiary">
           如果你还不确定关键词，可以先回到概览或最近更新，确认最近活跃主题后再检索。

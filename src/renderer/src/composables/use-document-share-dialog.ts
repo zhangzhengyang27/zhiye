@@ -62,11 +62,13 @@ export function useDocumentShareDialog(options: {
             value: "edit" as const,
             description: "适合协作补充，但会把编辑入口暴露给分享对象。",
           },
-        ]
+        ],
   )
 
   const sortedShares = computed(() =>
-    [...shares.value].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    [...shares.value].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    ),
   )
 
   const canCreateShare = computed(() => {
@@ -82,7 +84,9 @@ export function useDocumentShareDialog(options: {
   })
 
   const selectedPermissionMeta = computed(
-    () => permissionOptions.value.find(item => item.value === permission.value) || permissionOptions.value[0]
+    () =>
+      permissionOptions.value.find((item) => item.value === permission.value) ||
+      permissionOptions.value[0],
   )
 
   const latestShare = computed(() => sortedShares.value[0] || null)
@@ -95,20 +99,23 @@ export function useDocumentShareDialog(options: {
     },
     {
       label: "带密码",
-      value: `${sortedShares.value.filter(item => Boolean(item.hasPassword)).length}`,
+      value: `${sortedShares.value.filter((item) => Boolean(item.hasPassword)).length}`,
       hint: "适合需要更谨慎流转的场景",
     },
     {
       label: "可编辑",
-      value: `${sortedShares.value.filter(item => item.permission === "edit").length}`,
+      value: `${sortedShares.value.filter((item) => item.permission === "edit").length}`,
       hint: "外部协作会走编辑入口",
     },
   ])
 
   const creationSummary = computed(() => {
     const permissionLabel = selectedPermissionMeta.value?.label || "可查看"
-    const passwordLabel = usePassword.value ? `密码 ${password.value.trim() ? "已设置" : "待填写"}` : "无密码"
-    const expiryLabel = expiryOptions.find(item => item.value === expiresIn.value)?.label || "永久有效"
+    const passwordLabel = usePassword.value
+      ? `密码 ${password.value.trim() ? "已设置" : "待填写"}`
+      : "无密码"
+    const expiryLabel =
+      expiryOptions.find((item) => item.value === expiresIn.value)?.label || "永久有效"
 
     return `${permissionLabel} · ${passwordLabel} · ${expiryLabel}`
   })
@@ -116,17 +123,19 @@ export function useDocumentShareDialog(options: {
   const latestShareSummary = computed(() =>
     latestShare.value
       ? `最近一条链接创建于 ${formatDate(latestShare.value.createdAt)}，可继续复用或新建分发。`
-      : "创建后会立即出现在左侧列表，并可继续复制或删除。"
+      : "创建后会立即出现在左侧列表，并可继续复制或删除。",
   )
 
   const shareTips = computed(() => [
     options.allowEditPermission() === false
       ? "当前文档只开放只读分享，避免未收敛的编辑行为外露。"
       : "若只是发给阅读者，优先使用只读分享，后续更容易控制版本边界。",
-    usePassword.value ? "已开启访问密码，适合在群聊、跨团队分发时使用。" : "未设置密码时，拿到链接的人都可以直接访问。",
+    usePassword.value
+      ? "已开启访问密码，适合在群聊、跨团队分发时使用。"
+      : "未设置密码时，拿到链接的人都可以直接访问。",
     expiresIn.value === "never"
       ? "当前链接永久有效，建议仅用于稳定对内流转。"
-      : `当前链接会在 ${expiryOptions.find(item => item.value === expiresIn.value)?.label || "指定时长"} 后失效。`,
+      : `当前链接会在 ${expiryOptions.find((item) => item.value === expiresIn.value)?.label || "指定时长"} 后失效。`,
   ])
 
   const getShareUrl = (shareKey: string) => `${resolveWebBaseUrl()}/share/${shareKey}`
@@ -241,7 +250,10 @@ export function useDocumentShareDialog(options: {
   }
 
   function copyShareMarkdownLink(share: DocumentShare) {
-    copyToClipboard(`[${options.documentTitle()}](${getShareUrl(share.shareKey)})`, "Markdown 链接已复制。")
+    copyToClipboard(
+      `[${options.documentTitle()}](${getShareUrl(share.shareKey)})`,
+      "Markdown 链接已复制。",
+    )
   }
 
   function formatDate(dateString: string) {
@@ -250,22 +262,22 @@ export function useDocumentShareDialog(options: {
 
   watch(
     () => options.allowEditPermission(),
-    allowEdit => {
+    (allowEdit) => {
       if (allowEdit === false) {
         permission.value = "view"
       }
     },
-    { immediate: true }
+    { immediate: true },
   )
 
   watch(
     () => options.visible(),
-    visible => {
+    (visible) => {
       if (visible) {
         void loadShares()
       }
     },
-    { immediate: true }
+    { immediate: true },
   )
 
   return {

@@ -5,7 +5,7 @@ let c = readFileSync(p, "utf8")
 
 c = c.replace(
   '      editorType: "richText" | "board" | "datatable" | "flowchart" | "sheet"',
-  '      editorType: "richText" | "board" | "datatable" | "flowchart" | "sheet" | "mindmap"'
+  '      editorType: "richText" | "board" | "datatable" | "flowchart" | "sheet" | "mindmap"',
 )
 
 const oldCreate = `        const useSheet = !isFolder && !useBoard && !useDatatable && editorType === "sheet"`
@@ -21,7 +21,7 @@ c = c.replace(oldCreate, newCreate)
 
 c = c.replace(
   '            type: useBoard || useDatatable || useSheet ? "doc" : type,',
-  '            type: useBoard || useDatatable || useSheet || useMindmap ? "doc" : type,'
+  '            type: useBoard || useDatatable || useSheet || useMindmap ? "doc" : type,',
 )
 
 const oldEditor = [
@@ -72,13 +72,13 @@ c = c.replace(oldContent, newContent)
 
 c = c.replace(
   'useDatatable ? "数据表已创建。" : useSheet ? "表格已创建。" : "文档已创建。"',
-  'useDatatable ? "数据表已创建。" : useSheet ? "表格已创建。" : useMindmap ? "思维导图已创建。" : "文档已创建。"'
+  'useDatatable ? "数据表已创建。" : useSheet ? "表格已创建。" : useMindmap ? "思维导图已创建。" : "文档已创建。"',
 )
 
 // import scheme 常量
 c = c.replace(
   "  KNOWLEDGE_DATATABLE_CONTENT_SCHEME,",
-  "  KNOWLEDGE_DATATABLE_CONTENT_SCHEME,\n  KNOWLEDGE_MINDMAP_CONTENT_SCHEME,"
+  "  KNOWLEDGE_DATATABLE_CONTENT_SCHEME,\n  KNOWLEDGE_MINDMAP_CONTENT_SCHEME,",
 )
 
 writeFileSync(p, c)

@@ -63,6 +63,7 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "simple-mind-map": "0.14.0-fix.3",
     "tailwind-merge": "^3.6.0",
     "turndown": "^7.2.4",
     "vue": "^3.5.25",

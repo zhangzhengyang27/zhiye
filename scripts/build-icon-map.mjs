@@ -20,29 +20,29 @@ const SCAN_EXTENSIONS = new Set([".vue", ".ts", ".tsx"])
 /** 手工别名：源码里用到、但两个包命名差异需要中转的图标。 */
 const PHOSPHOR_ALIASES = {}
 
-const collectFiles = async dir => {
+const collectFiles = async (dir) => {
   const entries = await readdir(dir, { withFileTypes: true })
   const files = await Promise.all(
-    entries.map(entry => {
+    entries.map((entry) => {
       const full = path.join(dir, entry.name)
       if (entry.isDirectory()) {
         return entry.name === "node_modules" ? [] : collectFiles(full)
       }
       return SCAN_EXTENSIONS.has(path.extname(entry.name)) ? [full] : []
-    })
+    }),
   )
   return files.flat()
 }
 
-const toPascalCase = name =>
+const toPascalCase = (name) =>
   name
     .split("-")
     .filter(Boolean)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join("")
 
 const main = async () => {
-  const files = (await collectFiles(rendererSrc)).filter(file => file !== outputFile)
+  const files = (await collectFiles(rendererSrc)).filter((file) => file !== outputFile)
   const phosphor = new Set()
   const lucide = new Set()
 
@@ -59,7 +59,7 @@ const main = async () => {
   // Iconify 的 ph 命名把字重并进图标名（如 book-fill / dots-three-bold），
   // 官方包则按子入口分层：@phosphor-icons/vue（regular）、/fill、/bold 等。
   const PHOSPHOR_WEIGHTS = ["fill", "bold", "duotone", "light", "thin"]
-  const splitPhosphorWeight = name => {
+  const splitPhosphorWeight = (name) => {
     for (const weight of PHOSPHOR_WEIGHTS) {
       if (name.endsWith(`-${weight}`)) {
         return { base: name.slice(0, -(weight.length + 1)), weight }
@@ -123,7 +123,7 @@ const main = async () => {
 
   await writeFile(outputFile, lines.join("\n"))
   console.log(
-    `[icons] 生成 ${entries.length} 个图标映射（phosphor ${phosphor.size} / lucide ${lucide.size}）-> ${path.relative(scriptDir, outputFile)}`
+    `[icons] 生成 ${entries.length} 个图标映射（phosphor ${phosphor.size} / lucide ${lucide.size}）-> ${path.relative(scriptDir, outputFile)}`,
   )
 }
 

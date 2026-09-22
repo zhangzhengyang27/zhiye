@@ -62,7 +62,7 @@ const props = withDefaults(
     skeletonRows: 6,
     emptyTitle: "暂无内容",
     emptyDescription: "",
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -86,7 +86,9 @@ const handleSelect = (item: DocListItem) => {
         <div class="flex min-w-0 items-baseline gap-2">
           <h2 v-if="props.title" class="text-kb-md font-semibold text-ink">{{ props.title }}</h2>
           <!-- titleHint 与行内 meta/时间同为可读文字：D1 巡检暗色从 quaternary 提到 tertiary -->
-          <span v-if="props.titleHint" class="text-kb-xs text-ink-tertiary">{{ props.titleHint }}</span>
+          <span v-if="props.titleHint" class="text-kb-xs text-ink-tertiary">{{
+            props.titleHint
+          }}</span>
         </div>
 
         <div v-if="$slots.actions" class="flex shrink-0 items-center gap-2">
@@ -95,7 +97,9 @@ const handleSelect = (item: DocListItem) => {
       </div>
 
       <div v-if="props.tabs?.length" class="mt-3">
-        <div class="inline-flex items-center gap-0.5 rounded-kb-md bg-black/5 p-0.5 dark:bg-white/10">
+        <div
+          class="inline-flex items-center gap-0.5 rounded-kb-md bg-black/5 p-0.5 dark:bg-white/10"
+        >
           <button
             v-for="tab in props.tabs"
             :key="tab.value"
@@ -122,10 +126,16 @@ const handleSelect = (item: DocListItem) => {
       />
     </div>
 
-    <div v-else-if="props.items.length === 0" class="flex flex-col items-center justify-center px-6 py-14 text-center">
+    <div
+      v-else-if="props.items.length === 0"
+      class="flex flex-col items-center justify-center px-6 py-14 text-center"
+    >
       <Icon icon="ph:file-text" :width="36" :height="36" class="text-ink-quaternary" />
       <p class="mt-3 text-kb-base font-medium text-ink-secondary">{{ props.emptyTitle }}</p>
-      <p v-if="props.emptyDescription" class="mt-1.5 max-w-sm text-kb-xs leading-5 text-ink-tertiary">
+      <p
+        v-if="props.emptyDescription"
+        class="mt-1.5 max-w-sm text-kb-xs leading-5 text-ink-tertiary"
+      >
         {{ props.emptyDescription }}
       </p>
       <slot name="empty" />

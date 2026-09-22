@@ -2,13 +2,19 @@
  * 封装知识库文档、目录树、版本与回收站相关接口。
  */
 import { requestKbDriveApi } from "./kb-drive-http"
-import type { KnowledgeDocumentContent, KnowledgeDocumentEditorType } from "@/types/knowledge-document"
+import type {
+  KnowledgeDocumentContent,
+  KnowledgeDocumentEditorType,
+} from "@/types/knowledge-document"
 
 /** 约束知识库树节点与文档条目的资源类型。 */
 export type KnowledgeDocumentType = "doc" | "folder" | "template" | "link"
 /** 约束文档搜索接口可命中的内容范围。 */
 export type KnowledgeSearchScope = "all" | "title" | "content"
-export type { KnowledgeDocumentContent, KnowledgeDocumentEditorType } from "@/types/knowledge-document"
+export type {
+  KnowledgeDocumentContent,
+  KnowledgeDocumentEditorType,
+} from "@/types/knowledge-document"
 
 /**
  * 描述知识库文档基础信息。
@@ -102,7 +108,8 @@ export interface KnowledgeRecentDocumentItem {
  * 「开始」聚合视角来源：编辑过 / 我评论的 / 分享中的 / 邀我协作 / 提到我 / 我点赞的。
  * （浏览过直接复用 recent-all）
  */
-export type KnowledgeDashboardSource = "edited" | "commented" | "shared" | "collaborative" | "mentioned" | "liked"
+export type KnowledgeDashboardSource =
+  "edited" | "commented" | "shared" | "collaborative" | "mentioned" | "liked"
 
 /**
  * 「开始」聚合视角的文档项：公共字段 + 按来源不同的时间戳标记。
@@ -135,7 +142,7 @@ export const listDashboardKnowledgeDocuments = (
     source: KnowledgeDashboardSource
     limit?: number
   },
-  token?: string | null
+  token?: string | null,
 ) => {
   const queryText = buildQuery({
     source: params.source,
@@ -145,7 +152,7 @@ export const listDashboardKnowledgeDocuments = (
   return requestKbDriveApi<KnowledgeDashboardDocumentItem[]>(
     `/knowledge/documents/dashboard?${queryText}`,
     undefined,
-    token
+    token,
   )
 }
 
@@ -206,7 +213,11 @@ const buildQuery = (params: Record<string, string | number | undefined>) => {
  */
 export const listKnowledgeDocuments = (kbId: string, token?: string | null) => {
   const queryText = buildQuery({ kbId })
-  return requestKbDriveApi<KnowledgeDocumentItem[]>(`/knowledge/documents?${queryText}`, undefined, token)
+  return requestKbDriveApi<KnowledgeDocumentItem[]>(
+    `/knowledge/documents?${queryText}`,
+    undefined,
+    token,
+  )
 }
 
 /**
@@ -214,7 +225,11 @@ export const listKnowledgeDocuments = (kbId: string, token?: string | null) => {
  */
 export const getKnowledgeDocumentTree = (kbId: string, token?: string | null) => {
   const queryText = buildQuery({ kbId })
-  return requestKbDriveApi<KnowledgeDocumentTreeNode[]>(`/knowledge/documents/tree?${queryText}`, undefined, token)
+  return requestKbDriveApi<KnowledgeDocumentTreeNode[]>(
+    `/knowledge/documents/tree?${queryText}`,
+    undefined,
+    token,
+  )
 }
 
 /**
@@ -229,7 +244,7 @@ export const reorderKnowledgeDocuments = (
       order: number
     }>
   },
-  token?: string | null
+  token?: string | null,
 ) =>
   requestKbDriveApi<{ ok: boolean }>(
     "/knowledge/documents/reorder",
@@ -237,7 +252,7 @@ export const reorderKnowledgeDocuments = (
       method: "POST",
       body: JSON.stringify(payload),
     },
-    token
+    token,
   )
 
 /**
@@ -251,7 +266,7 @@ export const searchKnowledgeDocuments = (
     page?: number
     pageSize?: number
   },
-  token?: string | null
+  token?: string | null,
 ) => {
   const queryText = buildQuery({
     kbId: params.kbId,
@@ -261,7 +276,11 @@ export const searchKnowledgeDocuments = (
     pageSize: params.pageSize ?? 20,
   })
 
-  return requestKbDriveApi<KnowledgeDocumentSearchResult>(`/knowledge/documents/search?${queryText}`, undefined, token)
+  return requestKbDriveApi<KnowledgeDocumentSearchResult>(
+    `/knowledge/documents/search?${queryText}`,
+    undefined,
+    token,
+  )
 }
 
 /**
@@ -272,14 +291,18 @@ export const listRecentKnowledgeDocuments = (
     kbId: string
     limit?: number
   },
-  token?: string | null
+  token?: string | null,
 ) => {
   const queryText = buildQuery({
     kbId: params.kbId,
     limit: params.limit ?? 20,
   })
 
-  return requestKbDriveApi<KnowledgeRecentDocumentItem[]>(`/knowledge/documents/recent?${queryText}`, undefined, token)
+  return requestKbDriveApi<KnowledgeRecentDocumentItem[]>(
+    `/knowledge/documents/recent?${queryText}`,
+    undefined,
+    token,
+  )
 }
 
 /**
@@ -289,7 +312,7 @@ export const listRecentKnowledgeDocumentsAll = (
   params?: {
     limit?: number
   },
-  token?: string | null
+  token?: string | null,
 ) => {
   const queryText = buildQuery({
     limit: params?.limit ?? 20,
@@ -298,7 +321,7 @@ export const listRecentKnowledgeDocumentsAll = (
   return requestKbDriveApi<KnowledgeRecentDocumentItem[]>(
     `/knowledge/documents/recent-all?${queryText}`,
     undefined,
-    token
+    token,
   )
 }
 
@@ -311,7 +334,7 @@ export const listKnowledgeDocumentTrash = (
     page?: number
     pageSize?: number
   },
-  token?: string | null
+  token?: string | null,
 ) => {
   const queryText = buildQuery({
     kbId: params?.kbId,
@@ -322,7 +345,7 @@ export const listKnowledgeDocumentTrash = (
   return requestKbDriveApi<KnowledgeDocumentTrashResult>(
     `/knowledge/documents/trash${queryText ? `?${queryText}` : ""}`,
     undefined,
-    token
+    token,
   )
 }
 
@@ -335,7 +358,7 @@ export const restoreKnowledgeDocument = (id: string, token?: string | null) =>
     {
       method: "POST",
     },
-    token
+    token,
   )
 
 /**
@@ -348,7 +371,7 @@ export const restoreKnowledgeDocuments = (ids: string[], token?: string | null) 
       method: "POST",
       body: JSON.stringify({ ids }),
     },
-    token
+    token,
   )
 
 /**
@@ -360,7 +383,7 @@ export const hardDeleteKnowledgeDocument = (id: string, token?: string | null) =
     {
       method: "DELETE",
     },
-    token
+    token,
   )
 
 /**
@@ -373,7 +396,7 @@ export const hardDeleteKnowledgeDocuments = (ids: string[], token?: string | nul
       method: "POST",
       body: JSON.stringify({ ids }),
     },
-    token
+    token,
   )
 
 /**
@@ -383,7 +406,7 @@ export const clearKnowledgeDocumentTrash = (kbId?: string, token?: string | null
   requestKbDriveApi<{ ok: boolean }>(
     `/knowledge/documents/trash/clear${kbId ? `?kbId=${encodeURIComponent(kbId)}` : ""}`,
     { method: "POST" },
-    token
+    token,
   )
 
 /**
@@ -406,7 +429,7 @@ export const createKnowledgeDocument = (
     parentId?: string | null
     order?: number
   },
-  token?: string | null
+  token?: string | null,
 ) =>
   requestKbDriveApi<KnowledgeDocumentItem>(
     "/knowledge/documents",
@@ -414,7 +437,7 @@ export const createKnowledgeDocument = (
       method: "POST",
       body: JSON.stringify(payload),
     },
-    token
+    token,
   )
 
 /**
@@ -442,7 +465,7 @@ export const updateKnowledgeDocument = (
     message: string
     versionName: string
   }>,
-  token?: string | null
+  token?: string | null,
 ) =>
   requestKbDriveApi<KnowledgeDocumentItem>(
     `/knowledge/documents/${id}`,
@@ -450,7 +473,7 @@ export const updateKnowledgeDocument = (
       method: "PATCH",
       body: JSON.stringify(payload),
     },
-    token
+    token,
   )
 
 /**
@@ -462,14 +485,18 @@ export const trashKnowledgeDocument = (id: string, token?: string | null) =>
     {
       method: "POST",
     },
-    token
+    token,
   )
 
 /**
  * 获取文档版本列表。
  */
 export const listKnowledgeDocumentVersions = (id: string, token?: string | null) =>
-  requestKbDriveApi<KnowledgeDocumentVersionItem[]>(`/knowledge/documents/${id}/versions`, undefined, token)
+  requestKbDriveApi<KnowledgeDocumentVersionItem[]>(
+    `/knowledge/documents/${id}/versions`,
+    undefined,
+    token,
+  )
 
 /**
  * 获取指定文档版本详情。
@@ -486,13 +513,17 @@ export const getKnowledgeDocumentVersion = (id: string, versionId: string, token
 /**
  * 删除指定文档版本。
  */
-export const deleteKnowledgeDocumentVersion = (id: string, versionId: string, token?: string | null) =>
+export const deleteKnowledgeDocumentVersion = (
+  id: string,
+  versionId: string,
+  token?: string | null,
+) =>
   requestKbDriveApi(
     `/knowledge/documents/${id}/versions/${versionId}`,
     {
       method: "DELETE",
     },
-    token
+    token,
   )
 
 /**
@@ -515,7 +546,7 @@ export const listKnowledgeDocumentTemplates = (kbId: string, token?: string | nu
 export const createKnowledgeDocumentFromTemplate = (
   templateId: string,
   payload: { title: string; parentId?: string },
-  token?: string | null
+  token?: string | null,
 ) =>
   requestKbDriveApi<KnowledgeDocumentItem>(
     `/knowledge/documents/${templateId}/create-from-template`,
@@ -523,19 +554,23 @@ export const createKnowledgeDocumentFromTemplate = (
       method: "POST",
       body: JSON.stringify(payload),
     },
-    token
+    token,
   )
 
 /**
  * 将文档回滚到指定版本。
  */
-export const rollbackKnowledgeDocumentVersion = (id: string, versionId: string, token?: string | null) =>
+export const rollbackKnowledgeDocumentVersion = (
+  id: string,
+  versionId: string,
+  token?: string | null,
+) =>
   requestKbDriveApi<KnowledgeDocumentItem>(
     `/knowledge/documents/${id}/rollback/${versionId}`,
     {
       method: "POST",
     },
-    token
+    token,
   )
 
 /**
@@ -547,5 +582,5 @@ export const recordKnowledgeDocumentView = (id: string, token?: string | null) =
     {
       method: "POST",
     },
-    token
+    token,
   )

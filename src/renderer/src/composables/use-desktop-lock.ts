@@ -10,7 +10,12 @@
  * "unavailable" 是本模块在桥接缺失时补的本地失败分支，不在主进程返回值域里。
  */
 import { reactive } from "vue"
-import type { DesktopLockState, LockMutationResult, LockVerifyResult, XiaoyeDesktopApi } from "@/types/desktop-bridge"
+import type {
+  DesktopLockState,
+  LockMutationResult,
+  LockVerifyResult,
+  XiaoyeDesktopApi,
+} from "@/types/desktop-bridge"
 
 export type { DesktopLockState }
 
@@ -21,7 +26,9 @@ type LockVerifyOutcome = LockVerifyResult | { ok: false; reason: "unavailable" }
 const lockBridge = (): XiaoyeDesktopApi | null =>
   // services/desktop-bridge.ts 的 window 声明仍是迁移前的旧 Bridge 接口（缺 lock 族），
   // 按事实源（@/types/desktop-bridge）形状断言；该处迁移回 XiaoyeDesktopApi 后可去掉
-  typeof window !== "undefined" && window.xiaoyeDesktop ? (window.xiaoyeDesktop as XiaoyeDesktopApi) : null
+  typeof window !== "undefined" && window.xiaoyeDesktop
+    ? (window.xiaoyeDesktop as XiaoyeDesktopApi)
+    : null
 
 /**
  * 当前环境是否可用桌面端锁定（Web 端 false）。
@@ -50,12 +57,18 @@ export function useDesktopLock() {
   }
 
   /** 设置/修改锁定密码；返回失败原因供设置页提示（ok=false + unauthorized = 当前密码不对）。 */
-  const setLockPassword = async (newPassword: string, currentPassword?: string): Promise<LockMutationOutcome> => {
+  const setLockPassword = async (
+    newPassword: string,
+    currentPassword?: string,
+  ): Promise<LockMutationOutcome> => {
     const bridge = lockBridge()
     if (!bridge) {
       return { ok: false, reason: "unavailable" }
     }
-    const result = await bridge.setLockPassword({ newPassword, ...(currentPassword ? { currentPassword } : {}) })
+    const result = await bridge.setLockPassword({
+      newPassword,
+      ...(currentPassword ? { currentPassword } : {}),
+    })
     await refresh()
     return result
   }

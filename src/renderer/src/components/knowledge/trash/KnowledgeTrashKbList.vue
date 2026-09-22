@@ -22,7 +22,9 @@ const hasItems = computed(() => props.items.length > 0)
   <div v-if="!hasItems" class="flex flex-col items-center justify-center px-6 py-14 text-center">
     <Icon icon="ph:database" :width="36" :height="36" class="mb-3 text-ink-quaternary" />
     <p class="text-kb-base font-medium text-ink-secondary">知识库回收站为空</p>
-    <p class="mt-1.5 max-w-sm text-kb-xs leading-5 text-ink-tertiary">被删除的知识库会在这里等待恢复。</p>
+    <p class="mt-1.5 max-w-sm text-kb-xs leading-5 text-ink-tertiary">
+      被删除的知识库会在这里等待恢复。
+    </p>
   </div>
 
   <div v-else class="space-y-0.5">

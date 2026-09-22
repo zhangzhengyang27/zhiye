@@ -1,13 +1,24 @@
 <!-- 组件说明：KnowledgeWorkspaceLayout 组件，负责页面展示与交互逻辑。 -->
 <script setup lang="ts">
 /** 页面布局组件，负责编排知识库工作区的上下文、骨架与路由承载。 */
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, provide, ref, watch } from "vue"
+import {
+  computed,
+  defineAsyncComponent,
+  onBeforeUnmount,
+  onMounted,
+  provide,
+  ref,
+  watch,
+} from "vue"
 import { RouterView, useRoute, useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
 import KnowledgeInlineTitleInput from "@/components/knowledge/KnowledgeInlineTitleInput.vue"
 import KnowledgeTreeBranch from "@/components/knowledge/KnowledgeTreeBranch.vue"
 import KnowledgeTreeNodeMenu from "@/components/knowledge/KnowledgeTreeNodeMenu.vue"
-import { type TreeNodeMenuPayload, type TreeNodeMenuState } from "@/components/knowledge/tree-node-menu"
+import {
+  type TreeNodeMenuPayload,
+  type TreeNodeMenuState,
+} from "@/components/knowledge/tree-node-menu"
 import KnowledgeWorkspaceTreePanelHeader, {
   type TreeViewMode,
 } from "@/components/knowledge/KnowledgeWorkspaceTreePanelHeader.vue"
@@ -28,9 +39,11 @@ import { useTreeFocus } from "./use-tree-focus"
 import { useWorkspaceLoader } from "./use-workspace-loader"
 import { useTreeNodeActions } from "./use-tree-node-actions"
 
-const TemplateSelectDialog = defineAsyncComponent(() => import("@/components/knowledge/TemplateSelectDialog.vue"))
+const TemplateSelectDialog = defineAsyncComponent(
+  () => import("@/components/knowledge/TemplateSelectDialog.vue"),
+)
 const KnowledgeDocCreateDialog = defineAsyncComponent(
-  () => import("@/components/knowledge/KnowledgeDocCreateDialog.vue")
+  () => import("@/components/knowledge/KnowledgeDocCreateDialog.vue"),
 )
 const ConfirmDialog = defineAsyncComponent(() => import("@/components/common/ConfirmDialog.vue"))
 
@@ -64,7 +77,7 @@ const {
   treeNodes,
   expandedFolderIds,
   isMenuOpen: () => Boolean(treeNodeMenu.value),
-  toggleFolder: id => toggleFolder(id),
+  toggleFolder: (id) => toggleFolder(id),
   openDoc: (docId, editorType) => openDoc(docId, editorType),
 })
 
@@ -146,7 +159,7 @@ const flatDocRows = computed(() => {
   const docs: KnowledgeDocumentTreeNode[] = []
 
   const walk = (nodes: KnowledgeDocumentTreeNode[]) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (node.type !== "folder") {
         docs.push(node)
       }
@@ -223,7 +236,7 @@ const toggleFolder = (id: string) => {
   const isExpanded = expandedFolderIds.value.includes(id)
 
   if (isExpanded) {
-    expandedFolderIds.value = expandedFolderIds.value.filter(item => item !== id)
+    expandedFolderIds.value = expandedFolderIds.value.filter((item) => item !== id)
 
     const currentFocusedId = focusedNodeId.value
 
@@ -239,7 +252,7 @@ const toggleFolder = (id: string) => {
 
 const toggleAllFolders = () => {
   const allFolderIds = collectFolderIds(treeNodes.value)
-  const allExpanded = allFolderIds.every(id => expandedFolderIds.value.includes(id))
+  const allExpanded = allFolderIds.every((id) => expandedFolderIds.value.includes(id))
 
   if (allExpanded) {
     expandedFolderIds.value = []
@@ -259,7 +272,7 @@ const openDoc = (docId: string, editorType?: string | null) => {
       kbId: kbId.value,
       docId,
       editorType: editorType ?? resolvedNode?.editorType,
-    })
+    }),
   )
 }
 
@@ -289,7 +302,10 @@ const openWorkspaceSettings = () => {
   })
 }
 
-const handleTreeNodeDragStart = (payload: { node: KnowledgeDocumentTreeNode; event: PointerEvent }) => {
+const handleTreeNodeDragStart = (payload: {
+  node: KnowledgeDocumentTreeNode
+  event: PointerEvent
+}) => {
   if (treeDragDisabled.value) {
     return
   }
@@ -332,7 +348,7 @@ const {
   refreshTree,
   openDoc,
   openMoveDialog,
-  refocusNodeRow: nodeId => getTreeNodeRowElement(nodeId)?.focus(),
+  refocusNodeRow: (nodeId) => getTreeNodeRowElement(nodeId)?.focus(),
   showToastMessage,
 })
 
@@ -353,7 +369,7 @@ const importAccept = computed(() =>
       : importKind.value === "docx"
         ? ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         : // any：侧栏/开始页「导入…」统一入口，accept 交多格式（importLocalDocumentFiles 按扩展名分发）
-          ".md,.markdown,.txt,.docx,.lake,.zip"
+          ".md,.markdown,.txt,.docx,.lake,.zip",
 )
 
 // ==================== 添加链接（B3c 外链树节点） ====================
@@ -447,10 +463,10 @@ const consumeSidebarCreateIntent = () => {
 watch(
   () => route.query.intent,
   () => consumeSidebarCreateIntent(),
-  { immediate: true }
+  { immediate: true },
 )
 
-watch(permissions, loaded => {
+watch(permissions, (loaded) => {
   if (!loaded || !pendingSidebarIntent.value) {
     return
   }
@@ -488,7 +504,10 @@ const onImportFileChange = async (event: Event) => {
           : await importDocxFile(file, kbId.value)
     showToastMessage(`已导入「${document.title}」`, "success")
     await refreshTree()
-    void router.push({ name: "knowledge-doc-editor", params: { kbId: kbId.value, docId: document.id } })
+    void router.push({
+      name: "knowledge-doc-editor",
+      params: { kbId: kbId.value, docId: document.id },
+    })
   } catch (error) {
     console.error("[knowledge] 导入文档失败", error)
     showToastMessage("导入失败，请检查文件格式后重试", "error")
@@ -496,7 +515,7 @@ const onImportFileChange = async (event: Event) => {
 }
 watch(
   kbId,
-  currentKbId => {
+  (currentKbId) => {
     closeNodeMenu()
     resetTreeDragState()
     clearTreeTypeahead()
@@ -511,10 +530,10 @@ watch(
 
     void refreshWorkspace()
   },
-  { immediate: true }
+  { immediate: true },
 )
 
-watch(activeDocId, docId => {
+watch(activeDocId, (docId) => {
   if (!docId) {
     return
   }
@@ -566,7 +585,11 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
   // 若不限定范围，在编辑器工具栏等处按 Backspace/Enter 会误触树节点的删除确认/打开文档
   const treeContainer = treePanelScrollRef.value
   const activeElement = document.activeElement
-  if (!treeContainer || !(activeElement instanceof Node) || !treeContainer.contains(activeElement)) {
+  if (
+    !treeContainer ||
+    !(activeElement instanceof Node) ||
+    !treeContainer.contains(activeElement)
+  ) {
     return
   }
 
@@ -647,7 +670,11 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
     @sidebar-create="handleRootCreateMenuAction"
     @sidebar-import="handleImportAction"
   >
-    <div ref="workspaceLayoutRef" class="grid h-full min-h-0 overflow-hidden" :style="workspaceGridStyle">
+    <div
+      ref="workspaceLayoutRef"
+      class="grid h-full min-h-0 overflow-hidden"
+      :style="workspaceGridStyle"
+    >
       <aside
         :class="treePanelCollapsed ? 'invisible' : ''"
         class="relative flex min-h-0 flex-col border-r border-line bg-muted"
@@ -670,7 +697,7 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
             :view-mode="treeViewMode"
             @open-home="openWorkspaceHome"
             @open-settings="openWorkspaceSettings"
-            @view-mode-change="mode => (treeViewMode = mode)"
+            @view-mode-change="(mode) => (treeViewMode = mode)"
             @toggle-all-folders="toggleAllFolders"
             @create="handleHeaderCreateAction"
             @import="handleImportAction"
@@ -680,7 +707,11 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
             <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-kb-lg bg-transparent">
               <div ref="treePanelScrollRef" class="min-h-0 flex-1 overflow-y-auto px-1 py-1.5">
                 <div v-if="loadingTree" class="space-y-2 px-2 py-2">
-                  <div v-for="index in 8" :key="index" class="h-8 animate-pulse rounded-kb-sm bg-grey-200" />
+                  <div
+                    v-for="index in 8"
+                    :key="index"
+                    class="h-8 animate-pulse rounded-kb-sm bg-grey-200"
+                  />
                 </div>
 
                 <!-- 加载失败（如知识库不存在）时不展示空态引导，避免与错误提示矛盾 -->
@@ -688,7 +719,12 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
                   v-else-if="treeNodes.length === 0 && !errorMessage"
                   class="rounded-kb-lg border border-dashed border-line-input bg-surface px-4 py-10 text-center"
                 >
-                  <Icon icon="ph:folder" :width="32" :height="32" class="mx-auto text-ink-quaternary" />
+                  <Icon
+                    icon="ph:folder"
+                    :width="32"
+                    :height="32"
+                    class="mx-auto text-ink-quaternary"
+                  />
                   <p class="mt-3 text-sm font-medium text-ink-secondary">当前空间还没有目录内容</p>
                   <p class="mt-2 text-xs leading-5 text-ink-tertiary">
                     {{
@@ -737,16 +773,25 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
                         aria-label="重命名"
                         @click.stop
                         @keydown.stop
-                        @finish="payload => finishRename({ node: doc, ...payload })"
+                        @finish="(payload) => finishRename({ node: doc, ...payload })"
                       />
-                      <p v-else class="truncate text-[14px] font-medium text-ink">{{ doc.title || "无标题文档" }}</p>
+                      <p v-else class="truncate text-[14px] font-medium text-ink">
+                        {{ doc.title || "无标题文档" }}
+                      </p>
                     </div>
                     <button
                       v-if="renamingNodeId !== doc.id"
                       type="button"
                       class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-kb-sm text-ink-tertiary opacity-0 transition hover:bg-grey-200 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100"
                       title="更多操作"
-                      @click.stop="openNodeMenu({ node: doc, x: $event.clientX, y: $event.clientY, mode: 'actions' })"
+                      @click.stop="
+                        openNodeMenu({
+                          node: doc,
+                          x: $event.clientX,
+                          y: $event.clientY,
+                          mode: 'actions',
+                        })
+                      "
                     >
                       <Icon icon="ph:dots-three-bold" :width="14" :height="14" />
                     </button>
@@ -763,7 +808,9 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
                   <div
                     role="tree"
                     aria-label="知识库目录"
-                    :aria-activedescendant="focusedNodeId ? `knowledge-tree-node-${focusedNodeId}` : undefined"
+                    :aria-activedescendant="
+                      focusedNodeId ? `knowledge-tree-node-${focusedNodeId}` : undefined
+                    "
                     class="space-y-0.5"
                   >
                     <KnowledgeTreeBranch
@@ -849,14 +896,24 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
       :refresh-tree="refreshTree"
     />
 
-    <KnowledgeTreeNodeMenu ref="treeNodeMenuComponent" v-model:menu="treeNodeMenu" :groups="treeNodeMenuGroups" />
+    <KnowledgeTreeNodeMenu
+      ref="treeNodeMenuComponent"
+      v-model:menu="treeNodeMenu"
+      :groups="treeNodeMenuGroups"
+    />
 
-    <input ref="importFileInputRef" type="file" class="hidden" :accept="importAccept" @change="onImportFileChange" />
+    <input
+      ref="importFileInputRef"
+      type="file"
+      class="hidden"
+      :accept="importAccept"
+      @change="onImportFileChange"
+    />
 
     <KnowledgeAddLinkDialog
       :open="addLinkDialogOpen"
       :submitting="addingLink"
-      @update:open="value => (addLinkDialogOpen = value)"
+      @update:open="(value) => (addLinkDialogOpen = value)"
       @confirm="handleAddLinkConfirm"
     />
     <TemplateSelectDialog
@@ -864,7 +921,10 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
       v-model:open="showTemplateDialog"
       :kb-id="kbId"
       :parent-id="templateDialogParentId"
-      @created="document => router.push({ name: 'knowledge-doc-editor', params: { kbId, docId: document.id } })"
+      @created="
+        (document) =>
+          router.push({ name: 'knowledge-doc-editor', params: { kbId, docId: document.id } })
+      "
     />
     <!-- 新建文档/文件夹/画板：对齐语雀「新建文档」弹层（名称/所属目录/高级选项）；
          重命名不开弹窗，走树行内编辑（renamingNodeId） -->
@@ -875,7 +935,9 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
       :default-value="inputDialog.defaultValue"
       :folders="inputDialog.folders"
       :default-folder-id="inputDialog.defaultFolderId"
-      @confirm="payload => inputDialog.onConfirm(payload.title, payload.parentId, payload.editorType)"
+      @confirm="
+        (payload) => inputDialog.onConfirm(payload.title, payload.parentId, payload.editorType)
+      "
     />
     <ConfirmDialog
       v-if="confirmDialog.open"

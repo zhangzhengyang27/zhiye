@@ -18,7 +18,9 @@ const getSidebarNavItemClass = (active: boolean) => {
 
 const getIconClass = (active: boolean) => {
   // 对齐语雀桌面端：导航图标使用品牌绿，与文字颜色解耦
-  return active ? "shrink-0 text-brand" : "shrink-0 text-brand/75 transition-colors duration-150 group-hover:text-brand"
+  return active
+    ? "shrink-0 text-brand"
+    : "shrink-0 text-brand/75 transition-colors duration-150 group-hover:text-brand"
 }
 </script>
 
@@ -30,7 +32,12 @@ const getIconClass = (active: boolean) => {
       :to="item.to"
       :class="getSidebarNavItemClass(props.activeMenu === item.key)"
     >
-      <Icon :icon="item.icon" :width="16" :height="16" :class="getIconClass(props.activeMenu === item.key)" />
+      <Icon
+        :icon="item.icon"
+        :width="16"
+        :height="16"
+        :class="getIconClass(props.activeMenu === item.key)"
+      />
       <span class="flex-1 truncate">{{ item.label }}</span>
     </RouterLink>
   </div>

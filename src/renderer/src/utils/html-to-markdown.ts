@@ -12,24 +12,56 @@
  */
 
 const isBlockTag = (tag: string): boolean =>
-  ["P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "BLOCKQUOTE", "PRE", "TABLE", "HR", "BR"].includes(
-    tag
-  )
+  [
+    "P",
+    "DIV",
+    "H1",
+    "H2",
+    "H3",
+    "H4",
+    "H5",
+    "H6",
+    "UL",
+    "OL",
+    "LI",
+    "BLOCKQUOTE",
+    "PRE",
+    "TABLE",
+    "HR",
+    "BR",
+  ].includes(tag)
 
 const inlineTag = (tag: string): boolean =>
-  ["STRONG", "B", "EM", "I", "CODE", "A", "SPAN", "DEL", "S", "U", "SUP", "SUB", "SMALL", "IMG"].includes(tag)
+  [
+    "STRONG",
+    "B",
+    "EM",
+    "I",
+    "CODE",
+    "A",
+    "SPAN",
+    "DEL",
+    "S",
+    "U",
+    "SUP",
+    "SUB",
+    "SMALL",
+    "IMG",
+  ].includes(tag)
 
 const collectTable = (table: HTMLElement): string[] => {
   const rows = Array.from(table.querySelectorAll("tr"))
-  const grid = rows.map(row =>
-    Array.from(row.querySelectorAll("th, td")).map(cell => cell.textContent?.trim().replace(/\s+/g, " ") ?? "")
+  const grid = rows.map((row) =>
+    Array.from(row.querySelectorAll("th, td")).map(
+      (cell) => cell.textContent?.trim().replace(/\s+/g, " ") ?? "",
+    ),
   )
 
   if (grid.length === 0) {
     return []
   }
 
-  const columnCount = Math.max(...grid.map(row => row.length))
+  const columnCount = Math.max(...grid.map((row) => row.length))
   const normalizeRow = (row: string[]): string[] => {
     const cells = [...row]
     while (cells.length < columnCount) {
@@ -94,11 +126,11 @@ const renderNode = (node: Node, depth: number): string[] => {
   if (tag === "UL" || tag === "OL") {
     const ordered = tag === "OL"
     let index = 0
-    for (const li of Array.from(element.children).filter(child => child.tagName === "LI")) {
+    for (const li of Array.from(element.children).filter((child) => child.tagName === "LI")) {
       const childLines = renderNode(li, depth + 1)
       const firstContent =
         childLines
-          .filter(line => line.trim())
+          .filter((line) => line.trim())
           .join("\n")
           .split("\n")[0] ?? ""
       const rest = childLines.slice(1)

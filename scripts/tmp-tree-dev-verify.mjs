@@ -21,7 +21,10 @@ const { browser, page } = await createBrowserPage({ viewport: { width: 1247, hei
 await loginThroughUi(page, "probe")
 const token = await readAccessToken(page)
 const kb = await ensureKnowledgeBase(token, "probe")
-const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n真验探针。` })
+const doc = await ensureDocument(kb.id, token, {
+  title: TITLE,
+  content: `# ${TITLE}\n\n真验探针。`,
+})
 
 await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
   waitUntil: "networkidle",
@@ -39,8 +42,16 @@ const dismiss = async () => {
 }
 const state = async () => ({
   url: page.url().replace(smokeConfig.baseUrl.origin, ""),
-  menu: await page.locator("text=导出…").first().isVisible().catch(() => false),
-  dialog: await page.locator("text=新建文档").first().isVisible().catch(() => false),
+  menu: await page
+    .locator("text=导出…")
+    .first()
+    .isVisible()
+    .catch(() => false),
+  dialog: await page
+    .locator("text=新建文档")
+    .first()
+    .isVisible()
+    .catch(() => false),
 })
 
 // 1. 不做任何 hover 前置，直接点三个图标
@@ -50,7 +61,7 @@ for (const name of ["更多操作", "阅读模式", "新建同级文档"]) {
   await row
     .locator(`button[title='${name}']`)
     .click({ timeout: 5000 })
-    .catch(e => (results[`${name}_clickError`] = e.message.split("\n")[0]))
+    .catch((e) => (results[`${name}_clickError`] = e.message.split("\n")[0]))
   await page.waitForTimeout(700)
   const after = await state()
   results[name] = {
@@ -66,7 +77,7 @@ await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).t
   waitUntil: "networkidle",
 })
 await row.waitFor({ state: "visible", timeout: smokeConfig.timeout })
-results.geometry = await row.evaluate(el => {
+results.geometry = await row.evaluate((el) => {
   const span = el.querySelector("[data-knowledge-tree-drag-handle] > span")
   const group = el.lastElementChild
   const panel = el.closest("aside").getBoundingClientRect()

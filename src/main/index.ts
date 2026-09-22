@@ -238,7 +238,7 @@ const registerAppProtocol = (serverBaseUrl: string) => {
   // 无法在构建期改为绝对路径）。这里把被污染的资源路径重写回真实位置。
   const ASSET_MARKERS = ["/assets/", "/yuque-assets/"]
 
-  protocol.handle("app", async request => {
+  protocol.handle("app", async (request) => {
     let decodedPath = decodeURIComponent(new URL(request.url).pathname)
 
     if (!decodedPath.startsWith("/assets/") && !decodedPath.startsWith("/yuque-assets/")) {
@@ -255,13 +255,15 @@ const registerAppProtocol = (serverBaseUrl: string) => {
 
     // 防目录穿越：解析后的路径必须仍在渲染层目录内。
     // 前缀比较要带路径分隔符，否则 out/renderer-secret 这类兄弟目录会被放行
-    const isInsideRendererDist = filePath === RENDERER_DIST || filePath.startsWith(RENDERER_DIST + path.sep)
+    const isInsideRendererDist =
+      filePath === RENDERER_DIST || filePath.startsWith(RENDERER_DIST + path.sep)
 
     if (!isInsideRendererDist) {
       return new Response("Forbidden", { status: 403 })
     }
 
-    const target = fs.existsSync(filePath) && fs.statSync(filePath).isFile() ? filePath : RENDERER_INDEX
+    const target =
+      fs.existsSync(filePath) && fs.statSync(filePath).isFile() ? filePath : RENDERER_INDEX
     const response = await net.fetch(pathToFileURL(target).toString())
 
     // CSP 只对 HTML 入口有意义，静态资源原样透传
@@ -271,7 +273,11 @@ const registerAppProtocol = (serverBaseUrl: string) => {
 
     const headers = new Headers(response.headers)
     headers.set("Content-Security-Policy", buildContentSecurityPolicy(serverBaseUrl))
-    return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    })
   })
 }
 
@@ -505,7 +511,7 @@ const focusMainWindow = () => {
   const win =
     mainWindow && !mainWindow.isDestroyed()
       ? mainWindow
-      : BrowserWindow.getAllWindows().find(item => !item.isDestroyed() && item !== settingsWindow)
+      : BrowserWindow.getAllWindows().find((item) => !item.isDestroyed() && item !== settingsWindow)
 
   if (win) {
     if (win.isMinimized()) {
@@ -584,8 +590,14 @@ const createTray = () => {
 
     const menu = Menu.buildFromTemplate([
       { label: "打开知识库", click: () => focusMainWindow() },
-      { label: "开始页", click: () => broadcastToRenderer("xiaoye:tray-command", "navigate-start") },
-      { label: "最近访问", click: () => broadcastToRenderer("xiaoye:tray-command", "navigate-recent") },
+      {
+        label: "开始页",
+        click: () => broadcastToRenderer("xiaoye:tray-command", "navigate-start"),
+      },
+      {
+        label: "最近访问",
+        click: () => broadcastToRenderer("xiaoye:tray-command", "navigate-recent"),
+      },
       { type: "separator" },
       preferencesMenuItem(),
       { label: "退出知识库", click: () => app.quit() },
@@ -658,7 +670,8 @@ const bootstrap = () => {
       return { shown: false, reason: "unsupported" }
     }
 
-    const title = typeof payload?.title === "string" && payload.title.trim() ? payload.title.trim() : "知识库"
+    const title =
+      typeof payload?.title === "string" && payload.title.trim() ? payload.title.trim() : "知识库"
     const body = typeof payload?.body === "string" ? payload.body : ""
     console.log(`[xiaoye] 系统通知 -> ${title} | ${body}`)
     new Notification({ title, body }).show()

@@ -22,7 +22,12 @@ const toggleAllLabel = computed(() => (props.allVersionsSelected ? "取消全选
   <div class="rounded-kb-3xl bg-muted p-3">
     <div class="flex items-center justify-between gap-3">
       <div class="text-xs text-ink-tertiary">批量操作会基于当前勾选项执行。</div>
-      <el-button text size="small" class="rounded-kb-xl" :disabled="props.versionDeleteBusy" @click="emit('toggle-all')"
+      <el-button
+        text
+        size="small"
+        class="rounded-kb-xl"
+        :disabled="props.versionDeleteBusy"
+        @click="emit('toggle-all')"
         ><span class="truncate">{{ toggleAllLabel }}</span>
       </el-button>
     </div>
@@ -35,7 +40,9 @@ const toggleAllLabel = computed(() => (props.allVersionsSelected ? "取消全选
         :loading="props.batchDeletingVersions"
         :disabled="props.selectedVersionCount === 0 || props.versionDeleteBusy"
         @click="emit('delete-selected')"
-        ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+        ><template #loading
+          ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+        /></template>
         <span class="truncate">批量删除</span>
       </el-button>
       <el-button

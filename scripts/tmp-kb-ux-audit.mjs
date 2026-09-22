@@ -6,20 +6,21 @@ const OUT = "/tmp/kb-ux"
 mkdirSync(OUT, { recursive: true })
 
 // ---- 颜色工具 ----
-const parseColor = str => {
+const parseColor = (str) => {
   const m = str.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/)
   if (!m) return null
   return { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] }
 }
 const lum = ({ r, g, b }) => {
-  const f = v => {
+  const f = (v) => {
     v /= 255
     return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
   }
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
 }
 const contrast = (a, b) => {
-  const l1 = lum(a), l2 = lum(b)
+  const l1 = lum(a),
+    l2 = lum(b)
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
 }
 
@@ -31,9 +32,17 @@ const auditPage = async (page, theme) =>
       const parseColor = eval(parseColorSrc)
       const lum = eval(lumSrc)
       const contrast = eval(contrastSrc)
-      const out = { theme, lowContrast: [], darkLightBlocks: [], smallFonts: [], tinyTargets: [], radii: {}, overflowX: [] }
+      const out = {
+        theme,
+        lowContrast: [],
+        darkLightBlocks: [],
+        smallFonts: [],
+        tinyTargets: [],
+        radii: {},
+        overflowX: [],
+      }
 
-      const effBg = el => {
+      const effBg = (el) => {
         let node = el
         while (node && node !== document.documentElement) {
           const c = parseColor(getComputedStyle(node).backgroundColor)
@@ -52,11 +61,17 @@ const auditPage = async (page, theme) =>
           }
           node = node.parentElement
         }
-        return parseColor(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255 }
+        return (
+          parseColor(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255 }
+        )
       }
 
-      const label = el => {
-        const cls = String(el.className && el.className.baseVal !== undefined ? el.className.baseVal : el.className || "")
+      const label = (el) => {
+        const cls = String(
+          el.className && el.className.baseVal !== undefined
+            ? el.className.baseVal
+            : el.className || "",
+        )
         return `${el.tagName.toLowerCase()}${cls ? "." + cls.split(/\s+/).slice(0, 3).join(".") : ""}`
       }
 
@@ -78,14 +93,22 @@ const auditPage = async (page, theme) =>
         const bg = effBg(el)
         if (!fg || !bg) continue
         const ratio = contrast(fg, bg)
-        const large = parseFloat(st.fontSize) >= 24 || (parseFloat(st.fontSize) >= 18.66 && +st.fontWeight >= 700)
+        const large =
+          parseFloat(st.fontSize) >= 24 ||
+          (parseFloat(st.fontSize) >= 18.66 && +st.fontWeight >= 700)
         const need = large ? 3 : 4.5
         if (ratio < need) {
-          out.lowContrast.push({ sel: label(el), ratio: +ratio.toFixed(2), size: st.fontSize, text: text.slice(0, 24) })
+          out.lowContrast.push({
+            sel: label(el),
+            ratio: +ratio.toFixed(2),
+            size: st.fontSize,
+            text: text.slice(0, 24),
+          })
         }
         // 2) 过小字号
         const fs = parseFloat(st.fontSize)
-        if (fs < 11) out.smallFonts.push({ sel: label(el), size: st.fontSize, text: text.slice(0, 20) })
+        if (fs < 11)
+          out.smallFonts.push({ sel: label(el), size: st.fontSize, text: text.slice(0, 20) })
       }
 
       // 3) 暗色下的亮块残留
@@ -99,7 +122,12 @@ const auditPage = async (page, theme) =>
           const rect = el.getBoundingClientRect()
           if (rect.width * rect.height < 3000) continue
           if (el.querySelector("canvas, img, video")) continue
-          out.darkLightBlocks.push({ sel: label(el), w: Math.round(rect.width), h: Math.round(rect.height), bg: st.backgroundColor })
+          out.darkLightBlocks.push({
+            sel: label(el),
+            w: Math.round(rect.width),
+            h: Math.round(rect.height),
+            bg: st.backgroundColor,
+          })
           if (out.darkLightBlocks.length > 25) break
         }
       }
@@ -139,29 +167,35 @@ const auditPage = async (page, theme) =>
       parseColorSrc: parseColor.toString(),
       lumSrc: lum.toString(),
       contrastSrc: contrast.toString(),
-    }
+    },
   )
 
-const sessionRaw = (await (await fetch(`${BASE}/api/auth/login`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ account: "demo@example.com", password: "123456" }),
-})).json())
+const sessionRaw = await (
+  await fetch(`${BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ account: "demo@example.com", password: "123456" }),
+  })
+).json()
 const token = sessionRaw.accessToken
 
-const api = async path => {
+const api = async (path) => {
   const res = await fetch(`${BASE}/api${path}`, { headers: { Authorization: `Bearer ${token}` } })
   return res.json()
 }
 const kbList = await api("/knowledge/knowledge-bases")
 const kbs = kbList.data || kbList
-const kb = Array.isArray(kbs) ? kbs.find(k => k.name === "默认知识库") || kbs[0] : kbs
+const kb = Array.isArray(kbs) ? kbs.find((k) => k.name === "默认知识库") || kbs[0] : kbs
 const tree = await api(`/knowledge/documents/tree?kbId=${kb.id}`)
 const nodes = tree.data || tree
 const flat = []
-const walk = list => (list || []).forEach(n => { flat.push(n); walk(n.children) })
+const walk = (list) =>
+  (list || []).forEach((n) => {
+    flat.push(n)
+    walk(n.children)
+  })
 walk(Array.isArray(nodes) ? nodes : nodes.items || nodes.nodes || [])
-const doc = flat.find(n => (n.type || n.kind) === "doc") || flat[0]
+const doc = flat.find((n) => (n.type || n.kind) === "doc") || flat[0]
 console.log("审计目标 KB:", kb.name, "DOC:", doc?.title)
 
 const pages = [
@@ -182,7 +216,7 @@ for (const theme of ["light", "dark"]) {
     localStorage.setItem("tools-web-auth-session", ${JSON.stringify(JSON.stringify({ accessToken: token, user: sessionRaw.user }))})
   `)
   const page = await ctx.newPage()
-  await page.route("**/*", route => {
+  await page.route("**/*", (route) => {
     const url = route.request().url()
     if (url.includes("zhangzhengyang.com")) return route.abort()
     return route.continue()
@@ -199,9 +233,11 @@ for (const theme of ["light", "dark"]) {
         lowContrast: r.lowContrast.slice(0, 6),
         lowContrastTotal: r.lowContrast.length,
         darkLightBlocks: r.darkLightBlocks.slice(0, 10),
-        smallFonts: [...new Map(r.smallFonts.map(x => [x.sel, x])).values()].slice(0, 8),
-        tinyTargets: [...new Map(r.tinyTargets.map(x => [x.sel, x])).values()].slice(0, 8),
-        radiiTop: Object.entries(r.radii).sort((a, b) => b[1] - a[1]).slice(0, 10),
+        smallFonts: [...new Map(r.smallFonts.map((x) => [x.sel, x])).values()].slice(0, 8),
+        tinyTargets: [...new Map(r.tinyTargets.map((x) => [x.sel, x])).values()].slice(0, 8),
+        radiiTop: Object.entries(r.radii)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10),
         overflowX: r.overflowX.slice(0, 6),
       }
       console.log("audited:", name, theme)
@@ -218,7 +254,7 @@ await ctx.addInitScript(`
   localStorage.setItem("tools-web-auth-session", ${JSON.stringify(JSON.stringify({ accessToken: token, user: sessionRaw.user }))})
 `)
 const page = await ctx.newPage()
-await page.route("**/*", route => {
+await page.route("**/*", (route) => {
   const url = route.request().url()
   if (url.includes("zhangzhengyang.com")) return route.abort()
   return route.continue()

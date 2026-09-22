@@ -78,7 +78,7 @@ const PALETTE_PLACEHOLDER = "搜索内容，按 Enter 跳转"
 
 let checks = 0
 
-const pass = label => {
+const pass = (label) => {
   checks += 1
   logStep(PREFIX, `✓ ${label}`)
 }
@@ -89,13 +89,13 @@ const check = async (label, fn) => {
 }
 
 const readStorageJson = async (page, key) => {
-  const raw = await page.evaluate(name => localStorage.getItem(name), key)
+  const raw = await page.evaluate((name) => localStorage.getItem(name), key)
   return raw ? JSON.parse(raw) : null
 }
 
-const readStorageRaw = async (page, key) => page.evaluate(name => localStorage.getItem(name), key)
+const readStorageRaw = async (page, key) => page.evaluate((name) => localStorage.getItem(name), key)
 
-const collectMetrics = page =>
+const collectMetrics = (page) =>
   page.evaluate(() => {
     const pick = (selector, props) => {
       const el = document.querySelector(selector)
@@ -103,14 +103,18 @@ const collectMetrics = page =>
         return null
       }
       const style = getComputedStyle(el)
-      return Object.fromEntries(props.map(prop => [prop, style[prop]]))
+      return Object.fromEntries(props.map((prop) => [prop, style[prop]]))
     }
 
     return {
       h1: pick(".kb-settings-title h1", ["width", "fontSize", "fontWeight", "marginTop"]),
       inner: pick(".kb-settings-inner", ["width", "paddingLeft"]),
       h2: pick(".kb-settings-group > h2", ["fontSize", "marginTop", "marginBottom", "fontWeight"]),
-      item: pick(".kb-settings-group .kb-settings-item", ["lineHeight", "paddingBottom", "borderBottomWidth"]),
+      item: pick(".kb-settings-group .kb-settings-item", [
+        "lineHeight",
+        "paddingBottom",
+        "borderBottomWidth",
+      ]),
       row: pick(".kb-settings-row", ["display", "gridTemplateColumns"]),
       shortcutTip: pick(".kb-shortcut-tip", ["position", "textAlign"]),
       shortcutAction: pick(".kb-shortcut-action", ["width", "position"]),
@@ -124,8 +128,10 @@ const selectOption = async (page, testId, optionName) => {
   await page.waitForTimeout(250)
 }
 
-const goSettings = async page => {
-  await page.goto(new URL("/settings", smokeConfig.baseUrl).toString(), { waitUntil: "networkidle" })
+const goSettings = async (page) => {
+  await page.goto(new URL("/settings", smokeConfig.baseUrl).toString(), {
+    waitUntil: "networkidle",
+  })
 }
 
 const run = async () => {
@@ -147,7 +153,9 @@ const run = async () => {
       assert.equal(new URL(page.url()).pathname, "/settings")
     })
 
-    await page.goto(new URL("/knowledge", smokeConfig.baseUrl).toString(), { waitUntil: "networkidle" })
+    await page.goto(new URL("/knowledge", smokeConfig.baseUrl).toString(), {
+      waitUntil: "networkidle",
+    })
     await page.keyboard.press("Meta+Comma")
     await page.waitForURL("**/settings")
     await check("Web 端 ⌘, 由渲染层兜底打开设置页", async () => {
@@ -157,8 +165,8 @@ const run = async () => {
     // ---------------- 结构与度量 ----------------
     // 直接子级：代理组的 h2 住在自己的 wrapper 里（语雀同构），而「关于」下的
     // 四条链接在语雀也是 h2，用后代选择器会把它们混进来
-    const titles = await page.$$eval(".kb-settings-group > h2, .kb-proxy-wrapper > h2", nodes =>
-      nodes.map(node => node.textContent.trim())
+    const titles = await page.$$eval(".kb-settings-group > h2, .kb-proxy-wrapper > h2", (nodes) =>
+      nodes.map((node) => node.textContent.trim()),
     )
     await check("8 个分组按语雀 render 顺序渲染（Web 端不出「其他设置」）", async () => {
       assert.deepEqual(titles, [
@@ -194,8 +202,9 @@ const run = async () => {
       assert.equal(m.row.display, "grid")
       const [labelCol, controlCol] = m.row.gridTemplateColumns.split(" ")
       assert.ok(
-        Math.abs(parseFloat(labelCol) / (parseFloat(labelCol) + parseFloat(controlCol)) - 0.75) < 0.01,
-        `分栏比例应为 75/25，实测 ${m.row.gridTemplateColumns}`
+        Math.abs(parseFloat(labelCol) / (parseFloat(labelCol) + parseFloat(controlCol)) - 0.75) <
+          0.01,
+        `分栏比例应为 75/25，实测 ${m.row.gridTemplateColumns}`,
       )
     })
 
@@ -206,8 +215,9 @@ const run = async () => {
       assert.equal(m.shortcutAction.position, "absolute")
     })
 
-    const labels = await page.$$eval(".kb-shortcut-item .kb-settings-row > span:first-child", nodes =>
-      nodes.map(node => node.textContent.trim())
+    const labels = await page.$$eval(
+      ".kb-shortcut-item .kb-settings-row > span:first-child",
+      (nodes) => nodes.map((node) => node.textContent.trim()),
     )
     await check("快捷键 6 行文案与语雀一致（仅产品名替换）", async () => {
       assert.deepEqual(labels, [
@@ -220,7 +230,9 @@ const run = async () => {
       ])
     })
 
-    const displays = await page.$$eval(".kb-shortcut-tip", nodes => nodes.map(node => node.textContent.trim()))
+    const displays = await page.$$eval(".kb-shortcut-tip", (nodes) =>
+      nodes.map((node) => node.textContent.trim()),
+    )
     await check("默认组合键按 macOS 符号渲染（⌘⌥⇧^ 空格分隔）", async () => {
       assert.deepEqual(displays, ["⌘ ⌥ Y", "⌘ ⇧ Y", "⌘ N", "⌘ J", "⌘ L", "⌘ ⇧ E"])
     })
@@ -268,16 +280,22 @@ const run = async () => {
     })
 
     await check("改键后右列即时显示新组合键", async () => {
-      const next = await page.$$eval(".kb-shortcut-tip", nodes => nodes[3]?.textContent.trim())
+      const next = await page.$$eval(".kb-shortcut-tip", (nodes) => nodes[3]?.textContent.trim())
       assert.equal(next, "⌘ ⇧ K")
     })
 
     // 命令面板挂在侧栏壳里：离开设置页再按新键才算「真生效」
-    await page.goto(new URL("/knowledge", smokeConfig.baseUrl).toString(), { waitUntil: "networkidle" })
+    await page.goto(new URL("/knowledge", smokeConfig.baseUrl).toString(), {
+      waitUntil: "networkidle",
+    })
     await page.keyboard.press("Meta+Shift+K")
     await page.waitForTimeout(400)
     await check("按新键 ⌘⇧K 真的唤起命令面板（应用内快捷键链路跑通）", async () => {
-      assert.equal(await page.getByPlaceholder(PALETTE_PLACEHOLDER).count(), 1, "命令面板未打开：应用内快捷键未生效")
+      assert.equal(
+        await page.getByPlaceholder(PALETTE_PLACEHOLDER).count(),
+        1,
+        "命令面板未打开：应用内快捷键未生效",
+      )
     })
     await page.keyboard.press("Escape")
     await page.waitForTimeout(200)
@@ -289,7 +307,7 @@ const run = async () => {
     await check("点「取消快捷键」→ 写入 NO_SHORTCUT 且右列回落占位「设置快捷键」", async () => {
       const after = await readStorageJson(page, STORAGE.shortcuts)
       assert.equal(after.showGlobalSearchModal, "NO_SHORTCUT")
-      const shown = await page.$$eval(".kb-shortcut-tip", nodes => nodes[3]?.textContent.trim())
+      const shown = await page.$$eval(".kb-shortcut-tip", (nodes) => nodes[3]?.textContent.trim())
       assert.equal(shown, "设置快捷键")
     })
 
@@ -302,7 +320,7 @@ const run = async () => {
     })
 
     await check("Web 端禁用 4 行（桌面族 2 + 本仓无能力族 2）", async () => {
-      assert.equal(await page.$$eval(".kb-shortcut-input.is-disabled", nodes => nodes.length), 4)
+      assert.equal(await page.$$eval(".kb-shortcut-input.is-disabled", (nodes) => nodes.length), 4)
     })
 
     // ---------------- 代理 + 桌面契约（用桩 bridge 假装桌面端）----------------
@@ -318,8 +336,8 @@ const run = async () => {
     await goSettings(page)
 
     await check("桩 bridge 下 9 个分组齐了（macOS 才有的「其他设置」出现）", async () => {
-      const all = await page.$$eval(".kb-settings-group > h2, .kb-proxy-wrapper > h2", nodes =>
-        nodes.map(node => node.textContent.trim())
+      const all = await page.$$eval(".kb-settings-group > h2, .kb-proxy-wrapper > h2", (nodes) =>
+        nodes.map((node) => node.textContent.trim()),
       )
       assert.deepEqual(all.slice(5, 8), ["代理设置", "其他设置", "加入内测版体验计划"])
     })
@@ -327,7 +345,9 @@ const run = async () => {
     await page.click(".kb-proxy-wrapper .el-switch")
     await page.waitForTimeout(350)
     await check("打开「启用代理」→ 模式/协议/服务器三行按条件出现", async () => {
-      const rows = await page.$$eval(".kb-proxy-title", nodes => nodes.map(node => node.textContent.trim()))
+      const rows = await page.$$eval(".kb-proxy-title", (nodes) =>
+        nodes.map((node) => node.textContent.trim()),
+      )
       assert.deepEqual(rows, ["启用代理", "代理模式", "代理协议", "代理服务器"])
     })
 
@@ -356,7 +376,12 @@ const run = async () => {
 
       const calls = await page.evaluate(() => window.__bridgeCalls)
       const applied = calls.filter(([name]) => name === "setProxySettings").pop()
-      assert.deepEqual(applied?.[1], { enable: true, mode: "HTTP", type: "HTTP", url: "http://127.0.0.1:7890" })
+      assert.deepEqual(applied?.[1], {
+        enable: true,
+        mode: "HTTP",
+        type: "HTTP",
+        url: "http://127.0.0.1:7890",
+      })
     })
 
     // 代理协议行只在 HTTP 模式下出现（语雀同判据 e.mode===MODE.http）
@@ -365,17 +390,19 @@ const run = async () => {
     await page.waitForTimeout(350)
     await check("切到 PAC 代理 → 「代理协议」行收起且值落盘", async () => {
       // 服务器标题里嵌着当前地址的回显（语雀把 url 放在 itemTitle 内），只取首行文字
-      const rows = await page.$$eval(".kb-proxy-title", nodes =>
-        nodes.map(node => node.textContent.trim().split(" ")[0])
+      const rows = await page.$$eval(".kb-proxy-title", (nodes) =>
+        nodes.map((node) => node.textContent.trim().split(" ")[0]),
       )
       assert.deepEqual(rows, ["启用代理", "代理模式", "代理服务器"])
       assert.equal((await readStorageJson(page, STORAGE.proxy)).mode, "PAC")
     })
 
     await check("桌面端可编辑全部 6 行快捷键，且全局族逐条下发主进程注册", async () => {
-      assert.equal(await page.$$eval(".kb-shortcut-input.is-disabled", nodes => nodes.length), 2)
+      assert.equal(await page.$$eval(".kb-shortcut-input.is-disabled", (nodes) => nodes.length), 2)
       const calls = await page.evaluate(() => window.__bridgeCalls)
-      const registered = calls.filter(([name]) => name === "setGlobalShortcut").map(([, payload]) => payload.key)
+      const registered = calls
+        .filter(([name]) => name === "setGlobalShortcut")
+        .map(([, payload]) => payload.key)
       // 启动回灌各注册一次（语雀同款：主进程只持 globalShortcut 族）
       assert.deepEqual(registered.sort(), ["openMainWindow", "openMiniWindow"])
     })
@@ -390,7 +417,7 @@ const run = async () => {
       const calls = await page.evaluate(() => window.__bridgeCalls)
       assert.deepEqual(
         calls.filter(([name]) => name === "setTrayVisible").map(([, v]) => v),
-        [true, false]
+        [true, false],
       )
       assert.equal(await readStorageJson(page, "tray_status"), false)
     })
@@ -399,7 +426,12 @@ const run = async () => {
     // 自启与「仅桌面端可用」的禁用断言已在上面（真 Web 上下文）验过；
     // 此处已在桩 bridge 的桌面态，只查与平台无关的三组缺能力标注
     await check("语言/锁定/内测三组按原样呈现且禁用，并带缺失说明", async () => {
-      assert.equal(await page.locator('[data-testid="change-language"] .el-select__wrapper.is-disabled').count(), 1)
+      assert.equal(
+        await page
+          .locator('[data-testid="change-language"] .el-select__wrapper.is-disabled')
+          .count(),
+        1,
+      )
       assert.equal(await page.locator('[data-testid="change-beta"].is-disabled').count(), 1)
       assert.equal(await page.getByRole("button", { name: "开启锁定" }).isDisabled(), true)
       assert.ok((await page.getByText("锁屏窗口与锁定密码尚未实现").count()) >= 1)
@@ -409,7 +441,9 @@ const run = async () => {
 
     const about = await page.evaluate(() => ({
       version: document.querySelector(".kb-about-version")?.textContent.trim(),
-      links: [...document.querySelectorAll(".kb-about-term h2")].map(node => node.textContent.trim()),
+      links: [...document.querySelectorAll(".kb-about-term h2")].map((node) =>
+        node.textContent.trim(),
+      ),
       disabled: document.querySelectorAll(".kb-about-term h2.is-disabled").length,
       logoWidth: getComputedStyle(document.querySelector(".kb-about-logo")).width,
     }))
@@ -425,17 +459,26 @@ const run = async () => {
     assertNoPageErrors(diagnostics)
 
     // ---------------- 现场还原 ----------------
-    await page.evaluate(keys => keys.forEach(key => localStorage.removeItem(key)), Object.values(STORAGE))
+    await page.evaluate(
+      (keys) => keys.forEach((key) => localStorage.removeItem(key)),
+      Object.values(STORAGE),
+    )
     logStep(PREFIX, `通过 ${checks} 项断言；截图：${path.relative(process.cwd(), OUTPUT_DIR)}/`)
     logStep(PREFIX, "未覆盖（Web 端跑不到，需 pnpm start 桌面端人工走查）：")
-    logStep(PREFIX, "  开机自启真值、代理落到 session.defaultSession、系统级 globalShortcut 与占用提示、")
-    logStep(PREFIX, "  状态栏图标显隐、原生 Application 菜单与托盘的「偏好设置」、app:// 下直达 /settings")
+    logStep(
+      PREFIX,
+      "  开机自启真值、代理落到 session.defaultSession、系统级 globalShortcut 与占用提示、",
+    )
+    logStep(
+      PREFIX,
+      "  状态栏图标显隐、原生 Application 菜单与托盘的「偏好设置」、app:// 下直达 /settings",
+    )
   } finally {
     await browser.close()
   }
 }
 
-run().catch(error => {
+run().catch((error) => {
   console.error(`${PREFIX} 失败：`, error.message)
   process.exitCode = 1
 })

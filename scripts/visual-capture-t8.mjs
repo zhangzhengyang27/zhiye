@@ -55,29 +55,32 @@ const shot = async (page, name) => {
 
 /** 等待对话框开到位（180ms fade + 内容渲染），overlay 不含 display:none 的历史实例 */
 const waitDialog = async (page, title) => {
-  const dialog = page.locator('.el-overlay:not([style*="display: none"]) .el-dialog').filter({ hasText: title }).last()
+  const dialog = page
+    .locator('.el-overlay:not([style*="display: none"]) .el-dialog')
+    .filter({ hasText: title })
+    .last()
   await dialog.waitFor({ state: "visible", timeout: 15000 })
   await page.waitForTimeout(600)
   return dialog
 }
 
-const closeDialogByEsc = async page => {
+const closeDialogByEsc = async (page) => {
   await page.keyboard.press("Escape")
   await page.waitForTimeout(500)
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T8:${roundName}:${mode}]`
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   try {
     // ============ 1. 数据准备（ensure 语义，两轮复用；先于所有截图——T6 记录 a） ============
@@ -89,10 +92,18 @@ const capturePass = async mode => {
     // 回收站文档：先查回收站列表，没有才创建并移入（保证 deletedAt 逐轮冻结）
     const trashList = await apiRequest(
       `/knowledge/documents/trash?kbId=${encodeURIComponent(kb.id)}&page=1&pageSize=50`,
-      { token, errorMessage: "读回收站失败" }
+      { token, errorMessage: "读回收站失败" },
     )
-    const trashItems = Array.isArray(trashList?.items) ? trashList.items : Array.isArray(trashList) ? trashList : []
-    if (!trashItems.some(item => typeof item.title === "string" && item.title.startsWith(TRASH_DOC_TITLE))) {
+    const trashItems = Array.isArray(trashList?.items)
+      ? trashList.items
+      : Array.isArray(trashList)
+        ? trashList
+        : []
+    if (
+      !trashItems.some(
+        (item) => typeof item.title === "string" && item.title.startsWith(TRASH_DOC_TITLE),
+      )
+    ) {
       const trashDoc = await ensureDocument(kb.id, token, {
         title: `${TRASH_DOC_TITLE}-${Date.now()}`,
         content: "# 临时\n",
@@ -113,7 +124,7 @@ const capturePass = async mode => {
       errorMessage: "读成员失败",
     })
     const memberList = Array.isArray(members) ? members : []
-    if (!memberList.some(m => m.user?.email === MEMBER_EMAIL)) {
+    if (!memberList.some((m) => m.user?.email === MEMBER_EMAIL)) {
       await apiRequest(`/knowledge/knowledge-bases/${kb.id}/members`, {
         method: "POST",
         token,
@@ -165,7 +176,10 @@ const capturePass = async mode => {
     await waitDialog(page, "允许评论")
     // 链接列表在「更多分享设置」折叠区（advancedOpen 默认 false）
     await page.getByText("更多分享设置", { exact: true }).click()
-    await page.locator(".el-dialog button.text-error").first().waitFor({ state: "visible", timeout: 15000 })
+    await page
+      .locator(".el-dialog button.text-error")
+      .first()
+      .waitFor({ state: "visible", timeout: 15000 })
     await page.waitForTimeout(600)
     await page.locator(".el-dialog button.text-error").first().click()
     await waitDialog(page, "删除分享链接")
@@ -212,7 +226,12 @@ const capturePass = async mode => {
     await page.getByRole("button", { name: "成员", exact: true }).click()
     await page.locator("article").filter({ hasText: MEMBER_EMAIL }).waitFor({ timeout: 15000 })
     await page.waitForTimeout(600)
-    await page.locator("article").filter({ hasText: MEMBER_EMAIL }).locator("button.text-error").first().click()
+    await page
+      .locator("article")
+      .filter({ hasText: MEMBER_EMAIL })
+      .locator("button.text-error")
+      .first()
+      .click()
     await waitDialog(page, "移除成员")
     await shot(page, `member-confirm-${mode}`)
     await closeDialogByEsc(page)

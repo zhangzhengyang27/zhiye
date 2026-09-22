@@ -72,7 +72,10 @@ export const useWorkspacePersistence = (options: {
     }
 
     const normalizedFolderIds = normalizeNodeIds(folderIds)
-    writeStorageItem(buildExpandedFoldersStorageKey(targetKbId), JSON.stringify(normalizedFolderIds))
+    writeStorageItem(
+      buildExpandedFoldersStorageKey(targetKbId),
+      JSON.stringify(normalizedFolderIds),
+    )
   }
 
   const persistFocusedNodeId = (targetKbId: string, nodeId: string | null) => {
@@ -104,7 +107,7 @@ export const useWorkspacePersistence = (options: {
 
   watch(
     kbId,
-    targetKbId => {
+    (targetKbId) => {
       if (!targetKbId) {
         hasStoredExpandedFolderIds.value = false
         expandedFolderIds.value = []
@@ -114,10 +117,10 @@ export const useWorkspacePersistence = (options: {
 
       restoreWorkspaceState(targetKbId)
     },
-    { immediate: true }
+    { immediate: true },
   )
 
-  watch(expandedFolderIds, folderIds => {
+  watch(expandedFolderIds, (folderIds) => {
     if (!kbId.value || isRestoring) {
       return
     }
@@ -129,7 +132,7 @@ export const useWorkspacePersistence = (options: {
   // 方向键连续导航会高频触发，防抖后再写 localStorage
   let focusedPersistTimer: number | null = null
 
-  watch(focusedNodeId, nodeId => {
+  watch(focusedNodeId, (nodeId) => {
     if (!kbId.value || isRestoring) {
       return
     }

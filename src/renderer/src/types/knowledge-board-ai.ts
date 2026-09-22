@@ -12,12 +12,14 @@ export const KNOWLEDGE_BOARD_AI_PROVIDERS = {
 } as const
 
 /** 约束画板 AI 生成模式的可选值。 */
-export type KnowledgeBoardAiMode = (typeof KNOWLEDGE_BOARD_AI_MODES)[keyof typeof KNOWLEDGE_BOARD_AI_MODES]
+export type KnowledgeBoardAiMode =
+  (typeof KNOWLEDGE_BOARD_AI_MODES)[keyof typeof KNOWLEDGE_BOARD_AI_MODES]
 
 /** 表示显式指定结果形态时可选的生成模式。 */
 export type KnowledgeBoardAiKind = Exclude<KnowledgeBoardAiMode, "auto">
 /** 约束模型提供方标识。 */
-export type KnowledgeBoardAiProvider = (typeof KNOWLEDGE_BOARD_AI_PROVIDERS)[keyof typeof KNOWLEDGE_BOARD_AI_PROVIDERS]
+export type KnowledgeBoardAiProvider =
+  (typeof KNOWLEDGE_BOARD_AI_PROVIDERS)[keyof typeof KNOWLEDGE_BOARD_AI_PROVIDERS]
 
 /** 描述一次模型请求所需的提供方配置。 */
 export interface KnowledgeBoardAiProviderConfig {
@@ -61,7 +63,10 @@ export interface KnowledgeBoardAiProviderProfileDraft extends KnowledgeBoardAiPr
 }
 
 /** 描述写入本地存储后的提供方资料，不再直接保存明文 API Key。 */
-export interface KnowledgeBoardAiStoredProfile extends Omit<KnowledgeBoardAiProviderProfile, "apiKey"> {
+export interface KnowledgeBoardAiStoredProfile extends Omit<
+  KnowledgeBoardAiProviderProfile,
+  "apiKey"
+> {
   encryptedApiKey: KnowledgeBoardAiEncryptedSecret | null
   updatedAt: string
 }
@@ -125,4 +130,5 @@ export interface KnowledgeBoardAiWhiteboardResult {
 }
 
 /** 表示画板 AI 生成接口可能返回的结果形态。 */
-export type KnowledgeBoardAiGenerateResult = KnowledgeBoardAiFlowchartResult | KnowledgeBoardAiWhiteboardResult
+export type KnowledgeBoardAiGenerateResult =
+  KnowledgeBoardAiFlowchartResult | KnowledgeBoardAiWhiteboardResult

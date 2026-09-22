@@ -28,7 +28,7 @@ withDefaults(
   {
     eyebrow: "",
     description: "",
-  }
+  },
 )
 
 const emit = defineEmits<{

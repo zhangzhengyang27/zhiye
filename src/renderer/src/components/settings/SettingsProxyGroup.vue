@@ -128,13 +128,17 @@ const dialog = useDialogBehavior({ open: () => urlDialogOpen.value })
             <span v-if="proxy.url" class="kb-proxy-info text-ink-tertiary">{{ proxy.url }}</span>
           </span>
           <span class="kb-proxy-edit">
-            <el-button :disabled="desktopFeaturesUnavailable" @click="openUrlDialog">修改</el-button>
+            <el-button :disabled="desktopFeaturesUnavailable" @click="openUrlDialog"
+              >修改</el-button
+            >
           </span>
         </div>
       </div>
     </template>
 
-    <p v-if="desktopFeaturesUnavailable" class="kb-settings-unavailable text-ink-quaternary">仅桌面端可用。</p>
+    <p v-if="desktopFeaturesUnavailable" class="kb-settings-unavailable text-ink-quaternary">
+      仅桌面端可用。
+    </p>
 
     <el-dialog
       v-bind="dialog.elDialogBindings"

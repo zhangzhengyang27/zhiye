@@ -21,13 +21,13 @@ let v = readFileSync(viewPath, "utf8")
 v = v.replace(
   `      :local-cache-items="versionsLocalCacheItems"`,
   `      :local-cache-items="versionsLocalCacheItems"
-      :local-snapshots="localSnapshots"`
+      :local-snapshots="localSnapshots"`,
 )
 v = v.replace(
   `      @rollback-version="rollbackVersion"`,
   `      @rollback-version="rollbackVersion"
       @restore-snapshot="handleRestoreSnapshot"
-      @clear-snapshots="handleClearSnapshots"`
+      @clear-snapshots="handleClearSnapshots"`,
 )
 writeFileSync(viewPath, v)
 console.log("bindings done")

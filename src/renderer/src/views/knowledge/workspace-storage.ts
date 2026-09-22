@@ -10,7 +10,8 @@ const workspaceStoragePrefix = "knowledge-workspace"
 export const buildExpandedFoldersStorageKey = (targetKbId: string) =>
   `${workspaceStoragePrefix}:${targetKbId}:expanded-folders`
 
-export const buildFocusedNodeStorageKey = (targetKbId: string) => `${workspaceStoragePrefix}:${targetKbId}:focused-node`
+export const buildFocusedNodeStorageKey = (targetKbId: string) =>
+  `${workspaceStoragePrefix}:${targetKbId}:focused-node`
 
 export const buildTreePanelWidthStorageKey = (targetKbId: string) =>
   `${workspaceStoragePrefix}:${targetKbId}:tree-panel-width`

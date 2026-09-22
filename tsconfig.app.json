@@ -21,7 +21,6 @@
     "src/renderer/src/**/*.ts",
     "src/renderer/src/**/*.tsx",
     "src/renderer/src/**/*.vue",
-    "auto-imports.d.ts",
-    "components.d.ts"
+    "src/renderer/components.d.ts"
   ]
 }

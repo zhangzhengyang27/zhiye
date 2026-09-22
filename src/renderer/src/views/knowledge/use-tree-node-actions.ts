@@ -20,10 +20,17 @@ import {
   type KnowledgeDocumentTreeNode,
   type KnowledgeDocumentType,
 } from "@/services/knowledge-documents"
-import { KNOWLEDGE_BOARD_CONTENT_SCHEME, KNOWLEDGE_DOCUMENT_EDITOR_TYPES } from "@/types/knowledge-document"
+import {
+  KNOWLEDGE_BOARD_CONTENT_SCHEME,
+  KNOWLEDGE_DOCUMENT_EDITOR_TYPES,
+} from "@/types/knowledge-document"
 import { createKnowledgeBoardDocument } from "@/utils/knowledge-board"
 import { getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
-import type { TreeNodeMenuGroup, TreeNodeMenuItem, TreeNodeMenuState } from "@/components/knowledge/tree-node-menu"
+import type {
+  TreeNodeMenuGroup,
+  TreeNodeMenuItem,
+  TreeNodeMenuState,
+} from "@/components/knowledge/tree-node-menu"
 import type { KnowledgeWorkspaceCreateNodeType } from "./workspace-context"
 
 /**
@@ -113,7 +120,7 @@ export const useTreeNodeActions = (options: {
         kbId: kbId.value,
         docId,
         editorType,
-      })
+      }),
     ).href
 
     return `${resolveWebBaseUrl()}${href}`
@@ -175,7 +182,7 @@ export const useTreeNodeActions = (options: {
     const folders: Array<{ id: string; label: string }> = [{ id: "", label: "根目录" }]
 
     const walkFolders = (nodes: KnowledgeDocumentTreeNode[], prefix: string) => {
-      nodes.forEach(item => {
+      nodes.forEach((item) => {
         if (item.type !== "folder") {
           return
         }
@@ -199,7 +206,9 @@ export const useTreeNodeActions = (options: {
         // B7 直达编辑器入口（画板/数据表/表格/思维导图）不是 KnowledgeDocumentType 的
         // 合法节点值：树上统一以 type="doc" 落库，编辑器种类由 editorType 承载
         const nodeType: KnowledgeDocumentType =
-          type === "board" || type === "datatable" || type === "sheet" || type === "mindmap" ? "doc" : type
+          type === "board" || type === "datatable" || type === "sheet" || type === "mindmap"
+            ? "doc"
+            : type
         const specializedEditorType = useBoard
           ? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.board
           : editorType === "datatable"
@@ -228,7 +237,10 @@ export const useTreeNodeActions = (options: {
                   ? undefined
                   : { scheme: "text/markdown", value: "" },
           })
-          options.showToastMessage(isFolder ? "文件夹已创建。" : useBoard ? "画板已创建。" : "文档已创建。", "success")
+          options.showToastMessage(
+            isFolder ? "文件夹已创建。" : useBoard ? "画板已创建。" : "文档已创建。",
+            "success",
+          )
           await options.refreshTree()
           if (!isFolder) {
             options.openDoc(created.id, created.editorType)
@@ -255,7 +267,7 @@ export const useTreeNodeActions = (options: {
     }
   }
 
-  watch(showTemplateDialog, open => {
+  watch(showTemplateDialog, (open) => {
     if (!open) {
       templateDialogParentId.value = null
     }
@@ -270,7 +282,11 @@ export const useTreeNodeActions = (options: {
   }
 
   /** 行内改名收尾：committed=false（Esc / 空标题 / 未改动）只退出不发请求 */
-  const finishRename = async (payload: { node: KnowledgeDocumentTreeNode; title: string; committed: boolean }) => {
+  const finishRename = async (payload: {
+    node: KnowledgeDocumentTreeNode
+    title: string
+    committed: boolean
+  }) => {
     const { node, committed } = payload
 
     if (renamingNodeId.value === node.id) {
@@ -336,7 +352,7 @@ export const useTreeNodeActions = (options: {
 
   const handleNodeMenuCreateChild = async (
     type: KnowledgeWorkspaceCreateNodeType,
-    targetNode?: KnowledgeDocumentTreeNode
+    targetNode?: KnowledgeDocumentTreeNode,
   ) => {
     if (!ensureEditPermission()) {
       options.closeNodeMenu()
@@ -405,7 +421,10 @@ export const useTreeNodeActions = (options: {
     await deleteNode(actionNode)
   }
 
-  const copyDocLinkByMode = async (mode: "titled" | "raw", targetNode?: KnowledgeDocumentTreeNode) => {
+  const copyDocLinkByMode = async (
+    mode: "titled" | "raw",
+    targetNode?: KnowledgeDocumentTreeNode,
+  ) => {
     const actionNode = targetNode ?? resolveActionNode()
 
     if (!actionNode || actionNode.type !== "doc") {
@@ -413,7 +432,9 @@ export const useTreeNodeActions = (options: {
     }
 
     const textToCopy =
-      mode === "titled" ? buildDocTitledLink(actionNode) : buildDocLink(actionNode.id, actionNode.editorType)
+      mode === "titled"
+        ? buildDocTitledLink(actionNode)
+        : buildDocLink(actionNode.id, actionNode.editorType)
 
     if (!textToCopy) {
       options.closeNodeMenu()
@@ -431,7 +452,10 @@ export const useTreeNodeActions = (options: {
       return
     }
 
-    options.showToastMessage(mode === "titled" ? "标题链接已复制（Markdown 格式）。" : "纯链接已复制。", "success")
+    options.showToastMessage(
+      mode === "titled" ? "标题链接已复制（Markdown 格式）。" : "纯链接已复制。",
+      "success",
+    )
   }
 
   const handleNodeMenuCopyLink = async (targetNode?: KnowledgeDocumentTreeNode) => {
@@ -501,7 +525,7 @@ export const useTreeNodeActions = (options: {
               kbId: kbId.value,
               docId: actionNode.id,
               editorType: actionNode.editorType,
-            })
+            }),
           ).href
         : router.resolve({
             name: "knowledge-workspace-home",
@@ -589,7 +613,10 @@ export const useTreeNodeActions = (options: {
     }
   }
 
-  const handleNodeMenuExport = async (format: "markdown" | "pdf" | "word", targetNode?: KnowledgeDocumentTreeNode) => {
+  const handleNodeMenuExport = async (
+    format: "markdown" | "pdf" | "word",
+    targetNode?: KnowledgeDocumentTreeNode,
+  ) => {
     const actionNode = targetNode ?? resolveActionNode()
 
     if (!actionNode || actionNode.type !== "doc") {
@@ -852,7 +879,8 @@ export const useTreeNodeActions = (options: {
         return
       }
 
-      const hasTextSelection = typeof window !== "undefined" && Boolean(window.getSelection()?.toString())
+      const hasTextSelection =
+        typeof window !== "undefined" && Boolean(window.getSelection()?.toString())
 
       if (hasTextSelection) {
         return

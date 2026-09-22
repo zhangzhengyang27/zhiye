@@ -18,7 +18,11 @@ export interface KnowledgeGroupItem {
 const withKnowledgePrefix = (path: string) => `/knowledge${path}`
 
 export const listKnowledgeGroups = (token?: string | null) =>
-  requestKbDriveApi<KnowledgeGroupItem[]>(withKnowledgePrefix("/knowledge-groups"), undefined, token)
+  requestKbDriveApi<KnowledgeGroupItem[]>(
+    withKnowledgePrefix("/knowledge-groups"),
+    undefined,
+    token,
+  )
 
 /** 创建分组；name 缺省 = 「未命名分组」（即时创建 + 行内改名，对齐语雀） */
 export const createKnowledgeGroup = (payload: { name?: string } = {}, token?: string | null) =>
@@ -28,7 +32,7 @@ export const createKnowledgeGroup = (payload: { name?: string } = {}, token?: st
       method: "POST",
       body: JSON.stringify(payload),
     },
-    token
+    token,
   )
 
 export const renameKnowledgeGroup = (id: string, name: string, token?: string | null) =>
@@ -38,23 +42,26 @@ export const renameKnowledgeGroup = (id: string, name: string, token?: string | 
       method: "PATCH",
       body: JSON.stringify({ name }),
     },
-    token
+    token,
   )
 
 /** 上移/下移分组：前端换算整组新次序后批量提交（与知识库 sort-order 同款契约） */
-export const updateKnowledgeGroupSortOrder = (items: { id: string; sortOrder: number }[], token?: string | null) =>
+export const updateKnowledgeGroupSortOrder = (
+  items: { id: string; sortOrder: number }[],
+  token?: string | null,
+) =>
   requestKbDriveApi<{ success: boolean }>(
     withKnowledgePrefix("/knowledge-groups/sort-order"),
     {
       method: "PATCH",
       body: JSON.stringify({ items }),
     },
-    token
+    token,
   )
 
 export const removeKnowledgeGroup = (id: string, token?: string | null) =>
   requestKbDriveApi<{ success: boolean }>(
     withKnowledgePrefix(`/knowledge-groups/${id}`),
     { method: "DELETE" },
-    token
+    token,
   )

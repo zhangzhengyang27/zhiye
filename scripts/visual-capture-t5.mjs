@@ -67,7 +67,7 @@ const shot = async (page, name) => {
 }
 
 /** 关闭当前打开的 AppDialog（Esc 一发 + 兜底再一发） */
-const closeDialog = async page => {
+const closeDialog = async (page) => {
   await page.keyboard.press("Escape")
   await page.waitForTimeout(500)
 }
@@ -79,7 +79,7 @@ const ensurePasswordShare = async (docId, token, prefix) => {
     errorMessage: "读取分享配置失败",
   })
   const list = Array.isArray(shares) ? shares : []
-  const existing = list.find(share => share?.hasPassword || share?.password)
+  const existing = list.find((share) => share?.hasPassword || share?.password)
   if (existing?.shareKey) return existing.shareKey
   const created = await apiRequest(`/knowledge/documents/${docId}/shares`, {
     method: "POST",
@@ -91,18 +91,18 @@ const ensurePasswordShare = async (docId, token, prefix) => {
   return created?.shareKey
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T5:${roundName}:${mode}]`
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   try {
     // 1. login：未登录首屏（LoginView 账号/密码输入）
@@ -115,7 +115,10 @@ const capturePass = async mode => {
     await loginThroughUi(page, prefix)
     const token = await readAccessToken(page)
     const contentKb = await ensureKnowledgeBase(token, prefix, "Smoke Workspace T5 内容库")
-    const doc = await ensureDocument(contentKb.id, token, { title: DOC_TITLE, content: DOC_CONTENT })
+    const doc = await ensureDocument(contentKb.id, token, {
+      title: DOC_TITLE,
+      content: DOC_CONTENT,
+    })
     const emptyKb = await ensureKnowledgeBase(token, prefix, "Smoke Workspace T5 直用改造")
     await ensureTrashedDocument(contentKb.id, token, {
       title: "T5 回收站文档",
@@ -197,7 +200,9 @@ const capturePass = async mode => {
     await closeDialog(page)
 
     // 10. share-dialog：分享弹层（ShareCreateForm 密码开启态）
-    await page.goto(url(`/knowledge/${contentKb.id}/doc/${doc.id}`), { waitUntil: "domcontentloaded" })
+    await page.goto(url(`/knowledge/${contentKb.id}/doc/${doc.id}`), {
+      waitUntil: "domcontentloaded",
+    })
     await page.waitForTimeout(3000)
     await page.getByRole("button", { name: "分享", exact: true }).click()
     await page.getByText("开启分享", { exact: true }).first().waitFor({ timeout: 15000 })
@@ -214,8 +219,8 @@ const capturePass = async mode => {
     const shareRow = page.getByText("开启分享", { exact: true }).locator("xpath=../..")
     const shareInput = shareRow.locator('input[role="switch"]')
     if ((await shareInput.getAttribute("aria-checked")) !== "true") {
-      await shareRow.evaluate(el =>
-        el.querySelector(".el-switch")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      await shareRow.evaluate((el) =>
+        el.querySelector(".el-switch")?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
       )
       await page.getByText("当前分享链接", { exact: true }).waitFor({ timeout: 15000 })
     }
@@ -223,8 +228,8 @@ const capturePass = async mode => {
     const passwordRow = page.getByText("访问密码", { exact: true }).first().locator("xpath=../..")
     const passwordSwitch = passwordRow.locator('input[role="switch"]')
     if ((await passwordSwitch.getAttribute("aria-checked")) !== "true") {
-      await passwordRow.evaluate(el =>
-        el.querySelector(".el-switch")?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      await passwordRow.evaluate((el) =>
+        el.querySelector(".el-switch")?.dispatchEvent(new MouseEvent("click", { bubbles: true })),
       )
     }
     await page.getByPlaceholder("输入至少 4 位访问密码").waitFor({ timeout: 15000 })
@@ -240,12 +245,15 @@ const capturePass = async mode => {
     await shot(page, `share-view-${mode}`)
 
     // 12. board-config：模型配置弹层（BoardAiConfigForm 5 处，含 type=number）
-    const tree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(contentKb.id)}`, {
-      token,
-      errorMessage: "读取文档树失败",
-    })
+    const tree = await apiRequest(
+      `/knowledge/documents/tree?kbId=${encodeURIComponent(contentKb.id)}`,
+      {
+        token,
+        errorMessage: "读取文档树失败",
+      },
+    )
     const board = flattenTree(Array.isArray(tree) ? tree : []).find(
-      node => node.type === "doc" && node.title === "T5 直用改造画板"
+      (node) => node.type === "doc" && node.title === "T5 直用改造画板",
     )
     if (!board) {
       await apiRequest("/knowledge/documents", {

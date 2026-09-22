@@ -39,7 +39,8 @@ import {
 const ROOT = "/Users/xiaoye/Desktop/AI/知识库/xiaoye/output/visual/ep-direct/t6"
 const VIEWPORT = { width: 1247, height: 952 }
 const DOC_TITLE = "T6 直用改造文档"
-const DOC_CONTENT = "# T6 直用改造文档\n\n用于解散 AppSelect 的像素对比。\n\n- 列表项一\n- 列表项二\n"
+const DOC_CONTENT =
+  "# T6 直用改造文档\n\n用于解散 AppSelect 的像素对比。\n\n- 列表项一\n- 列表项二\n"
 
 const roundName = process.argv[2]
 if (!roundName || !["before", "after", "after2"].includes(roundName)) {
@@ -57,7 +58,7 @@ const shot = async (page, name) => {
 }
 
 /** 关闭当前打开的 AppDialog（Esc 一发 + 兜底再一发） */
-const closeDialog = async page => {
+const closeDialog = async (page) => {
   await page.keyboard.press("Escape")
   await page.waitForTimeout(500)
 }
@@ -70,12 +71,14 @@ const openSelect = async (page, scope) => {
   const select = scope ?? page.locator(".el-select").first()
   await select.locator(".el-select__wrapper").click()
   // EP 关闭后的 popper 仍挂载在 DOM（persistent），必须以 aria-hidden=false 收窄当前弹层
-  await page.locator('.el-select__popper[aria-hidden="false"]').waitFor({ state: "visible", timeout: 10000 })
+  await page
+    .locator('.el-select__popper[aria-hidden="false"]')
+    .waitFor({ state: "visible", timeout: 10000 })
   await page.waitForTimeout(450)
 }
 
 /** 关闭展开的 select popper（Esc 只关弹层，EP 捕获语义；随后由调用方关弹窗/切屏） */
-const closeSelect = async page => {
+const closeSelect = async (page) => {
   await page.keyboard.press("Escape")
   await page.waitForTimeout(350)
 }
@@ -103,25 +106,28 @@ const ensureTwoVersions = async (docId, token, prefix) => {
   logStep(prefix, "已更新文档内容补足版本")
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T6:${roundName}:${mode}]`
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   try {
     // 1. 数据准备（ensure 语义，两轮复用）
     await loginThroughUi(page, prefix)
     const token = await readAccessToken(page)
     const contentKb = await ensureKnowledgeBase(token, prefix, "Smoke Workspace T6 内容库")
-    const doc = await ensureDocument(contentKb.id, token, { title: DOC_TITLE, content: DOC_CONTENT })
+    const doc = await ensureDocument(contentKb.id, token, {
+      title: DOC_TITLE,
+      content: DOC_CONTENT,
+    })
     await ensureTrashedDocument(contentKb.id, token, {
       title: "T6 回收站文档",
       content: "# 回收站\n\n用于 T6 AppSelect 像素对比。",
@@ -132,12 +138,15 @@ const capturePass = async mode => {
     // ⚠️ 必须 be 在所有截图之前 ensure：before 首轮树里没有画板会造成
     // 「截图顺序数据漂移」，before/after 树内容不同 → pixdiff 大面积假 major）
     const findBoard = async () => {
-      const tree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(contentKb.id)}`, {
-        token,
-        errorMessage: "读取文档树失败",
-      })
+      const tree = await apiRequest(
+        `/knowledge/documents/tree?kbId=${encodeURIComponent(contentKb.id)}`,
+        {
+          token,
+          errorMessage: "读取文档树失败",
+        },
+      )
       return flattenTree(Array.isArray(tree) ? tree : []).find(
-        node => node.type === "doc" && node.title === "T6 直用改造画板"
+        (node) => node.type === "doc" && node.title === "T6 直用改造画板",
       )
     }
     let board = await findBoard()
@@ -224,14 +233,19 @@ const capturePass = async mode => {
     await page.getByText("邮箱地址", { exact: true }).first().waitFor({ timeout: 15000 })
     await page.waitForTimeout(500)
     await shot(page, `add-member-${mode}`)
-    await openSelect(page, page.locator(".el-dialog").filter({ hasText: "邮箱地址" }).locator(".el-select"))
+    await openSelect(
+      page,
+      page.locator(".el-dialog").filter({ hasText: "邮箱地址" }).locator(".el-select"),
+    )
     await shot(page, `add-member-expanded-${mode}`)
     await closeSelect(page)
     await closeDialog(page)
 
     // 7. doc-create：新建文档弹层（DocCreateDialog 所属目录——哨兵唯一用户，根目录回显）
     //    ⚠️ 侧栏头部菜单也有同名项，必须以 [title=新建内容] 的兄弟菜单容器收窄
-    const headerCreateMenu = page.locator('[title="新建内容"]').locator("xpath=following-sibling::div")
+    const headerCreateMenu = page
+      .locator('[title="新建内容"]')
+      .locator("xpath=following-sibling::div")
     await page.getByRole("button", { name: "新建内容", exact: true }).waitFor({ timeout: 15000 })
     await page.getByRole("button", { name: "新建内容", exact: true }).click()
     await headerCreateMenu.getByRole("button", { name: "新建文档", exact: true }).click()
@@ -239,13 +253,18 @@ const capturePass = async mode => {
     await page.waitForTimeout(500)
     await shot(page, `doc-create-${mode}`)
     // ⚠️ 弹窗后面（设置页）成员卡也有 .el-select（DOM 序在前），必须以弹窗容器收窄
-    await openSelect(page, page.locator(".el-dialog").filter({ hasText: "所属目录" }).locator(".el-select"))
+    await openSelect(
+      page,
+      page.locator(".el-dialog").filter({ hasText: "所属目录" }).locator(".el-select"),
+    )
     await shot(page, `doc-create-expanded-${mode}`)
     await closeSelect(page)
     await closeDialog(page)
 
     // 8. version-compare：版本对比弹层（VersionCompareDialog 双 select，预选最新两版）
-    await page.goto(url(`/knowledge/${contentKb.id}/doc/${doc.id}`), { waitUntil: "domcontentloaded" })
+    await page.goto(url(`/knowledge/${contentKb.id}/doc/${doc.id}`), {
+      waitUntil: "domcontentloaded",
+    })
     await page.waitForTimeout(3500)
     await page.locator('[title="历史版本"]').click()
     await page.getByText("支持回滚与对比").first().waitFor({ timeout: 15000 })

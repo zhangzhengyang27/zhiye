@@ -31,7 +31,7 @@ export function setupElSelectRootBehavior(): void {
     return
   }
 
-  document.addEventListener("click", event => {
+  document.addEventListener("click", (event) => {
     const target = event.target
     if (!(target instanceof Element)) {
       return
@@ -50,7 +50,7 @@ export function setupElSelectRootBehavior(): void {
 
   document.addEventListener(
     "keydown",
-    event => {
+    (event) => {
       if (event.key !== "Escape" && event.key !== " ") {
         return
       }
@@ -77,7 +77,7 @@ export function setupElSelectRootBehavior(): void {
               code: event.code,
               bubbles: true,
               cancelable: true,
-            })
+            }),
           )
         }
         return
@@ -90,6 +90,6 @@ export function setupElSelectRootBehavior(): void {
         root.querySelector<HTMLElement>(".el-select__wrapper")?.click()
       }
     },
-    true
+    true,
   )
 }

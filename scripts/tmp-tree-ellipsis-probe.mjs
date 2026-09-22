@@ -16,7 +16,7 @@ const OUT = "/Users/xiaoye/Desktop/AI/知识库/xiaoye/output/tmp-tree-ellipsis"
 const TITLE = "Ellipsis 探针 哨兵验证文档标题很长很长"
 
 const measure = (page, nodeId) =>
-  page.evaluate(nid => {
+  page.evaluate((nid) => {
     const row = document.querySelector(`[data-knowledge-node-id="${nid}"]`)
     const span = row.querySelector("[data-knowledge-tree-drag-handle] > span")
     const group = row.lastElementChild
@@ -57,7 +57,9 @@ const run = async () => {
   await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
     waitUntil: "networkidle",
   })
-  await page.waitForSelector(`[data-knowledge-node-id="${doc.id}"]`, { timeout: smokeConfig.timeout })
+  await page.waitForSelector(`[data-knowledge-node-id="${doc.id}"]`, {
+    timeout: smokeConfig.timeout,
+  })
 
   const before = await measure(page, doc.id)
 
@@ -73,8 +75,10 @@ const run = async () => {
   await aside.screenshot({ path: path.join(OUT, `${process.argv[2] || "shot"}-hover.png`) })
 
   // 行尾标题的点击是否仍落在标题上（图标组未浮现时不得吞指针）
-  const tailHit = await page.evaluate(nid => {
-    const span = document.querySelector(`[data-knowledge-node-id="${nid}"] [data-knowledge-tree-drag-handle] > span`)
+  const tailHit = await page.evaluate((nid) => {
+    const span = document.querySelector(
+      `[data-knowledge-node-id="${nid}"] [data-knowledge-tree-drag-handle] > span`,
+    )
     const r = span.getBoundingClientRect()
     const el = document.elementFromPoint(r.right - 2, r.top + r.height / 2)
     return el ? el.tagName + "." + el.className : "null"
@@ -85,7 +89,9 @@ const run = async () => {
   // 暗色口径：覆盖框用 bg-inherit，必须确认它跟到的确实是行的暗色 hover 底而非亮色残值
   await page.evaluate(() => globalThis.localStorage.setItem("vueuse-color-scheme", "dark"))
   await page.reload({ waitUntil: "networkidle" })
-  await page.waitForSelector(`[data-knowledge-node-id="${doc.id}"]`, { timeout: smokeConfig.timeout })
+  await page.waitForSelector(`[data-knowledge-node-id="${doc.id}"]`, {
+    timeout: smokeConfig.timeout,
+  })
   await row.hover()
   await page.waitForTimeout(350)
   const dark = await measure(page, doc.id)

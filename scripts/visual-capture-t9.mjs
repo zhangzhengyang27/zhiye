@@ -66,29 +66,32 @@ const shot = async (page, name) => {
 
 /** 等待对话框开到位（180ms fade + 内容渲染），overlay 不含 display:none 的历史实例 */
 const waitDialog = async (page, title) => {
-  const dialog = page.locator('.el-overlay:not([style*="display: none"]) .el-dialog').filter({ hasText: title }).last()
+  const dialog = page
+    .locator('.el-overlay:not([style*="display: none"]) .el-dialog')
+    .filter({ hasText: title })
+    .last()
   await dialog.waitFor({ state: "visible", timeout: 15000 })
   await page.waitForTimeout(600)
   return dialog
 }
 
-const closeDialogByEsc = async page => {
+const closeDialogByEsc = async (page) => {
   await page.keyboard.press("Escape")
   await page.waitForTimeout(500)
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T9:${roundName}:${mode}]`
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   try {
     // ============ 1. 数据准备（ensure 语义，两轮复用；先于所有截图——T6 记录 a） ============
@@ -103,7 +106,7 @@ const capturePass = async mode => {
       errorMessage: "读取文档树失败",
     })
     const hasTemplate = (Array.isArray(tree) ? tree : []).some(
-      node => node.type === "template" && node.title === TEMPLATE_TITLE
+      (node) => node.type === "template" && node.title === TEMPLATE_TITLE,
     )
     if (!hasTemplate) {
       await apiRequest("/knowledge/documents", {
@@ -143,7 +146,10 @@ const capturePass = async mode => {
         method: "PATCH",
         token,
         body: {
-          content: { scheme: "text/markdown", value: `${DOC_CONTENT}\n\n第二版补充段落。\n\n第三版补充段落。\n` },
+          content: {
+            scheme: "text/markdown",
+            value: `${DOC_CONTENT}\n\n第二版补充段落。\n\n第三版补充段落。\n`,
+          },
           message: "T9 版本三",
         },
         errorMessage: "写入版本三失败",
@@ -159,7 +165,7 @@ const capturePass = async mode => {
       errorMessage: "读成员失败",
     })
     const memberList = Array.isArray(members) ? members : []
-    if (!memberList.some(m => m.user?.email === MEMBER_EMAIL)) {
+    if (!memberList.some((m) => m.user?.email === MEMBER_EMAIL)) {
       await apiRequest(`/knowledge/knowledge-bases/${kb.id}/members`, {
         method: "POST",
         token,
@@ -257,7 +263,9 @@ const capturePass = async mode => {
     await page.goto(url(`/knowledge/${kb.id}`), { waitUntil: "domcontentloaded" })
     await page.getByRole("button", { name: "新建内容", exact: true }).waitFor({ timeout: 15000 })
     await page.waitForTimeout(900)
-    const headerCreateMenu = page.locator('[title="新建内容"]').locator("xpath=following-sibling::div")
+    const headerCreateMenu = page
+      .locator('[title="新建内容"]')
+      .locator("xpath=following-sibling::div")
     await page.getByRole("button", { name: "新建内容", exact: true }).click()
     await headerCreateMenu.getByRole("button", { name: "新建文档", exact: true }).click()
     await waitDialog(page, "新建文档")
@@ -291,7 +299,10 @@ const capturePass = async mode => {
     await page.goto(url(`/knowledge/${kb.id}/settings`), { waitUntil: "domcontentloaded" })
     await page.getByRole("button", { name: "成员", exact: true }).waitFor({ timeout: 15000 })
     await page.getByRole("button", { name: "成员", exact: true }).click()
-    await page.getByRole("button", { name: "添加成员", exact: true }).first().waitFor({ timeout: 15000 })
+    await page
+      .getByRole("button", { name: "添加成员", exact: true })
+      .first()
+      .waitFor({ timeout: 15000 })
     await page.waitForTimeout(600)
     await page.getByRole("button", { name: "添加成员", exact: true }).first().click()
     await waitDialog(page, "添加成员")
@@ -319,15 +330,18 @@ const capturePass = async mode => {
 
     // ============ 13. board-ai-config（画板页「模型配置」） ============
     const findBoard = async () => {
-      const boardTree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, {
-        token,
-        errorMessage: "读取文档树失败",
-      })
+      const boardTree = await apiRequest(
+        `/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`,
+        {
+          token,
+          errorMessage: "读取文档树失败",
+        },
+      )
       return (Array.isArray(boardTree) ? boardTree : [])
         .flatMap(function walk(node) {
           return [node, ...(node.children ?? []).flatMap(walk)]
         })
-        .find(node => node.type === "doc" && node.title === "T9 直用改造画板")
+        .find((node) => node.type === "doc" && node.title === "T9 直用改造画板")
     }
     let board = await findBoard()
     if (!board) {
@@ -360,7 +374,9 @@ const capturePass = async mode => {
     } else {
       logStep(prefix, "画板文档已存在（复用）")
     }
-    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), { waitUntil: "domcontentloaded" })
+    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), {
+      waitUntil: "domcontentloaded",
+    })
     await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 30000 })
     await page.waitForTimeout(1200)
     await page.getByRole("button", { name: "模型配置", exact: true }).click()

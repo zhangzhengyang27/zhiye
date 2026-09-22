@@ -15,7 +15,10 @@ export interface AiStandaloneWriteResult {
 }
 
 /** 直接按指令生成文本（不依赖具体文档）。 */
-export const generateAiStandaloneWrite = (payload: AiStandaloneWriteRequest, token?: string | null) =>
+export const generateAiStandaloneWrite = (
+  payload: AiStandaloneWriteRequest,
+  token?: string | null,
+) =>
   requestKbDriveApi<AiStandaloneWriteResult>(
     "/knowledge/ai/write",
     {
@@ -24,5 +27,5 @@ export const generateAiStandaloneWrite = (payload: AiStandaloneWriteRequest, tok
       // 深度思考模式的生成耗时显著更长，客户端兜底超时防无限等待
       timeoutMs: AI_REQUEST_TIMEOUT_MS,
     },
-    token
+    token,
   )

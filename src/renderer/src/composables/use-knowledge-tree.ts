@@ -1,6 +1,9 @@
 import { computed, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { getKnowledgeDocumentTree, type KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
+import {
+  getKnowledgeDocumentTree,
+  type KnowledgeDocumentTreeNode,
+} from "@/services/knowledge-documents"
 import { getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
 
 export function useKnowledgeTree() {
@@ -49,10 +52,15 @@ export function useKnowledgeTree() {
 
   const allFoldersExpanded = computed(() => {
     const allFolderIds = collectFolderIds(treeNodes.value)
-    return allFolderIds.length > 0 && allFolderIds.every(id => expandedFolderIds.value.includes(id))
+    return (
+      allFolderIds.length > 0 && allFolderIds.every((id) => expandedFolderIds.value.includes(id))
+    )
   })
 
-  const findTreeNode = (nodes: KnowledgeDocumentTreeNode[], id: string): KnowledgeDocumentTreeNode | null => {
+  const findTreeNode = (
+    nodes: KnowledgeDocumentTreeNode[],
+    id: string,
+  ): KnowledgeDocumentTreeNode | null => {
     for (const node of nodes) {
       if (node.id === id) {
         return node
@@ -94,7 +102,9 @@ export function useKnowledgeTree() {
     return !!(ancestor.children?.length && checkChildren(ancestor.children))
   }
 
-  const getChildrenRefByParentId = (parentId: string | null): KnowledgeDocumentTreeNode[] | null => {
+  const getChildrenRefByParentId = (
+    parentId: string | null,
+  ): KnowledgeDocumentTreeNode[] | null => {
     if (parentId === null) {
       return treeNodes.value
     }
@@ -115,7 +125,7 @@ export function useKnowledgeTree() {
       return -1
     }
 
-    return siblings.findIndex(n => n.id === nodeId)
+    return siblings.findIndex((n) => n.id === nodeId)
   }
 
   const cloneTreeNodes = (nodes: KnowledgeDocumentTreeNode[]): KnowledgeDocumentTreeNode[] =>
@@ -123,13 +133,13 @@ export function useKnowledgeTree() {
 
   const removeTreeNode = (
     nodes: KnowledgeDocumentTreeNode[],
-    nodeId: string
+    nodeId: string,
   ): { updated: KnowledgeDocumentTreeNode[]; removed: KnowledgeDocumentTreeNode | null } => {
     const cloned = cloneTreeNodes(nodes)
     let removed: KnowledgeDocumentTreeNode | null = null
 
     const walk = (list: KnowledgeDocumentTreeNode[]): KnowledgeDocumentTreeNode[] =>
-      list.filter(node => {
+      list.filter((node) => {
         if (node.id === nodeId) {
           removed = node
           return false
@@ -157,7 +167,9 @@ export function useKnowledgeTree() {
         expandedFolderIds.value = allFolderIds
       } else {
         const validFolderIds = new Set(allFolderIds)
-        expandedFolderIds.value = expandedFolderIds.value.filter(folderId => validFolderIds.has(folderId))
+        expandedFolderIds.value = expandedFolderIds.value.filter((folderId) =>
+          validFolderIds.has(folderId),
+        )
       }
     } finally {
       loadingTree.value = false

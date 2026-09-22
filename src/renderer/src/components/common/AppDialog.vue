@@ -21,7 +21,7 @@ const FOCUSABLE_SELECTOR = [
 
 const getFocusableNodes = (root: HTMLElement) =>
   Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-    node => node.offsetWidth > 0 || node.offsetHeight > 0
+    (node) => node.offsetWidth > 0 || node.offsetHeight > 0,
   )
 
 const lockBodyScroll = () => {
@@ -125,7 +125,7 @@ const props = withDefaults(
     widthClass: "max-w-lg",
     closeOnOverlay: true,
     showCloseButton: true,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -146,7 +146,7 @@ const isTopMostDialog = () => isDialogTopMost(dialogId)
 
 const panelClass = computed(
   () =>
-    `mx-auto w-full overflow-hidden rounded-[30px] border border-line bg-surface shadow-[0_32px_72px_rgba(15,23,42,0.18)] ${props.widthClass}`
+    `mx-auto w-full overflow-hidden rounded-[30px] border border-line bg-surface shadow-[var(--kb-modal-shadow)] ${props.widthClass}`,
 )
 
 const closeDialog = () => {
@@ -228,7 +228,7 @@ const restoreFocus = () => {
 // 才把焦点放到 .el-dialog 容器上，宏任务保证 data-autofocus 聚焦晚于它落地。
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (typeof document === "undefined") {
       return
     }
@@ -257,7 +257,10 @@ watch(
 
           const marked = panel.querySelector<HTMLElement>("[data-autofocus]")
           const [firstFocusable] = getFocusableNodes(panel)
-          ;(marked && (marked.offsetWidth > 0 || marked.offsetHeight > 0) ? marked : (firstFocusable ?? panel)).focus()
+          ;(marked && (marked.offsetWidth > 0 || marked.offsetHeight > 0)
+            ? marked
+            : (firstFocusable ?? panel)
+          ).focus()
         }, 0)
       })
 
@@ -273,7 +276,7 @@ watch(
     document.removeEventListener("keydown", handleKeydown)
     restoreFocus()
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 onBeforeUnmount(() => {
@@ -300,7 +303,7 @@ onBeforeUnmount(() => {
     :close-on-click-modal="closeOnOverlay"
     :z-index="Z_DIALOG"
     modal-class="kb-el-dialog-overlay"
-    @update:model-value="value => !value && closeDialog()"
+    @update:model-value="(value) => !value && closeDialog()"
   >
     <div ref="panelRef" :class="panelClass" class="relative" tabindex="-1">
       <div class="border-b border-line-soft bg-surface-soft px-6 py-5 sm:px-7">

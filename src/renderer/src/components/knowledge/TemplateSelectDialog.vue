@@ -60,7 +60,7 @@ const selectedKey = ref("")
 
 const markdown = new MarkdownIt({ html: false, breaks: true })
 
-const officialOptions: TemplateOption[] = OFFICIAL_TEMPLATES.map(template => ({
+const officialOptions: TemplateOption[] = OFFICIAL_TEMPLATES.map((template) => ({
   key: template.id,
   id: template.id,
   title: template.title,
@@ -70,7 +70,9 @@ const officialOptions: TemplateOption[] = OFFICIAL_TEMPLATES.map(template => ({
   source: "official" as const,
 }))
 
-const sourceOptions = computed(() => (sourceTab.value === "official" ? officialOptions : kbTemplates.value))
+const sourceOptions = computed(() =>
+  sourceTab.value === "official" ? officialOptions : kbTemplates.value,
+)
 
 /** 官方 tab 按分类分组展示；本知识库 tab 平铺 */
 const groupedOptions = computed(() => {
@@ -83,7 +85,9 @@ const groupedOptions = computed(() => {
   return [...groups.entries()]
 })
 
-const selectedTemplate = computed(() => sourceOptions.value.find(option => option.key === selectedKey.value) ?? null)
+const selectedTemplate = computed(
+  () => sourceOptions.value.find((option) => option.key === selectedKey.value) ?? null,
+)
 
 const previewHtml = computed(() => {
   const template = selectedTemplate.value
@@ -95,7 +99,7 @@ const previewHtml = computed(() => {
 
 watch(
   () => props.open,
-  async val => {
+  async (val) => {
     if (!val) return
     selectedKey.value = officialOptions[0]?.key ?? ""
     sourceTab.value = "official"
@@ -104,7 +108,7 @@ watch(
       loadError.value = ""
       try {
         const items = await listKnowledgeDocumentTemplates(props.kbId)
-        kbTemplates.value = items.map(item => ({
+        kbTemplates.value = items.map((item) => ({
           key: item.id,
           id: item.id,
           title: item.title,
@@ -128,10 +132,10 @@ watch(
     }
   },
   // 挂载时 open 可能已为 true（父层 v-if 控制），immediate 保证模板列表仍会加载
-  { immediate: true }
+  { immediate: true },
 )
 
-watch(sourceTab, tab => {
+watch(sourceTab, (tab) => {
   const first = tab === "official" ? officialOptions[0] : kbTemplates.value[0]
   selectedKey.value = first?.key ?? ""
 })
@@ -178,7 +182,7 @@ const dialog = useDialogBehavior({
     title="从模板创建文档"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('update:open', false)"
+    @update:model-value="(value) => !value && emit('update:open', false)"
   >
     <template #header>
       <KbDialogHeader
@@ -199,7 +203,9 @@ const dialog = useDialogBehavior({
           class="template-preview max-h-[430px] overflow-y-auto px-5 py-4 text-[13px] leading-6 text-ink-secondary"
           v-html="previewHtml"
         />
-        <p v-else class="px-5 py-16 text-center text-[13px] text-ink-quaternary">从右侧选择一个模板</p>
+        <p v-else class="px-5 py-16 text-center text-[13px] text-ink-quaternary">
+          从右侧选择一个模板
+        </p>
       </div>
 
       <!-- 右：来源 tab + 模板列表 -->
@@ -213,7 +219,11 @@ const dialog = useDialogBehavior({
             :key="tab.key"
             type="button"
             class="h-7 flex-1 rounded-kb-md text-[12px] font-medium transition"
-            :class="sourceTab === tab.key ? 'bg-surface text-ink shadow-sm' : 'text-ink-tertiary hover:text-ink'"
+            :class="
+              sourceTab === tab.key
+                ? 'bg-surface text-ink shadow-sm'
+                : 'text-ink-tertiary hover:text-ink'
+            "
             @click="sourceTab = tab.key"
           >
             {{ tab.label }}
@@ -221,7 +231,10 @@ const dialog = useDialogBehavior({
         </div>
 
         <div class="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-0.5">
-          <p v-if="sourceTab === 'kb' && loading" class="px-2 py-8 text-center text-[13px] text-ink-quaternary">
+          <p
+            v-if="sourceTab === 'kb' && loading"
+            class="px-2 py-8 text-center text-[13px] text-ink-quaternary"
+          >
             正在加载模板…
           </p>
           <p
@@ -257,7 +270,9 @@ const dialog = useDialogBehavior({
                   class="h-3.5 w-3.5 shrink-0"
                   :class="selectedKey === option.key ? 'text-brand' : 'text-ink-quaternary'"
                 />
-                <span class="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">{{ option.title }}</span>
+                <span class="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">{{
+                  option.title
+                }}</span>
                 <span
                   v-if="selectedKey === option.key"
                   class="shrink-0 rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium text-brand"
@@ -265,10 +280,16 @@ const dialog = useDialogBehavior({
                   已选择
                 </span>
               </span>
-              <span v-if="option.description" class="mt-0.5 block truncate px-5 text-[11px] text-ink-tertiary">
+              <span
+                v-if="option.description"
+                class="mt-0.5 block truncate px-5 text-[11px] text-ink-tertiary"
+              >
                 {{ option.description }}
               </span>
-              <span v-else-if="option.updatedAt" class="mt-0.5 block px-5 text-[11px] text-ink-quaternary">
+              <span
+                v-else-if="option.updatedAt"
+                class="mt-0.5 block px-5 text-[11px] text-ink-quaternary"
+              >
                 更新于 {{ formatDate(option.updatedAt) }}
               </span>
             </button>
@@ -279,7 +300,10 @@ const dialog = useDialogBehavior({
 
     <template #footer>
       <div class="flex justify-end gap-3">
-        <el-button plain class="border-line bg-surface py-2 text-ink-secondary" @click="emit('update:open', false)"
+        <el-button
+          plain
+          class="border-line bg-surface py-2 text-ink-secondary"
+          @click="emit('update:open', false)"
           ><span class="truncate">取消</span>
         </el-button>
         <el-button
@@ -288,7 +312,9 @@ const dialog = useDialogBehavior({
           :disabled="!selectedTemplate"
           :loading="creating"
           @click="handleUseTemplate"
-          ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+          ><template #loading
+            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
           <span class="truncate">使用此模板</span>
         </el-button>
       </div>

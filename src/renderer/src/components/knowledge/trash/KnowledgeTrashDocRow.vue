@@ -51,8 +51,12 @@ const emit = defineEmits<{
       {{ props.item.title }}
     </span>
 
-    <span class="hidden shrink-0 text-kb-xs text-ink-quaternary lg:inline">{{ props.item.kb.name }}</span>
-    <span class="w-24 shrink-0 text-right text-kb-xs text-ink-quaternary">{{ props.deletedAtText }}</span>
+    <span class="hidden shrink-0 text-kb-xs text-ink-quaternary lg:inline">{{
+      props.item.kb.name
+    }}</span>
+    <span class="w-24 shrink-0 text-right text-kb-xs text-ink-quaternary">{{
+      props.deletedAtText
+    }}</span>
 
     <div class="flex shrink-0 items-center gap-0.5">
       <button

@@ -171,7 +171,11 @@ export const useTreeNodeMenuController = (options: {
       return [] as HTMLButtonElement[]
     }
 
-    return Array.from(menuRef.value.querySelectorAll<HTMLButtonElement>("[data-tree-node-menu-item]:not(:disabled)"))
+    return Array.from(
+      menuRef.value.querySelectorAll<HTMLButtonElement>(
+        "[data-tree-node-menu-item]:not(:disabled)",
+      ),
+    )
   }
 
   const getMenuSubmenuItems = (parentKey: string | null) => {
@@ -181,8 +185,8 @@ export const useTreeNodeMenuController = (options: {
 
     return Array.from(
       menuRef.value.querySelectorAll<HTMLButtonElement>(
-        `[data-tree-node-menu-child-item][data-tree-node-menu-parent-key="${parentKey}"]:not(:disabled)`
-      )
+        `[data-tree-node-menu-child-item][data-tree-node-menu-parent-key="${parentKey}"]:not(:disabled)`,
+      ),
     )
   }
 
@@ -201,7 +205,9 @@ export const useTreeNodeMenuController = (options: {
 
   const focusMenuItemByKey = (itemKey: string) => {
     const menuItems = getMenuItems()
-    const targetIndex = menuItems.findIndex(item => item.getAttribute("data-tree-node-menu-key") === itemKey)
+    const targetIndex = menuItems.findIndex(
+      (item) => item.getAttribute("data-tree-node-menu-key") === itemKey,
+    )
 
     if (targetIndex >= 0) {
       focusMenuItemByIndex(targetIndex)
@@ -351,7 +357,7 @@ export const useTreeNodeMenuController = (options: {
     if (target.hasAttribute("data-tree-node-menu-child-item")) {
       const parentKey = target.getAttribute("data-tree-node-menu-parent-key")
       const menuItems = getMenuSubmenuItems(parentKey)
-      const nextIndex = menuItems.findIndex(item => item === target)
+      const nextIndex = menuItems.findIndex((item) => item === target)
 
       treeNodeMenuSubmenuParentKey.value = parentKey
 
@@ -367,7 +373,7 @@ export const useTreeNodeMenuController = (options: {
     }
 
     const menuItems = getMenuItems()
-    const nextIndex = menuItems.findIndex(item => item === target)
+    const nextIndex = menuItems.findIndex((item) => item === target)
     const itemKey = target.getAttribute("data-tree-node-menu-key")
 
     if (nextIndex >= 0) {
@@ -424,7 +430,7 @@ export const useTreeNodeMenuController = (options: {
     const activeElement = document.activeElement
 
     if (activeElement instanceof HTMLButtonElement) {
-      const activeIndex = menuItems.findIndex(item => item === activeElement)
+      const activeIndex = menuItems.findIndex((item) => item === activeElement)
 
       if (activeIndex >= 0) {
         return activeIndex
@@ -439,14 +445,17 @@ export const useTreeNodeMenuController = (options: {
       return -1
     }
 
-    if (treeNodeMenuSubmenuFocusedIndex.value >= 0 && treeNodeMenuSubmenuFocusedIndex.value < menuItems.length) {
+    if (
+      treeNodeMenuSubmenuFocusedIndex.value >= 0 &&
+      treeNodeMenuSubmenuFocusedIndex.value < menuItems.length
+    ) {
       return treeNodeMenuSubmenuFocusedIndex.value
     }
 
     const activeElement = document.activeElement
 
     if (activeElement instanceof HTMLButtonElement) {
-      const activeIndex = menuItems.findIndex(item => item === activeElement)
+      const activeIndex = menuItems.findIndex((item) => item === activeElement)
 
       if (activeIndex >= 0) {
         treeNodeMenuSubmenuParentKey.value = parentKey
@@ -464,7 +473,8 @@ export const useTreeNodeMenuController = (options: {
 
     const activeElement = document.activeElement
     const activeSubmenuParentKey =
-      activeElement instanceof HTMLButtonElement && activeElement.hasAttribute("data-tree-node-menu-child-item")
+      activeElement instanceof HTMLButtonElement &&
+      activeElement.hasAttribute("data-tree-node-menu-child-item")
         ? activeElement.getAttribute("data-tree-node-menu-parent-key")
         : null
 
@@ -479,7 +489,7 @@ export const useTreeNodeMenuController = (options: {
         event.preventDefault()
         focusMenuSubmenuItemByIndex(
           activeSubmenuParentKey,
-          resolveSubmenuActiveIndex(activeSubmenuParentKey, submenuItems) + 1
+          resolveSubmenuActiveIndex(activeSubmenuParentKey, submenuItems) + 1,
         )
         return true
       }
@@ -488,7 +498,7 @@ export const useTreeNodeMenuController = (options: {
         event.preventDefault()
         focusMenuSubmenuItemByIndex(
           activeSubmenuParentKey,
-          resolveSubmenuActiveIndex(activeSubmenuParentKey, submenuItems) - 1
+          resolveSubmenuActiveIndex(activeSubmenuParentKey, submenuItems) - 1,
         )
         return true
       }
@@ -498,7 +508,10 @@ export const useTreeNodeMenuController = (options: {
         const activeIndex = resolveSubmenuActiveIndex(activeSubmenuParentKey, submenuItems)
 
         if (activeIndex < 0) {
-          focusMenuSubmenuItemByIndex(activeSubmenuParentKey, event.shiftKey ? submenuItems.length - 1 : 0)
+          focusMenuSubmenuItemByIndex(
+            activeSubmenuParentKey,
+            event.shiftKey ? submenuItems.length - 1 : 0,
+          )
           return true
         }
 

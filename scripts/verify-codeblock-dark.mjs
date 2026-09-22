@@ -50,8 +50,12 @@ try {
   await page.locator(".ne-codeblock").first().waitFor({ state: "visible", timeout: 10_000 })
   await page.waitForTimeout(2500) // 等自动保存落库
 
-  const domClass = await page.evaluate(() => document.querySelector(".ne-codeblock")?.className ?? "")
-  const cmClass = await page.evaluate(() => document.querySelector(".ne-codeblock .CodeMirror")?.className ?? "")
+  const domClass = await page.evaluate(
+    () => document.querySelector(".ne-codeblock")?.className ?? "",
+  )
+  const cmClass = await page.evaluate(
+    () => document.querySelector(".ne-codeblock .CodeMirror")?.className ?? "",
+  )
   const detail = await (
     await fetch(`http://127.0.0.1:4173/api/knowledge/documents/${doc.id}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -64,7 +68,7 @@ try {
       domClass: domClass.slice(0, 100),
       cmClass: cmClass.slice(0, 140),
       savedHasDarcula: saved.includes("Darcula"),
-    })
+    }),
   )
   // 主题断言说明：theme 存于 cardValue（宿主 insertCodeBlock 按当前主题传 Darcula/Github Light），
   // markdown fence 不序列化 theme、且 CodeMirror 编辑区不挂载为已知内核问题（差距报告 P0 #1，

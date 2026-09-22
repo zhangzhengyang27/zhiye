@@ -21,20 +21,21 @@ const token = await readAccessToken(page)
 const kb = await ensureKnowledgeBase(token, "probe")
 const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n取证。` })
 
-const ringOf = nodeId =>
-  page.evaluate(id => {
+const ringOf = (nodeId) =>
+  page.evaluate((id) => {
     const row = document.querySelector(`[data-knowledge-node-id="${id}"]`)
     const cs = getComputedStyle(row)
     return {
       boxShadow: cs.boxShadow,
       outline: cs.outline,
       rowBg: cs.backgroundColor,
-      activeElement: document.activeElement?.getAttribute?.("data-knowledge-node-id") === id ? "row" : "other",
+      activeElement:
+        document.activeElement?.getAttribute?.("data-knowledge-node-id") === id ? "row" : "other",
     }
   }, nodeId)
 
 for (const mode of ["light", "dark"]) {
-  await page.evaluate(m => globalThis.localStorage.setItem("vueuse-color-scheme", m), mode)
+  await page.evaluate((m) => globalThis.localStorage.setItem("vueuse-color-scheme", m), mode)
   await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
     waitUntil: "networkidle",
   })
@@ -49,7 +50,7 @@ for (const mode of ["light", "dark"]) {
   await aside.screenshot({ path: path.join(OUT, `${mode}-1-plain.png`) })
 
   // 对照：纯键盘导航到该行（不进入改名）
-  await row.evaluate(el => el.focus())
+  await row.evaluate((el) => el.focus())
   await page.keyboard.press("ArrowDown")
   await page.keyboard.press("ArrowUp")
   await page.waitForTimeout(300)
@@ -75,7 +76,7 @@ for (const mode of ["light", "dark"]) {
   await page.waitForTimeout(300)
 
   console.log(
-    `\n[${mode}]\n  键盘聚焦行: bg=${keyboardFocus.rowBg}\n    shadow=${keyboardFocus.boxShadow}\n  改名态:   bg=${renaming.rowBg}\n    shadow=${renaming.boxShadow}`
+    `\n[${mode}]\n  键盘聚焦行: bg=${keyboardFocus.rowBg}\n    shadow=${keyboardFocus.boxShadow}\n  改名态:   bg=${renaming.rowBg}\n    shadow=${renaming.boxShadow}`,
   )
 }
 

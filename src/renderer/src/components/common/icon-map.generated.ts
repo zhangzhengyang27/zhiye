@@ -131,6 +131,7 @@ import { List } from "lucide-vue-next"
 import { ListTree } from "lucide-vue-next"
 import { Loader2 } from "lucide-vue-next"
 import { LoaderCircle } from "lucide-vue-next"
+import { Locate } from "lucide-vue-next"
 import { Lock } from "lucide-vue-next"
 import { LockOpen } from "lucide-vue-next"
 import { MessageCircle } from "lucide-vue-next"
@@ -303,6 +304,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-list-tree": { component: ListTree },
   "i-lucide-loader-2": { component: Loader2 },
   "i-lucide-loader-circle": { component: LoaderCircle },
+  "i-lucide-locate": { component: Locate },
   "i-lucide-lock": { component: Lock },
   "i-lucide-lock-open": { component: LockOpen },
   "i-lucide-message-circle": { component: MessageCircle },

@@ -57,7 +57,7 @@ const outlineRows = computed<OutlineRow[]>(() => {
   const rows: OutlineRow[] = []
 
   const walk = (nodes: KnowledgeWorkspaceContext["treeNodes"]["value"], depth: number) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const isFolder = node.type === "folder"
       const hasChildren = node.children.length > 0
 
@@ -87,7 +87,7 @@ const countSummary = computed(() => {
   let doc = 0
 
   const walk = (nodes: KnowledgeWorkspaceContext["treeNodes"]["value"]) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (node.type === "folder") {
         folder += 1
       } else if (node.type === "doc") {
@@ -112,7 +112,7 @@ const toggleFolder = (row: OutlineRow) => {
   }
 
   expandedFolderIds.value = expandedFolderIds.value.includes(row.id)
-    ? expandedFolderIds.value.filter(id => id !== row.id)
+    ? expandedFolderIds.value.filter((id) => id !== row.id)
     : [...expandedFolderIds.value, row.id]
 }
 
@@ -127,7 +127,7 @@ const openRow = (row: OutlineRow) => {
       kbId: workspaceContext.kbId.value,
       docId: row.id,
       editorType: row.editorType,
-    })
+    }),
   )
 }
 
@@ -181,7 +181,7 @@ watch(
       window.localStorage.setItem("knowledge:last-active-kb-name", name)
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const handleShare = async () => {
@@ -344,7 +344,9 @@ const confirmDeleteKb = async () => {
             @keydown="handleRenameKeydown"
             @blur="submitRename"
           />
-          <h1 v-else class="min-w-0 truncate text-[26px] font-semibold leading-tight text-ink">{{ workspaceName }}</h1>
+          <h1 v-else class="min-w-0 truncate text-[26px] font-semibold leading-tight text-ink">
+            {{ workspaceName }}
+          </h1>
         </div>
 
         <div class="flex shrink-0 items-center gap-2">
@@ -408,10 +410,16 @@ const confirmDeleteKb = async () => {
 
       <div class="mt-3 flex flex-wrap items-center gap-5 pl-16">
         <span class="inline-flex items-baseline gap-1.5">
-          <span class="text-[20px] font-semibold leading-none text-ink">{{ formatNumber(countSummary.doc) }}</span>
+          <span class="text-[20px] font-semibold leading-none text-ink">{{
+            formatNumber(countSummary.doc)
+          }}</span>
           <span class="text-[13px] text-ink-tertiary">文档</span>
         </span>
-        <span v-if="workspaceStats" class="inline-flex items-baseline gap-1.5" title="按正文纯文本字数统计">
+        <span
+          v-if="workspaceStats"
+          class="inline-flex items-baseline gap-1.5"
+          title="按正文纯文本字数统计"
+        >
           <span class="text-[20px] font-semibold leading-none text-ink">{{
             formatNumber(workspaceStats.wordCount)
           }}</span>
@@ -421,7 +429,12 @@ const confirmDeleteKb = async () => {
       </div>
 
       <div v-if="creatorAvatar || creatorName" class="mt-4 pl-16" :title="creatorName">
-        <img v-if="creatorAvatar" :src="creatorAvatar" :alt="creatorName" class="h-8 w-8 rounded-full object-cover" />
+        <img
+          v-if="creatorAvatar"
+          :src="creatorAvatar"
+          :alt="creatorName"
+          class="h-8 w-8 rounded-full object-cover"
+        />
         <span
           v-else
           class="flex h-8 w-8 items-center justify-center rounded-full bg-fill-muted text-[12px] font-medium text-ink-secondary dark:text-ink"
@@ -431,11 +444,18 @@ const confirmDeleteKb = async () => {
       </div>
 
       <section class="mt-12">
-        <div v-if="outlineRows.length === 0" class="flex flex-col items-center justify-center px-6 py-14 text-center">
+        <div
+          v-if="outlineRows.length === 0"
+          class="flex flex-col items-center justify-center px-6 py-14 text-center"
+        >
           <Icon icon="ph:files" :width="36" :height="36" class="text-ink-quaternary" />
           <p class="mt-3 text-kb-base font-medium text-ink-secondary">当前知识库还没有内容</p>
           <p class="mt-1.5 max-w-sm text-kb-xs leading-5 text-ink-tertiary">
-            {{ canEdit ? "从左侧目录列的「+」新建第一篇文档或目录。" : "待成员创建内容后可在这里浏览。" }}
+            {{
+              canEdit
+                ? "从左侧目录列的「+」新建第一篇文档或目录。"
+                : "待成员创建内容后可在这里浏览。"
+            }}
           </p>
         </div>
 
@@ -456,7 +476,9 @@ const confirmDeleteKb = async () => {
                 />
               </span>
 
-              <span class="shrink-0 text-[16px] text-ink transition-colors duration-150 group-hover:text-brand">
+              <span
+                class="shrink-0 text-[16px] text-ink transition-colors duration-150 group-hover:text-brand"
+              >
                 {{ row.title }}
               </span>
 
@@ -465,7 +487,10 @@ const confirmDeleteKb = async () => {
                 class="mx-2 min-w-3 flex-1 border-b border-dashed border-line group-hover:border-grey-400"
               />
 
-              <span v-if="!row.isFolder" class="shrink-0 text-[13px] tabular-nums text-ink-tertiary">
+              <span
+                v-if="!row.isFolder"
+                class="shrink-0 text-[13px] tabular-nums text-ink-tertiary"
+              >
                 {{ formatShortDate(row.updatedAt) }}
               </span>
             </button>
@@ -481,7 +506,7 @@ const confirmDeleteKb = async () => {
       danger
       confirm-text="删除知识库"
       :loading="deleteBusy ? true : null"
-      @update:open="value => !value && (deleteDialogOpen = false)"
+      @update:open="(value) => !value && (deleteDialogOpen = false)"
       @confirm="confirmDeleteKb"
     />
 

@@ -97,7 +97,10 @@ const refreshUnreadCount = async () => {
       // 拉取最新一条通知作为系统通知内容；失败时降级为纯计数提示
       const page = await getNotifications({ page: 1, pageSize: 1 }).catch(() => null)
       const latest = page?.items?.[0]
-      void window.xiaoyeDesktop.notify(latest?.title || "知识库通知", latest?.content || `你有 ${next} 条新通知`)
+      void window.xiaoyeDesktop.notify(
+        latest?.title || "知识库通知",
+        latest?.content || `你有 ${next} 条新通知`,
+      )
     }
   } catch {
     // 未读数刷新失败不影响展示
@@ -169,7 +172,8 @@ const closePanel = () => {
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target instanceof Node ? event.target : null
   const insideBell = bellRef.value?.contains(target) ?? false
-  const insidePanel = target instanceof Element && Boolean(target.closest("[data-notification-panel]"))
+  const insidePanel =
+    target instanceof Element && Boolean(target.closest("[data-notification-panel]"))
 
   if (!insideBell && !insidePanel) {
     closePanel()
@@ -204,7 +208,7 @@ const openNotificationDocument = async (item: AppNotification) => {
         kbId: document.kbId,
         docId: document.id,
         editorType: document.editorType,
-      })
+      }),
     )
   } catch {
     // 文档可能已被删除或失去权限：跳转失败时静默留在当前页
@@ -212,13 +216,13 @@ const openNotificationDocument = async (item: AppNotification) => {
 }
 
 const markAllRead = async () => {
-  const targetIds = items.value.filter(item => !item.read).map(item => item.id)
+  const targetIds = items.value.filter((item) => !item.read).map((item) => item.id)
 
   if (targetIds.length === 0) {
     return
   }
 
-  items.value = items.value.map(item => ({ ...item, read: true }))
+  items.value = items.value.map((item) => ({ ...item, read: true }))
   unreadCount.value = 0
 
   try {
@@ -230,7 +234,7 @@ const markAllRead = async () => {
 }
 
 const removeItem = async (item: AppNotification) => {
-  items.value = items.value.filter(current => current.id !== item.id)
+  items.value = items.value.filter((current) => current.id !== item.id)
 
   if (!item.read) {
     unreadCount.value = Math.max(0, unreadCount.value - 1)
@@ -244,7 +248,7 @@ const removeItem = async (item: AppNotification) => {
 }
 
 const clearAll = async () => {
-  const targetIds = items.value.map(item => item.id)
+  const targetIds = items.value.map((item) => item.id)
 
   if (targetIds.length === 0) {
     return
@@ -340,11 +344,23 @@ onBeforeUnmount(() => {
 
         <div class="min-h-0 flex-1 overflow-y-auto">
           <div v-if="loading && items.length === 0" class="space-y-2 px-4 py-4">
-            <div v-for="index in 4" :key="index" class="h-12 animate-pulse rounded-kb-md bg-grey-200" />
+            <div
+              v-for="index in 4"
+              :key="index"
+              class="h-12 animate-pulse rounded-kb-md bg-grey-200"
+            />
           </div>
 
-          <div v-else-if="items.length === 0" class="flex flex-col items-center justify-center px-6 py-12 text-center">
-            <Icon icon="ph:bell-simple-slash" :width="30" :height="30" class="text-ink-quaternary" />
+          <div
+            v-else-if="items.length === 0"
+            class="flex flex-col items-center justify-center px-6 py-12 text-center"
+          >
+            <Icon
+              icon="ph:bell-simple-slash"
+              :width="30"
+              :height="30"
+              class="text-ink-quaternary"
+            />
             <p class="mt-3 text-sm text-ink-tertiary">{{ emptyText }}</p>
           </div>
 
@@ -367,7 +383,9 @@ onBeforeUnmount(() => {
                   {{ formatTimeAgo(item.createdAt) }}
                 </span>
               </div>
-              <p class="mt-1 line-clamp-2 whitespace-pre-line break-all text-xs leading-5 text-ink-tertiary">
+              <p
+                class="mt-1 line-clamp-2 whitespace-pre-line break-all text-xs leading-5 text-ink-tertiary"
+              >
                 {{ item.content }}
               </p>
 

@@ -31,7 +31,9 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const keyword = ref("")
-const docs = ref<Array<{ id: string; title: string; editorType?: string; updatedAt: string; kbId: string }>>([])
+const docs = ref<
+  Array<{ id: string; title: string; editorType?: string; updatedAt: string; kbId: string }>
+>([])
 const loadingDocs = ref(false)
 /** 对齐语雀「切换内容」：当前知识库文档 ↔ 全部知识库最近文档 */
 const scopeAll = ref(false)
@@ -103,7 +105,7 @@ const filteredPages = computed(() => {
     return pageItems.value
   }
 
-  return pageItems.value.filter(item => item.label.toLowerCase().includes(text))
+  return pageItems.value.filter((item) => item.label.toLowerCase().includes(text))
 })
 
 const filteredDocs = computed(() => {
@@ -113,7 +115,7 @@ const filteredDocs = computed(() => {
     return docs.value.slice(0, 8)
   }
 
-  return docs.value.filter(item => item.title.toLowerCase().includes(text)).slice(0, 8)
+  return docs.value.filter((item) => item.title.toLowerCase().includes(text)).slice(0, 8)
 })
 
 const flatCount = computed(() => filteredPages.value.length + filteredDocs.value.length)
@@ -134,7 +136,7 @@ const runDocItem = (doc: (typeof docs.value)[number]) => {
       kbId: doc.kbId,
       docId: doc.id,
       editorType: doc.editorType,
-    })
+    }),
   )
 }
 
@@ -184,7 +186,8 @@ const onKeydown = (event: KeyboardEvent) => {
 
   if (event.key === "ArrowUp") {
     event.preventDefault()
-    activeIndex.value = flatCount.value > 0 ? (activeIndex.value - 1 + flatCount.value) % flatCount.value : 0
+    activeIndex.value =
+      flatCount.value > 0 ? (activeIndex.value - 1 + flatCount.value) % flatCount.value : 0
     return
   }
 
@@ -195,10 +198,16 @@ const onKeydown = (event: KeyboardEvent) => {
 }
 
 const flattenDocs = (nodes: KnowledgeDocumentTreeNode[], kbIdValue: string) => {
-  const result: Array<{ id: string; title: string; editorType?: string; updatedAt: string; kbId: string }> = []
+  const result: Array<{
+    id: string
+    title: string
+    editorType?: string
+    updatedAt: string
+    kbId: string
+  }> = []
 
   const walk = (list: KnowledgeDocumentTreeNode[]) => {
-    list.forEach(node => {
+    list.forEach((node) => {
       if (node.type === "doc") {
         result.push({
           id: node.id,
@@ -231,7 +240,7 @@ const loadDocs = async () => {
     if (!kbId.value || scopeAll.value) {
       const recent = await listRecentKnowledgeDocumentsAll({ limit: 60 })
       if (seq !== loadDocsSeq) return
-      docs.value = recent.map(item => ({
+      docs.value = recent.map((item) => ({
         id: item.id,
         title: item.title,
         editorType: item.editorType,
@@ -258,7 +267,7 @@ const loadDocs = async () => {
 // 清空输入态并加载文档（唯一一个 open watcher，避免双 watcher 各做一半）
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (!open) return
     const stored = window.localStorage.getItem("knowledge:last-active-kb-name") ?? ""
     kbName.value = stored && stored !== "未命名知识库" ? stored : "知识库"
@@ -272,7 +281,7 @@ watch(
     }, 30)
   },
   // 挂载时 open 可能已为 true，immediate 保证首次初始化不遗漏
-  { immediate: true }
+  { immediate: true },
 )
 
 watch(keyword, () => {
@@ -300,7 +309,12 @@ onBeforeUnmount(() => {
         class="absolute left-1/2 top-[15%] w-full max-w-[720px] -translate-x-1/2 overflow-hidden rounded-kb-lg border border-line bg-surface shadow-[var(--kb-modal-shadow)]"
       >
         <div class="flex items-center gap-2 border-b border-line px-4 py-3">
-          <Icon icon="ph:magnifying-glass" :width="15" :height="15" class="shrink-0 text-ink-quaternary" />
+          <Icon
+            icon="ph:magnifying-glass"
+            :width="15"
+            :height="15"
+            class="shrink-0 text-ink-quaternary"
+          />
           <span class="hidden shrink-0 items-center gap-1 text-[13px] text-ink-quaternary md:flex">
             <span>{{ userName }}</span>
             <span>/</span>
@@ -327,7 +341,9 @@ onBeforeUnmount(() => {
             type="button"
             class="inline-flex h-6 shrink-0 items-center gap-1 rounded-kb-sm px-1.5 text-[12px] transition"
             :class="
-              scopeAll ? 'text-brand hover:bg-brand-light' : 'text-ink-quaternary hover:bg-grey-200 hover:text-ink'
+              scopeAll
+                ? 'text-brand hover:bg-brand-light'
+                : 'text-ink-quaternary hover:bg-grey-200 hover:text-ink'
             "
             :title="scopeAll ? '当前：全部知识库的最近文档' : '当前：本知识库全部文档'"
             @click="
@@ -359,7 +375,11 @@ onBeforeUnmount(() => {
               :key="item.key"
               type="button"
               class="flex h-9 w-full items-center gap-2.5 rounded-kb-md px-2.5 text-left text-[14px] transition"
-              :class="activeIndex === index ? 'bg-fill-muted text-ink' : 'text-ink-secondary hover:bg-fill-subtle'"
+              :class="
+                activeIndex === index
+                  ? 'bg-fill-muted text-ink'
+                  : 'text-ink-secondary hover:bg-fill-subtle'
+              "
               @click="runPageItem(item)"
               @mousemove="activeIndex = index"
             >
@@ -402,12 +422,17 @@ onBeforeUnmount(() => {
             </button>
           </template>
 
-          <div v-if="flatCount === 0" class="px-3 py-10 text-center text-[13px] text-ink-quaternary">
+          <div
+            v-if="flatCount === 0"
+            class="px-3 py-10 text-center text-[13px] text-ink-quaternary"
+          >
             {{ loadingDocs ? "加载中…" : "没有匹配的内容" }}
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 border-t border-line px-4 py-2 text-[11px] text-ink-quaternary">
+        <div
+          class="flex items-center justify-end gap-3 border-t border-line px-4 py-2 text-[11px] text-ink-quaternary"
+        >
           <span>↑↓ 选择</span>
           <span>↵ 打开</span>
           <span>esc 关闭</span>

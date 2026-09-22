@@ -49,7 +49,7 @@ export interface CascadeWorkArea {
 export const computeCascadeOrigin = (
   base: CascadeBaseBounds | null,
   openCount: number,
-  workArea?: CascadeWorkArea
+  workArea?: CascadeWorkArea,
 ): CascadeOrigin => {
   const step = (Math.max(openCount, 0) % CASCADE_MAX_STEPS) + 1
   const originX = (base?.x ?? 0) + CASCADE_OFFSET_PX * step

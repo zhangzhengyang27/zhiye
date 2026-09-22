@@ -48,11 +48,16 @@ export interface DropdownMenuItem {
  * 「普通项选择」，并携带原 item 引用保证 onSelect/click 回调契约不变。
  */
 export type DropdownMenuCommand =
-  | { kind: "item"; item: DropdownMenuItem }
-  | { kind: "parent"; item: DropdownMenuItem; key: string }
+  { kind: "item"; item: DropdownMenuItem } | { kind: "parent"; item: DropdownMenuItem; key: string }
 
 /** 基线触发器键盘契约：Enter/Space 原生按钮 + ArrowDown/ArrowUp 开合（EP 默认无 ArrowUp） */
-export const DROPDOWN_TRIGGER_KEYS: string[] = ["Enter", "NumpadEnter", "Space", "ArrowDown", "ArrowUp"]
+export const DROPDOWN_TRIGGER_KEYS: string[] = [
+  "Enter",
+  "NumpadEnter",
+  "Space",
+  "ArrowDown",
+  "ArrowUp",
+]
 
 /** 基线 floating-ui offset(6)：EP 未透出 offset prop（tooltip 默认 12px）。EP 的 offset
     modifier 会把间距加进 modifiersData.popperOffsets、computeStyles 只消费
@@ -182,11 +187,16 @@ export function useDropdownMenu(options: UseDropdownMenuOptions = {}) {
     let frames = 0
     const tick = () => {
       frames += 1
-      const popper = document.querySelector<HTMLElement>('.el-dropdown__popper[aria-hidden="false"]')
-      const items = popper?.querySelectorAll<HTMLElement>(".el-dropdown-menu__item:not(.is-disabled)")
+      const popper = document.querySelector<HTMLElement>(
+        '.el-dropdown__popper[aria-hidden="false"]',
+      )
+      const items = popper?.querySelectorAll<HTMLElement>(
+        ".el-dropdown-menu__item:not(.is-disabled)",
+      )
       const active = document.activeElement
       const activeOnItem =
-        active instanceof Element && Boolean(items && Array.from(items).includes(active as HTMLElement))
+        active instanceof Element &&
+        Boolean(items && Array.from(items).includes(active as HTMLElement))
       if (popper && items && items.length > 0 && !activeOnItem) {
         // preventScroll：纠正焦点不得滚动 el-scrollbar 的 wrap（长菜单滚到深处的
         // 展开/点击场景，无此参数会把面板视图拽回顶部——pixdiff 在「导出与打印」

@@ -9,10 +9,18 @@ import { computed, inject, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
 import KnowledgeContentHeader from "@/components/knowledge/KnowledgeContentHeader.vue"
-import KnowledgeQuickActions, { type QuickActionItem } from "@/components/knowledge/KnowledgeQuickActions.vue"
-import KnowledgeDocList, { type DocListItem, type DocListTab } from "@/components/knowledge/KnowledgeDocList.vue"
+import KnowledgeQuickActions, {
+  type QuickActionItem,
+} from "@/components/knowledge/KnowledgeQuickActions.vue"
+import KnowledgeDocList, {
+  type DocListItem,
+  type DocListTab,
+} from "@/components/knowledge/KnowledgeDocList.vue"
 import { listRecentKnowledgeDocuments } from "@/services/knowledge-documents"
-import { getKnowledgeDocumentEditorLabel, getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
+import {
+  getKnowledgeDocumentEditorLabel,
+  getKnowledgeDocumentRouteTarget,
+} from "@/utils/knowledge-document"
 import { formatShortDate } from "@/utils/date-format"
 import { knowledgeWorkspaceContextKey, type KnowledgeWorkspaceContext } from "./workspace-context"
 
@@ -49,7 +57,7 @@ const flattenDocs = (): FlatDoc[] => {
   const result: FlatDoc[] = []
 
   const walk = (nodes: KnowledgeWorkspaceContext["treeNodes"]["value"]) => {
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       if (node.type === "doc") {
         result.push({
           id: node.id,
@@ -86,7 +94,7 @@ const statsHint = computed(() => {
 
 const listItems = computed<DocListItem[]>(() => {
   if (activeTab.value === "recent") {
-    return recentItems.value.map(item => ({
+    return recentItems.value.map((item) => ({
       id: item.id,
       title: item.title,
       icon: "ph:file-text",
@@ -96,11 +104,11 @@ const listItems = computed<DocListItem[]>(() => {
   }
 
   const source = [...flatDocs.value].sort(
-    (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
+    (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
   )
   const target = activeTab.value === "updated" ? source.slice(0, 20) : source
 
-  return target.map(item => ({
+  return target.map((item) => ({
     id: item.id,
     title: item.title,
     icon: "ph:file-text",
@@ -122,7 +130,9 @@ const emptyDescription = computed(() => {
     return "浏览文档后，这里会自动沉淀你的最近工作轨迹。"
   }
 
-  return canEdit.value ? "用上方的快速操作新建第一篇文档。" : "当前角色仅可查看，待成员创建内容后可在这里浏览。"
+  return canEdit.value
+    ? "用上方的快速操作新建第一篇文档。"
+    : "当前角色仅可查看，待成员创建内容后可在这里浏览。"
 })
 
 const quickActions = computed<QuickActionItem[]>(() => [
@@ -159,15 +169,15 @@ const quickActions = computed<QuickActionItem[]>(() => [
 const openDoc = (item: DocListItem) => {
   const editorType =
     activeTab.value === "recent"
-      ? recentItems.value.find(entry => entry.id === item.id)?.editorType
-      : flatDocs.value.find(entry => entry.id === item.id)?.editorType
+      ? recentItems.value.find((entry) => entry.id === item.id)?.editorType
+      : flatDocs.value.find((entry) => entry.id === item.id)?.editorType
 
   router.push(
     getKnowledgeDocumentRouteTarget({
       kbId: workspaceContext.kbId.value,
       docId: item.id,
       editorType,
-    })
+    }),
   )
 }
 
@@ -225,7 +235,7 @@ watch(
   () => {
     void loadRecentItems()
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>
 
@@ -238,7 +248,9 @@ watch(
           class="h-8 w-8 p-0 text-ink-tertiary hover:bg-grey-200 hover:text-brand gap-1.5 font-semibold"
           title="搜索内容"
           @click="openSearch"
-          ><span class="truncate"><Icon icon="ph:magnifying-glass" :width="16" :height="16" /></span>
+          ><span class="truncate"
+            ><Icon icon="ph:magnifying-glass" :width="16" :height="16"
+          /></span>
         </el-button>
         <el-button
           text

@@ -21,5 +21,5 @@ for (const [k, v] of Object.entries(dark)) out.dark[k.slice(5)] = v
 fs.mkdirSync("docs", { recursive: true })
 fs.writeFileSync("docs/yuque-tokens.json", JSON.stringify(out, null, 2))
 console.log(
-  `light: ${Object.keys(light).length} tokens, dark: ${Object.keys(dark).length} tokens -> docs/yuque-tokens.json`
+  `light: ${Object.keys(light).length} tokens, dark: ${Object.keys(dark).length} tokens -> docs/yuque-tokens.json`,
 )

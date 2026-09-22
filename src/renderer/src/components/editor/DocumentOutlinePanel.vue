@@ -23,9 +23,11 @@ const emit = defineEmits<{
     <div class="flex items-center justify-between border-b border-line px-4 py-2.5">
       <p class="text-[13px] font-semibold text-ink">
         大纲
-        <span v-if="items.length > 0" class="ml-1 text-[11px] font-normal tabular-nums text-ink-quaternary">{{
-          items.length
-        }}</span>
+        <span
+          v-if="items.length > 0"
+          class="ml-1 text-[11px] font-normal tabular-nums text-ink-quaternary"
+          >{{ items.length }}</span
+        >
       </p>
       <button
         type="button"

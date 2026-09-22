@@ -12,14 +12,18 @@ import {
 const PREFIX = "[probe:slash]"
 const { browser, page } = await createBrowserPage()
 
-const dump = async tag => {
+const dump = async (tag) => {
   const state = await page.evaluate(() => {
     const menu = document.querySelector(".ne-ui-slash-card-select-menu")
     const input = document.querySelector(".ne-ui-slash-command-input")
-    const titles = [...document.querySelectorAll(".ne-ui-slash-card-select-menu .ne-menu-item-container-title")]
-      .map(el => el.textContent.trim())
+    const titles = [
+      ...document.querySelectorAll(".ne-ui-slash-card-select-menu .ne-menu-item-container-title"),
+    ]
+      .map((el) => el.textContent.trim())
       .slice(0, 8)
-    const active = document.querySelector(".ne-ui-slash-card-select-menu [class*=active], .ne-ui-slash-card-select-menu [class*=selected]")
+    const active = document.querySelector(
+      ".ne-ui-slash-card-select-menu [class*=active], .ne-ui-slash-card-select-menu [class*=selected]",
+    )
     return {
       menuExists: Boolean(menu),
       inputValue: input ? input.value : null,
@@ -38,9 +42,12 @@ try {
     title: `slash 调试 ${Date.now()}`,
     content: "# slash 调试\n\n",
   })
-  await page.goto(new globalThis.URL(`/knowledge/kbDemo000001/doc/${doc.id}`, smokeConfig.baseUrl).toString(), {
-    waitUntil: "domcontentloaded",
-  })
+  await page.goto(
+    new globalThis.URL(`/knowledge/kbDemo000001/doc/${doc.id}`, smokeConfig.baseUrl).toString(),
+    {
+      waitUntil: "domcontentloaded",
+    },
+  )
   const editorContent = page.locator('.yuque-doc-editor__surface [contenteditable="true"]').first()
   await editorContent.waitFor({ state: "visible", timeout: smokeConfig.timeout })
 
@@ -60,7 +67,9 @@ try {
   }
 
   // 直接点击「图片」标题项
-  const imgItem = page.locator(".ne-ui-slash-card-select-menu .ne-menu-item-container-title", { hasText: "图片" }).first()
+  const imgItem = page
+    .locator(".ne-ui-slash-card-select-menu .ne-menu-item-container-title", { hasText: "图片" })
+    .first()
   const count = await imgItem.count()
   logStep(PREFIX, `「图片」标题项数量 = ${count}`)
   if (count > 0) {

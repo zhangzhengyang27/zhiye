@@ -21,28 +21,34 @@ const focusedNodeId = ref<string | null>(null)
 // 独立设置壳没有目录树 UI，也没有展开状态存档（false → 树加载完自动展开全部目录，本壳无感）
 const hasStoredExpandedFolderIds = ref(false)
 
-const { knowledgeBase, permissions, errorMessage, refreshTree, refreshPermissions, refreshWorkspace } =
-  useWorkspaceLoader({
-    kbId,
-    treeNodes,
-    expandedFolderIds,
-    hasStoredExpandedFolderIds,
-    focusedNodeId,
-    ensureNodeAncestorsExpanded: () => {},
-    ensureFocusedNode: () => {},
-    showToastMessage: () => {},
-  })
+const {
+  knowledgeBase,
+  permissions,
+  errorMessage,
+  refreshTree,
+  refreshPermissions,
+  refreshWorkspace,
+} = useWorkspaceLoader({
+  kbId,
+  treeNodes,
+  expandedFolderIds,
+  hasStoredExpandedFolderIds,
+  focusedNodeId,
+  ensureNodeAncestorsExpanded: () => {},
+  ensureFocusedNode: () => {},
+  showToastMessage: () => {},
+})
 
 // 加载触发在本壳（完整工作台壳由 layout 的 watch 负责，复用 loader 不复用其触发）：
 // 不触发则 permissions/knowledgeBase 恒为 null，设置页按「无权限」禁用全部控件
 watch(
   kbId,
-  id => {
+  (id) => {
     if (id) {
       void refreshWorkspace()
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const openInNewWindow = (path: string) => {

@@ -15,7 +15,7 @@ const props = withDefaults(
     activeMenu: undefined,
     activeKbId: null,
     refreshKey: 0,
-  }
+  },
 )
 
 /** 侧栏「新建」菜单意图透传：侧栏在多个页面复用，创建/导入动作统一由页面层消费 */
@@ -24,7 +24,8 @@ const emit = defineEmits<{
   "sidebar-import": [kind: "md" | "docx"]
 }>()
 
-const forwardSidebarCreate = (action: "doc" | "folder" | "template") => emit("sidebar-create", action)
+const forwardSidebarCreate = (action: "doc" | "folder" | "template") =>
+  emit("sidebar-create", action)
 const forwardSidebarImport = (kind: "md" | "docx") => emit("sidebar-import", kind)
 
 const shellFrameRef = ref<HTMLElement | null>(null)

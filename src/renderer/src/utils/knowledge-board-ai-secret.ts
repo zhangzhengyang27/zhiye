@@ -106,7 +106,11 @@ const openDatabase = () => {
 
 const runStoreOperation = async <T>(
   mode: IDBTransactionMode,
-  executor: (store: IDBObjectStore, resolve: (value: T) => void, reject: (error: unknown) => void) => void
+  executor: (
+    store: IDBObjectStore,
+    resolve: (value: T) => void,
+    reject: (error: unknown) => void,
+  ) => void,
 ) => {
   const database = await openDatabase()
 
@@ -116,8 +120,8 @@ const runStoreOperation = async <T>(
 
     executor(
       store,
-      value => resolve(value),
-      error => reject(error)
+      (value) => resolve(value),
+      (error) => reject(error),
     )
 
     transaction.oncomplete = () => {
@@ -140,7 +144,7 @@ const arrayBufferToBase64 = (value: ArrayBuffer | Uint8Array) => {
   const bytes = value instanceof Uint8Array ? value : new Uint8Array(value)
   let binary = ""
 
-  bytes.forEach(byte => {
+  bytes.forEach((byte) => {
     binary += String.fromCharCode(byte)
   })
 
@@ -186,16 +190,19 @@ const getStoredKeyRecord = async (userId?: string | null) => {
       : null
   }
 
-  return runStoreOperation<KnowledgeBoardAiKeyRecord | null>("readonly", (store, resolve, reject) => {
-    const request = store.get(getKeyId(userId))
+  return runStoreOperation<KnowledgeBoardAiKeyRecord | null>(
+    "readonly",
+    (store, resolve, reject) => {
+      const request = store.get(getKeyId(userId))
 
-    request.onsuccess = () => {
-      const result = request.result as KnowledgeBoardAiKeyRecord | undefined
-      resolve(result ?? null)
-    }
+      request.onsuccess = () => {
+        const result = request.result as KnowledgeBoardAiKeyRecord | undefined
+        resolve(result ?? null)
+      }
 
-    request.onerror = () => reject(request.error ?? new Error("读取加密密钥失败"))
-  })
+      request.onerror = () => reject(request.error ?? new Error("读取加密密钥失败"))
+    },
+  )
 }
 
 const persistKeyMaterial = async (userId: string | null | undefined, keyMaterial: string) => {
@@ -242,10 +249,13 @@ const importCryptoKey = async (keyMaterial: string) => {
   }
 
   try {
-    return await cryptoSupport.subtle.importKey("raw", base64ToUint8Array(keyMaterial), { name: "AES-GCM" }, false, [
-      "encrypt",
-      "decrypt",
-    ])
+    return await cryptoSupport.subtle.importKey(
+      "raw",
+      base64ToUint8Array(keyMaterial),
+      { name: "AES-GCM" },
+      false,
+      ["encrypt", "decrypt"],
+    )
   } catch {
     return null
   }
@@ -344,7 +354,7 @@ const encryptKnowledgeBoardAiSecretFallback = async (value: string, userId?: str
 
 const decryptKnowledgeBoardAiSecretFallback = async (
   value: KnowledgeBoardAiEncryptedSecret,
-  userId?: string | null
+  userId?: string | null,
 ) => {
   const storedRecord = await getStoredKeyRecord(userId)
 
@@ -387,7 +397,7 @@ const encryptSecretLocally = async (value: string, userId?: string | null) => {
           iv,
         },
         key,
-        encoded
+        encoded,
       )
 
       return {
@@ -405,7 +415,10 @@ const encryptSecretLocally = async (value: string, userId?: string | null) => {
 }
 
 /** Web 端本地实现：把本地保存的密文还原为可用的 API Key。 */
-const decryptSecretLocally = async (value: KnowledgeBoardAiEncryptedSecret, userId?: string | null) => {
+const decryptSecretLocally = async (
+  value: KnowledgeBoardAiEncryptedSecret,
+  userId?: string | null,
+) => {
   if (value.algorithm === "XOR-LOCAL" || value.version === 2) {
     return decryptKnowledgeBoardAiSecretFallback(value, userId)
   }
@@ -424,7 +437,7 @@ const decryptSecretLocally = async (value: KnowledgeBoardAiEncryptedSecret, user
         iv: base64ToUint8Array(value.iv),
       },
       key,
-      base64ToUint8Array(value.ciphertext)
+      base64ToUint8Array(value.ciphertext),
     )
 
     return new TextDecoder().decode(decrypted)
@@ -450,7 +463,9 @@ const digestHex = async (value: string) => {
   if (typeof crypto !== "undefined" && crypto.subtle) {
     try {
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))
-      return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("")
+      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join(
+        "",
+      )
     } catch {
       // 落到下方 FNV-1a 兜底
     }
@@ -465,7 +480,10 @@ const digestHex = async (value: string) => {
 }
 
 /** 桌面端槽位存储键沿用 getKeyId 的 `kb-board-ai:{userId}` 命名语义，再拼明文摘要作槽位后缀。 */
-const buildDesktopSecretStorageKey = async (userId: string | null | undefined, plaintext: string) => {
+const buildDesktopSecretStorageKey = async (
+  userId: string | null | undefined,
+  plaintext: string,
+) => {
   const digest = await digestHex(plaintext)
   return `${getKeyId(userId)}:${digest}`
 }
@@ -588,11 +606,12 @@ const isDesktopHandleRecordSecret = (value: { iv: string; ciphertext: string }) 
   value.iv === "" && value.ciphertext.startsWith(DESKTOP_HANDLE_PREFIX)
 
 /** 密文指纹：iv + ciphertext 归一化字符串。同一密文在配置记录里的出现位置靠它定位。 */
-const getSecretFingerprint = (value: { iv: string; ciphertext: string }) => `${value.iv}|${value.ciphertext}`
+const getSecretFingerprint = (value: { iv: string; ciphertext: string }) =>
+  `${value.iv}|${value.ciphertext}`
 
 /** 配置记录里是否还有 Web 格式密文（未迁移项）。 */
 const recordHasLegacySecret = (record: BoardAiConfigRecordShape) =>
-  (record.profiles ?? []).some(profile => {
+  (record.profiles ?? []).some((profile) => {
     const secret = isRecord(profile) ? profile.encryptedApiKey : undefined
     return isRecordedSecret(secret) && !isDesktopHandleRecordSecret(secret)
   })
@@ -605,7 +624,7 @@ const recordHasLegacySecret = (record: BoardAiConfigRecordShape) =>
 const replaceLegacySecretInConfigRecord = (
   userId: string | null | undefined,
   fingerprint: string,
-  handle: KnowledgeBoardAiEncryptedSecret
+  handle: KnowledgeBoardAiEncryptedSecret,
 ) => {
   const record = readBoardAiConfigRecord(userId)
   if (!record) {
@@ -691,7 +710,10 @@ const cleanupLegacySecretMaterialOnce = async (userId?: string | null) => {
  * 旧密钥材料尚未删除 → 解出明文 → 写入主进程槽位 → 配置记录里的该密文
  * 改写为桌面句柄 → 记录排空后删除旧材料。
  */
-const migrateLegacySecretViaDesktop = async (value: KnowledgeBoardAiEncryptedSecret, userId?: string | null) => {
+const migrateLegacySecretViaDesktop = async (
+  value: KnowledgeBoardAiEncryptedSecret,
+  userId?: string | null,
+) => {
   const plaintext = await decryptSecretLocally(value, userId)
   const fingerprint = getSecretFingerprint(value)
   // 明文不可解时用指纹派生一个稳定槽位（句柄指向空槽，读回为空串，与现状一致）
@@ -702,11 +724,19 @@ const migrateLegacySecretViaDesktop = async (value: KnowledgeBoardAiEncryptedSec
     const outcome = await writeDesktopSecureStore(storageKey, plaintext)
     // 写失败时保留旧格式不动：下次读取还会重试迁移，旧材料也不删
     if (outcome.ok) {
-      rewritten = replaceLegacySecretInConfigRecord(userId, fingerprint, createDesktopHandleSecret(storageKey))
+      rewritten = replaceLegacySecretInConfigRecord(
+        userId,
+        fingerprint,
+        createDesktopHandleSecret(storageKey),
+      )
     }
   } else {
     // 旧密文已不可解（材料缺失或损坏）：改写为空句柄止住反复解密尝试，损失与现状一致
-    rewritten = replaceLegacySecretInConfigRecord(userId, fingerprint, createDesktopHandleSecret(storageKey))
+    rewritten = replaceLegacySecretInConfigRecord(
+      userId,
+      fingerprint,
+      createDesktopHandleSecret(storageKey),
+    )
   }
 
   if (rewritten) {
@@ -734,7 +764,7 @@ export const encryptKnowledgeBoardAiSecret = async (value: string, userId?: stri
 /** 将本地保存的密文还原为可用的 API Key。桌面端句柄向主进程取回明文，旧格式触发一次性迁移。 */
 export const decryptKnowledgeBoardAiSecret = async (
   value: KnowledgeBoardAiEncryptedSecret | null | undefined,
-  userId?: string | null
+  userId?: string | null,
 ) => {
   if (!value) {
     return ""

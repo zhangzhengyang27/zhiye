@@ -24,7 +24,9 @@ const emit = defineEmits<{
 <template>
   <div class="kb-section-card p-6">
     <div class="flex items-start gap-4">
-      <span class="flex h-12 w-12 items-center justify-center rounded-kb-2xl bg-brand-faint text-brand">
+      <span
+        class="flex h-12 w-12 items-center justify-center rounded-kb-2xl bg-brand-faint text-brand"
+      >
         <Icon icon="ph:shield-check" :width="22" :height="22" />
       </span>
       <div>
@@ -72,9 +74,13 @@ const emit = defineEmits<{
 
     <div class="mt-5 rounded-kb-3xl bg-muted px-5 py-4 text-sm leading-6 text-ink-quaternary">
       <p class="font-medium text-ink-secondary">权限说明</p>
-      <p class="mt-2">公开仅影响访问范围，不会自动开放编辑权限。建议在对外开放前先梳理成员角色、目录结构与敏感内容。</p>
+      <p class="mt-2">
+        公开仅影响访问范围，不会自动开放编辑权限。建议在对外开放前先梳理成员角色、目录结构与敏感内容。
+      </p>
     </div>
 
-    <p v-if="!props.canChangeVisibility" class="mt-4 text-sm text-warning-hover">只有所有者可以修改可见性设置。</p>
+    <p v-if="!props.canChangeVisibility" class="mt-4 text-sm text-warning-hover">
+      只有所有者可以修改可见性设置。
+    </p>
   </div>
 </template>

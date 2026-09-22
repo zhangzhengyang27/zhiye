@@ -64,21 +64,24 @@ export interface CommentListResult {
  */
 export async function getDocumentComments(
   documentId: string,
-  query?: ListCommentsQuery
+  query?: ListCommentsQuery,
 ): Promise<CommentListResult> {
   const search = new URLSearchParams()
   if (query?.page != null) search.set("page", String(query.page))
   if (query?.pageSize != null) search.set("pageSize", String(query.pageSize))
   const qs = search.toString()
   return await requestKbDriveApi<CommentListResult>(
-    `/knowledge/documents/${documentId}/comments${qs ? `?${qs}` : ""}`
+    `/knowledge/documents/${documentId}/comments${qs ? `?${qs}` : ""}`,
   )
 }
 
 /**
  * 创建新的评论。
  */
-export async function createComment(documentId: string, payload: CreateCommentPayload): Promise<Comment> {
+export async function createComment(
+  documentId: string,
+  payload: CreateCommentPayload,
+): Promise<Comment> {
   return await requestKbDriveApi<Comment>(`/knowledge/documents/${documentId}/comments`, {
     method: "POST",
     body: JSON.stringify(payload),

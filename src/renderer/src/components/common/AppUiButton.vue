@@ -35,7 +35,7 @@ const props = withDefaults(
     loadingIcon: "i-lucide-loader-circle",
     square: false,
     disabled: false,
-  }
+  },
 )
 
 defineOptions({ inheritAttrs: false })
@@ -47,21 +47,24 @@ const colorClass = computed(() => {
   const { color, variant } = props
 
   if (color === "primary") {
-    if (variant === "solid") return "bg-brand text-white hover:bg-brand-hover active:bg-brand-active"
+    if (variant === "solid")
+      return "bg-brand text-white hover:bg-brand-hover active:bg-brand-active"
     if (variant === "outline") return "border border-brand text-brand hover:bg-brand-faint"
     if (variant === "soft") return "bg-brand-light text-brand-active hover:bg-brand-lighter"
     return "text-brand hover:bg-brand-faint"
   }
 
   if (color === "error") {
-    if (variant === "solid") return "bg-error text-white hover:bg-error-hover active:bg-error-active"
+    if (variant === "solid")
+      return "bg-error text-white hover:bg-error-hover active:bg-error-active"
     if (variant === "outline") return "border border-error text-error hover:bg-error-bg"
     if (variant === "soft") return "bg-error-light text-error hover:bg-error-bg"
     return "text-error hover:bg-error-bg"
   }
 
   if (color === "success") {
-    if (variant === "solid") return "bg-success text-white hover:bg-success-hover active:bg-success-active"
+    if (variant === "solid")
+      return "bg-success text-white hover:bg-success-hover active:bg-success-active"
     if (variant === "outline") return "border border-success text-success hover:bg-success-bg"
     if (variant === "soft") return "bg-success-light text-success hover:bg-success-bg"
     return "text-success hover:bg-success-bg"
@@ -93,7 +96,7 @@ const sizeClass = computed(() => {
   <button
     :type="type"
     :disabled="isDisabled"
-    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-lg font-medium transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+    class="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-kb-md font-medium transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
     :class="[colorClass, sizeClass, $attrs.class]"
   >
     <AppIcon v-if="loading" :name="loadingIcon" class="animate-spin" />

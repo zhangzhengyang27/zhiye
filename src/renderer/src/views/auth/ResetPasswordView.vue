@@ -27,10 +27,12 @@ const successMessage = ref("")
 const devResetUrl = ref("")
 
 /** devResetUrl 来自接口回显，进 href 前只放行 http(s) 地址，阻断其它 scheme 注入 */
-const safeDevResetUrl = computed(() => (/^https?:\/\//i.test(devResetUrl.value) ? devResetUrl.value : ""))
+const safeDevResetUrl = computed(() =>
+  /^https?:\/\//i.test(devResetUrl.value) ? devResetUrl.value : "",
+)
 
 const resetPasswordMismatch = computed(
-  () => confirmPassword.value.length > 0 && confirmPassword.value !== newPassword.value
+  () => confirmPassword.value.length > 0 && confirmPassword.value !== newPassword.value,
 )
 
 const submitRequest = async () => {
@@ -82,7 +84,9 @@ const submitReset = async () => {
 <template>
   <section class="min-h-screen bg-[image:var(--kb-shell-bg)] px-4 py-10">
     <div class="mx-auto flex min-h-[calc(100vh-5rem)] max-w-[420px] items-center">
-      <div class="w-full rounded-kb-3xl border border-line bg-surface p-8 shadow-[var(--kb-elevated-shadow)] sm:p-10">
+      <div
+        class="w-full rounded-kb-3xl border border-line bg-surface p-8 shadow-[var(--kb-elevated-shadow)] sm:p-10"
+      >
         <div class="flex items-center gap-3">
           <span
             class="flex h-11 w-11 shrink-0 items-center justify-center rounded-kb-xl bg-brand text-[18px] font-semibold text-white"
@@ -127,7 +131,9 @@ const submitReset = async () => {
             native-type="submit"
             :loading="submitting"
             class="h-12 rounded-kb-2xl w-full py-0"
-            ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            ><template #loading
+              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+            /></template>
             <span class="truncate">发送重置链接</span>
           </el-button>
         </form>
@@ -158,7 +164,9 @@ const submitReset = async () => {
             />
           </label>
 
-          <p v-if="resetPasswordMismatch" class="text-[13px] text-warning">两次输入的密码不一致。</p>
+          <p v-if="resetPasswordMismatch" class="text-[13px] text-warning">
+            两次输入的密码不一致。
+          </p>
 
           <p
             v-if="errorMessage"
@@ -173,13 +181,17 @@ const submitReset = async () => {
             native-type="submit"
             :loading="submitting"
             class="h-12 rounded-kb-2xl w-full py-0"
-            ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+            ><template #loading
+              ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+            /></template>
             <span class="truncate">重置密码</span>
           </el-button>
         </form>
 
         <div v-if="successMessage" class="mt-5 space-y-2">
-          <p class="rounded-kb-xl border border-success-light bg-success-bg px-4 py-3 text-sm font-medium text-success">
+          <p
+            class="rounded-kb-xl border border-success-light bg-success-bg px-4 py-3 text-sm font-medium text-success"
+          >
             {{ successMessage }}
           </p>
           <p v-if="safeDevResetUrl" class="break-all text-[12px] leading-5 text-ink-tertiary">
@@ -189,7 +201,9 @@ const submitReset = async () => {
         </div>
 
         <p class="mt-6 text-center text-[13px] text-ink-tertiary">
-          <RouterLink class="font-medium text-brand hover:underline" :to="{ name: 'login' }">返回登录</RouterLink>
+          <RouterLink class="font-medium text-brand hover:underline" :to="{ name: 'login' }"
+            >返回登录</RouterLink
+          >
         </p>
       </div>
     </div>

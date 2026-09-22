@@ -7,43 +7,16 @@
  */
 
 /**
- * preload 通过 contextBridge 注入的桥接 API 形状（见 src/preload/index.ts）。
+ * 桥接对象形状以 `@/types/desktop-bridge` 的 `XiaoyeDesktopApi` 为唯一事实源
+ * （本文件曾经自带局部声明，迁移期已收编；注意 src/preload/index.ts 当前仍是最小桥，
+ * 后加入的成员（secureStore/lock 族等）在 preload 补齐前运行期不可用，
+ * 调用方须按「桥缺失」降级处理，不得假设成员存在）。
  */
-interface XiaoyeDesktopBridge {
-  readonly isDesktop: true
-  getServerBaseUrl: () => string
-  getWebBaseUrl: () => string
-  platform: string
-  /** 主进程是否给本窗口隐藏了原生标题栏（macOS 桌面端为 true）。 */
-  hiddenTitleBar: boolean
-  getConfig: () => Promise<{ serverBaseUrl: string; webBaseUrl: string; platform: string; appVersion: string }>
-  /** 在应用内新窗口打开 SPA 内部路由路径。 */
-  openDocumentInNewWindow: (targetPath: string) => Promise<{ opened: boolean; reason?: string }>
-  /** 发送系统通知（macOS 通知中心）。 */
-  notify: (title: string, body: string) => Promise<{ shown: boolean; reason?: string }>
-  /** 订阅托盘菜单广播，返回取消订阅函数。 */
-  onTrayCommand: (callback: (command: string) => void) => () => void
-  /** 打开（或聚焦）偏好设置独立窗口。 */
-  openSettingsWindow: () => Promise<{ opened: boolean }>
-  /** 开机自启真值在操作系统侧（系统设置里也可能被改），需向主进程读取。 */
-  getOpenAtLogin: () => Promise<boolean>
-  setOpenAtLogin: (enabled: boolean) => Promise<boolean>
-  /** 代理配置交给主进程落到默认 session；返回 false 表示地址非法。 */
-  setProxySettings: (settings: {
-    enable: boolean
-    mode: "HTTP" | "PAC"
-    type: "HTTP" | "SOCKS4" | "SOCKS5"
-    url: string
-  }) => Promise<boolean>
-  setTrayVisible: (visible: boolean) => Promise<boolean>
-  /** 注册/取消一个全局快捷键；返回 false 表示已被系统占用。 */
-  setGlobalShortcut: (payload: { key: string; value: string }) => Promise<boolean>
-  openExternal: (url: string) => Promise<boolean>
-}
+import type { XiaoyeDesktopApi } from "@/types/desktop-bridge"
 
 declare global {
   interface Window {
-    xiaoyeDesktop?: XiaoyeDesktopBridge
+    xiaoyeDesktop?: XiaoyeDesktopApi
   }
 }
 
@@ -155,7 +128,9 @@ export interface DesktopSecureStoreMutationOutcome {
  * 不可用环境（Web 端 / 桥缺失）返回 `{ value: null, reason: "no-desktop-bridge" }`，
  * 调用方据 reason 回退本地实现，而不是盲目当「无记录」。
  */
-export const readDesktopSecureStore = async (storageKey: string): Promise<DesktopSecureStoreReadOutcome> => {
+export const readDesktopSecureStore = async (
+  storageKey: string,
+): Promise<DesktopSecureStoreReadOutcome> => {
   const bridge = window.xiaoyeDesktop
   if (!bridge?.secureStoreGet) {
     return { value: null, reason: "no-desktop-bridge" }
@@ -175,7 +150,7 @@ export const readDesktopSecureStore = async (storageKey: string): Promise<Deskto
 /** 向主进程安全存储写入一条明文载荷（主进程负责 safeStorage 加密与落盘）。 */
 export const writeDesktopSecureStore = async (
   storageKey: string,
-  plaintext: string
+  plaintext: string,
 ): Promise<DesktopSecureStoreMutationOutcome> => {
   const bridge = window.xiaoyeDesktop
   if (!bridge?.secureStoreSet) {
@@ -184,14 +159,18 @@ export const writeDesktopSecureStore = async (
 
   try {
     const result = await bridge.secureStoreSet(storageKey, plaintext)
-    return result.ok ? { ok: true } : { ok: false, reason: result.reason === "unavailable" ? "unavailable" : "error" }
+    return result.ok
+      ? { ok: true }
+      : { ok: false, reason: result.reason === "unavailable" ? "unavailable" : "error" }
   } catch {
     return { ok: false, reason: "error" }
   }
 }
 
 /** 从主进程安全存储删除一条记录（幂等：键不存在也返回 ok）。 */
-export const removeDesktopSecureStore = async (storageKey: string): Promise<DesktopSecureStoreMutationOutcome> => {
+export const removeDesktopSecureStore = async (
+  storageKey: string,
+): Promise<DesktopSecureStoreMutationOutcome> => {
   const bridge = window.xiaoyeDesktop
   if (!bridge?.secureStoreDelete) {
     return { ok: false, reason: "no-desktop-bridge" }
@@ -199,7 +178,9 @@ export const removeDesktopSecureStore = async (storageKey: string): Promise<Desk
 
   try {
     const result = await bridge.secureStoreDelete(storageKey)
-    return result.ok ? { ok: true } : { ok: false, reason: result.reason === "unavailable" ? "unavailable" : "error" }
+    return result.ok
+      ? { ok: true }
+      : { ok: false, reason: result.reason === "unavailable" ? "unavailable" : "error" }
   } catch {
     return { ok: false, reason: "error" }
   }

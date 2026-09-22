@@ -26,7 +26,7 @@ const props = withDefaults(
     warnings: () => [],
     resultKind: null,
     hasGeneratedResult: false,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -77,7 +77,9 @@ const modeOptions: BoardAiModeOption[] = [
     </header>
 
     <div class="flex-1 overflow-y-auto px-5 py-4">
-      <section class="rounded-kb-3xl border border-line bg-surface px-4 py-4 shadow-[var(--kb-surface-shadow)]">
+      <section
+        class="rounded-kb-3xl border border-line bg-surface px-4 py-4 shadow-[var(--kb-surface-shadow)]"
+      >
         <div class="flex items-center justify-between gap-3">
           <label class="text-[13px] font-semibold text-ink-secondary">需求描述</label>
           <span class="text-[11px] text-ink-quaternary">支持流程图与白板卡片</span>
@@ -115,7 +117,9 @@ const modeOptions: BoardAiModeOption[] = [
           :disabled="props.loading || !props.prompt.trim()"
           class="mt-3 min-h-11 rounded-kb-2xl text-[14px] shadow-[var(--kb-glow-brand-faint)] disabled:bg-brand-lighter disabled:text-white/90 w-full [line-height:inherit]"
           @click="emit('generate')"
-          ><template #loading><Icon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+          ><template #loading
+            ><Icon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
           <span class="truncate">{{ props.hasGeneratedResult ? "重新生成草稿" : "生成草稿" }}</span>
         </el-button>
 
@@ -126,8 +130,7 @@ const modeOptions: BoardAiModeOption[] = [
           </div>
           <pre
             class="mt-2 max-h-[180px] overflow-y-auto whitespace-pre-wrap text-[12px] leading-5 text-ink-quaternary"
-            >{{ props.systemPrompt }}</pre
-          >
+            >{{ props.systemPrompt }}</pre>
         </div>
       </section>
 
@@ -157,7 +160,10 @@ const modeOptions: BoardAiModeOption[] = [
         <p v-if="props.summary" class="mt-2 text-[13px] leading-6 text-ink-secondary">
           {{ props.summary }}
         </p>
-        <ul v-if="props.warnings.length > 0" class="mt-3 space-y-2 text-[12px] leading-5 text-warning-hover">
+        <ul
+          v-if="props.warnings.length > 0"
+          class="mt-3 space-y-2 text-[12px] leading-5 text-warning-hover"
+        >
           <li
             v-for="warning in props.warnings"
             :key="warning"

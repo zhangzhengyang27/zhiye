@@ -72,7 +72,9 @@ const emit = defineEmits<{
           :loading="props.deleting"
           :disabled="props.versionDeleteBusy"
           @click="emit('delete-version', props.version.id)"
-          ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+          ><template #loading
+            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
           <span class="truncate">删除</span>
         </el-button>
         <el-button

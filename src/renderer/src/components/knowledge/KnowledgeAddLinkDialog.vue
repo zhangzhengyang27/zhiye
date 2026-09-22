@@ -58,7 +58,9 @@ const parsedUrl = computed(() => classifyUrl(url.value))
 const normalizedUrl = computed(() => parsedUrl.value.url)
 const urlError = computed(() => parsedUrl.value.error)
 
-const canSubmit = computed(() => title.value.trim().length > 0 && normalizedUrl.value.length > 0 && !props.submitting)
+const canSubmit = computed(
+  () => title.value.trim().length > 0 && normalizedUrl.value.length > 0 && !props.submitting,
+)
 
 const dialog = useDialogBehavior({
   open: () => props.open,
@@ -73,12 +75,12 @@ const submit = () => {
 
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (open) {
       title.value = ""
       url.value = ""
     }
-  }
+  },
 )
 </script>
 
@@ -89,7 +91,7 @@ watch(
     :model-value="open"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => emit('update:open', value)"
+    @update:model-value="(value) => emit('update:open', value)"
   >
     <template #header>
       <KbDialogHeader
@@ -127,7 +129,9 @@ watch(
         <span v-if="urlError" class="mt-1 block text-[12px] text-danger">{{ urlError }}</span>
       </label>
       <div class="flex justify-end gap-2 pt-1">
-        <el-button plain @click="emit('update:open', false)"><span class="truncate">取消</span> </el-button>
+        <el-button plain @click="emit('update:open', false)"
+          ><span class="truncate">取消</span>
+        </el-button>
         <button
           type="submit"
           class="inline-flex h-9 items-center rounded-kb-lg bg-brand px-4 text-[13px] font-medium text-on-brand transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-55"

@@ -61,8 +61,16 @@ const emit = defineEmits<{
         <span class="truncate">{{ props.destructiveLabel }}</span>
       </el-button>
 
-      <el-button plain :disabled="props.loading" class="h-8 rounded-kb-md px-3 py-0 gap-1.5" @click="emit('refresh')"
-        ><AppIcon name="i-lucide-refresh-cw" class="h-3.5 w-3.5" :class="props.loading ? 'animate-spin' : ''" />
+      <el-button
+        plain
+        :disabled="props.loading"
+        class="h-8 rounded-kb-md px-3 py-0 gap-1.5"
+        @click="emit('refresh')"
+        ><AppIcon
+          name="i-lucide-refresh-cw"
+          class="h-3.5 w-3.5"
+          :class="props.loading ? 'animate-spin' : ''"
+        />
         <span class="truncate">刷新</span>
       </el-button>
     </div>

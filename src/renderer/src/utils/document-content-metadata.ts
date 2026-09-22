@@ -20,7 +20,7 @@ const parseHtmlDocument = (source: string) => {
 export const extractDocumentOutline = (
   content: string,
   scheme: DocumentContentScheme,
-  prefix = "outline"
+  prefix = "outline",
 ): DocumentOutlineItem[] => {
   const source = content.trim()
 
@@ -38,14 +38,14 @@ export const extractDocumentOutline = (
         text: node.textContent?.trim() || "",
         depth: Math.max(0, Number(node.tagName.slice(1)) - 1),
       }))
-      .filter(item => Boolean(item.text))
+      .filter((item) => Boolean(item.text))
   }
 
   const lines = source.split(/\r?\n/)
   const items: DocumentOutlineItem[] = []
   let inCodeBlock = false
 
-  lines.forEach(line => {
+  lines.forEach((line) => {
     if (/^```/.test(line.trim())) {
       inCodeBlock = !inCodeBlock
       return
@@ -99,4 +99,3 @@ export const extractDocumentPlainText = (content: string, scheme: DocumentConten
     .replace(/\s+/g, " ")
     .trim()
 }
-

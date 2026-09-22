@@ -46,14 +46,22 @@ const check = (name, ok, detail = "") => {
 /** 哨兵失败时的 dist 定位线索 */
 const reportBundleClues = () => {
   const flags = [
-    ["--el-color-primary: var(--kb-brand)", "bridge.css 桥接（变量死亡 → 查 bridge/calibration 注释意外终止）"],
+    [
+      "--el-color-primary: var(--kb-brand)",
+      "bridge.css 桥接（变量死亡 → 查 bridge/calibration 注释意外终止）",
+    ],
     [".h-9{", "Tailwind utilities（缺失 → 查 style.css 层序）"],
-    [".el-button.el-button{height:revert-layer", "calibration el-button 中和段（缺失 → 查该段前注释）"],
+    [
+      ".el-button.el-button{height:revert-layer",
+      "calibration el-button 中和段（缺失 → 查该段前注释）",
+    ],
     [".el-button--primary", "calibration el-button components 段（缺失 → 查 components 尾部）"],
     ["kb-btn-soft", "soft 修饰类（缺失 → 查 components 段）"],
     ["html.dark .el-button.is-plain:not(", "暗色复刻排除链（缺失 → 查 components 段尾）"],
   ]
-  const files = fs.readdirSync("dist/assets").filter(f => f.startsWith("index-") && f.endsWith(".css"))
+  const files = fs
+    .readdirSync("dist/assets")
+    .filter((f) => f.startsWith("index-") && f.endsWith(".css"))
   for (const file of files) {
     const css = fs.readFileSync(`dist/assets/${file}`, "utf8")
     for (const [flag, hint] of flags) {
@@ -66,37 +74,42 @@ const reportBundleClues = () => {
 
 /** 静态哨兵：dist CSS 标志 + 源码结构（#loading 自绘 spinner 全覆盖） */
 const checkStaticSentinels = () => {
-  const files = fs.readdirSync("dist/assets").filter(f => f.startsWith("index-") && f.endsWith(".css"))
-  const css = files.map(f => fs.readFileSync(`dist/assets/${f}`, "utf8")).join("\n")
+  const files = fs
+    .readdirSync("dist/assets")
+    .filter((f) => f.startsWith("index-") && f.endsWith(".css"))
+  const css = files.map((f) => fs.readFileSync(`dist/assets/${f}`, "utf8")).join("\n")
   check(
     "静态哨兵 el-button 中和段（.el-button.el-button{height:revert-layer）",
-    css.includes(".el-button.el-button{height:revert-layer")
+    css.includes(".el-button.el-button{height:revert-layer"),
   )
   check(
     "静态哨兵 el-button components 基础段（.el-button{display:inline-flex）",
-    css.includes(".el-button{display:inline-flex") || css.includes(".el-button{")
+    css.includes(".el-button{display:inline-flex") || css.includes(".el-button{"),
   )
   check("静态哨兵 soft 修饰类（.el-button.kb-btn-soft）", css.includes(".el-button.kb-btn-soft"))
   check(
     "静态哨兵 暗色复刻排除链（html.dark .el-button.is-text:not([class*=text-ink])",
-    css.includes("html.dark .el-button.is-text:not([class*=text-ink])")
+    css.includes("html.dark .el-button.is-text:not([class*=text-ink])"),
   )
   check(
     "静态哨兵 相邻按钮 margin 清零（.el-button.el-button+.el-button{margin-left:revert-layer）",
-    css.includes(".el-button.el-button+.el-button{margin-left:revert-layer")
+    css.includes(".el-button.el-button+.el-button{margin-left:revert-layer"),
   )
   check(
     "静态哨兵 EP 默认插槽 span 幽灵化（.el-button.el-button>span{display:contents）",
-    css.includes(".el-button.el-button>span{display:contents")
+    css.includes(".el-button.el-button>span{display:contents"),
   )
-  check("静态哨兵 is-loading 蒙版压制（is-loading:before{content:none）", /is-loading:before\{content:none/.test(css))
+  check(
+    "静态哨兵 is-loading 蒙版压制（is-loading:before{content:none）",
+    /is-loading:before\{content:none/.test(css),
+  )
 
   // #loading 自绘 spinner：全仓 el-button 的 loading 调用点都应带自绘模板
-  const vueFiles = ["src/renderer/src/components", "src/renderer/src/views"].flatMap(dir =>
+  const vueFiles = ["src/renderer/src/components", "src/renderer/src/views"].flatMap((dir) =>
     fs
       .readdirSync(dir, { recursive: true })
-      .map(f => `${dir}/${f}`)
-      .filter(f => f.endsWith(".vue"))
+      .map((f) => `${dir}/${f}`)
+      .filter((f) => f.endsWith(".vue")),
   )
   const loadingSites = []
   const spinnerSites = []
@@ -131,7 +144,7 @@ const checkStaticSentinels = () => {
   check(
     `静态哨兵 #loading 自绘 spinner 覆盖（:loading 调用点 ${loadingTotal} 处，含 spinner 的文件 ${spinnerFiles.size} 个，缺失 ${missingSpinner.length}）`,
     loadingTotal >= 15 && missingSpinner.length === 0,
-    missingSpinner.length ? `缺 spinner：${missingSpinner.map(([f]) => f).join(",")}` : "全含"
+    missingSpinner.length ? `缺 spinner：${missingSpinner.map(([f]) => f).join(",")}` : "全含",
   )
 }
 
@@ -139,7 +152,10 @@ const checkStaticSentinels = () => {
 const checkCssBundleSentinels = async (page, prefix) => {
   const sentry = await page.evaluate(() => {
     const cs = getComputedStyle(document.documentElement)
-    const tokens = ["--kb-muted-bg", "--kb-brand", "--kb-text"].map(name => [name, cs.getPropertyValue(name)])
+    const tokens = ["--kb-muted-bg", "--kb-brand", "--kb-text"].map((name) => [
+      name,
+      cs.getPropertyValue(name),
+    ])
     let bridgePrimary = null
     let h9Found = false
     let btnRevert = null
@@ -150,7 +166,7 @@ const checkCssBundleSentinels = async (page, prefix) => {
       } catch {
         continue
       }
-      const walk = list => {
+      const walk = (list) => {
         for (const rule of list) {
           if (rule.cssRules && rule.cssRules.length && rule.selectorText === undefined) {
             walk(rule.cssRules)
@@ -165,12 +181,16 @@ const checkCssBundleSentinels = async (page, prefix) => {
           ) {
             bridgePrimary = rule.style.getPropertyValue("--el-color-primary")
           }
-          if (!h9Found && sel.split(",").some(s => s.trim() === ".h-9") && rule.style.getPropertyValue("height")) {
+          if (
+            !h9Found &&
+            sel.split(",").some((s) => s.trim() === ".h-9") &&
+            rule.style.getPropertyValue("height")
+          ) {
             h9Found = true
           }
           if (
             btnRevert === null &&
-            sel.split(",").some(s => s.trim() === ".el-button.el-button") &&
+            sel.split(",").some((s) => s.trim() === ".el-button.el-button") &&
             rule.style.getPropertyValue("height") === "revert-layer"
           ) {
             btnRevert = sel
@@ -183,12 +203,16 @@ const checkCssBundleSentinels = async (page, prefix) => {
   })
   const dead = sentry.tokens.filter(([, value]) => !value)
   check(`${prefix} 哨兵① token 挂载`, dead.length === 0, dead.length ? dead.join(",") : "tokens ok")
-  check(`${prefix} 哨兵② bridge html:root 桥接`, Boolean(sentry.bridgePrimary), sentry.bridgePrimary ?? "missing")
+  check(
+    `${prefix} 哨兵② bridge html:root 桥接`,
+    Boolean(sentry.bridgePrimary),
+    sentry.bridgePrimary ?? "missing",
+  )
   check(`${prefix} 哨兵③ Tailwind utilities（.h-9）`, sentry.h9Found)
   check(
     `${prefix} 哨兵④ el-button 中和段在 CSSOM（.el-button.el-button height revert-layer）`,
     Boolean(sentry.btnRevert),
-    sentry.btnRevert ?? "missing"
+    sentry.btnRevert ?? "missing",
   )
 }
 
@@ -235,9 +259,12 @@ const TOKEN_TEXT = {
   "on-brand": "var(--kb-text-on-brand)",
 }
 
-const resolveBg = expected => (expected === "transparent" ? "rgba(0, 0, 0, 0)" : TOKEN_BG[expected])
-const resolveText = expected =>
-  TOKEN_TEXT[expected].startsWith("var(") ? `var(${TOKEN_TEXT[expected].slice(4)})` : TOKEN_TEXT[expected]
+const resolveBg = (expected) =>
+  expected === "transparent" ? "rgba(0, 0, 0, 0)" : TOKEN_BG[expected]
+const resolveText = (expected) =>
+  TOKEN_TEXT[expected].startsWith("var(")
+    ? `var(${TOKEN_TEXT[expected].slice(4)})`
+    : TOKEN_TEXT[expected]
 
 const checkMatrix = async (page, prefix, mode) => {
   const matrix = await page.evaluate(
@@ -277,7 +304,13 @@ const checkMatrix = async (page, prefix, mode) => {
         b.textContent = "尺寸"
         host.appendChild(b)
         const cs = getComputedStyle(b)
-        out.push({ key: `size/${size}`, fs: cs.fontSize, lh: cs.lineHeight, pad: cs.padding, height: cs.height })
+        out.push({
+          key: `size/${size}`,
+          fs: cs.fontSize,
+          lh: cs.lineHeight,
+          pad: cs.padding,
+          height: cs.height,
+        })
         host.removeChild(b)
       }
       // 禁用 + loading 探针
@@ -293,7 +326,11 @@ const checkMatrix = async (page, prefix, mode) => {
       loading.textContent = "加载"
       host.appendChild(loading)
       const before = getComputedStyle(loading, "::before")
-      out.push({ key: "loadingMask", beforeContent: before.content, position: getComputedStyle(loading).position })
+      out.push({
+        key: "loadingMask",
+        beforeContent: before.content,
+        position: getComputedStyle(loading).position,
+      })
       // 相邻 margin 清零探针
       const a = document.createElement("button")
       a.className = "el-button"
@@ -305,10 +342,10 @@ const checkMatrix = async (page, prefix, mode) => {
       host.remove()
       return out
     },
-    { combos: MATRIX.map(([t, v]) => [t, v]) }
+    { combos: MATRIX.map(([t, v]) => [t, v]) },
   )
 
-  const byKey = Object.fromEntries(matrix.map(m => [m.key, m]))
+  const byKey = Object.fromEntries(matrix.map((m) => [m.key, m]))
   for (const [type, variant, bgExp, textExp] of MATRIX) {
     const key = `${type}/${variant || "solid"}`
     const m = byKey[key]
@@ -317,7 +354,7 @@ const checkMatrix = async (page, prefix, mode) => {
     // token 值经浏览器解析为 computed——用注入探针逐 token 解析
     const resolved = await page.evaluate(
       ({ bgExp, textExp }) => {
-        const parse = v => {
+        const parse = (v) => {
           if (!v.startsWith("var(")) return v
           const name = v.slice(4, -1).trim()
           const probe = document.createElement("div")
@@ -331,7 +368,7 @@ const checkMatrix = async (page, prefix, mode) => {
         }
         return { bg: parse(bgExp), text: parse(textExp) }
       },
-      { bgExp: expectedBgRaw, textExp: expectedTextRaw }
+      { bgExp: expectedBgRaw, textExp: expectedTextRaw },
     )
     const expectedBg = bgExp === "transparent" ? "rgba(0, 0, 0, 0)" : resolved.bg.bg
     // 文字期望值按模式取值：亮色 = token 真值；暗色同样走 token——原先暗色所有格子都
@@ -362,7 +399,7 @@ const checkMatrix = async (page, prefix, mode) => {
     // 期望文字色统一丢给浏览器解析成 rgb()（值可能是 #fff 字面量，也可能是 var(--kb-*)），
     // 否则「#fff vs rgb(255, 255, 255)」这类格式差异会假失败
     const expectedText = await page.evaluate(
-      v => {
+      (v) => {
         const probe = document.createElement("div")
         probe.style.cssText = `display:none;color:${v}`
         document.body.appendChild(probe)
@@ -370,16 +407,20 @@ const checkMatrix = async (page, prefix, mode) => {
         probe.remove()
         return c
       },
-      mode === "light" ? LIGHT_TEXT[textExp] : DARK_TEXT[textExp]
+      mode === "light" ? LIGHT_TEXT[textExp] : DARK_TEXT[textExp],
     )
     check(`${prefix} A ${key} bg=${bgExp}`, m.bg === expectedBg, `${m.bg} vs ${expectedBg}`)
-    check(`${prefix} A ${key} color=${textExp}`, m.color === expectedText, `${m.color} vs ${expectedText}`)
+    check(
+      `${prefix} A ${key} color=${textExp}`,
+      m.color === expectedText,
+      `${m.color} vs ${expectedText}`,
+    )
   }
   check(
     `${prefix} A 矩阵按钮基础结构（inline-flex/600/1px 边框）`,
     byKey["primary/solid"].disp === "inline-flex" &&
       byKey["primary/solid"].fw === "600" &&
-      byKey["primary/solid"].borderW === "1px"
+      byKey["primary/solid"].borderW === "1px",
   )
 
   const size = {
@@ -392,35 +433,35 @@ const checkMatrix = async (page, prefix, mode) => {
     check(
       `${prefix} A 尺寸 ${name}（fs/lh/padding 语义档）`,
       m.fs === fs_ && m.lh === lh && m.pad === pad,
-      `fs=${m.fs} lh=${m.lh} pad=${m.pad}`
+      `fs=${m.fs} lh=${m.lh} pad=${m.pad}`,
     )
     check(
       `${prefix} A 尺寸 ${name} 无固定高度`,
       m.height === "auto" || m.height.endsWith("px") === false || name !== "x",
-      `height=${m.height}`
+      `height=${m.height}`,
     )
   }
   check(
     `${prefix} A 尺寸语义（height auto——无 EP 固定 32/40/24px）`,
     byKey["size/default"].height !== "32px" &&
       byKey["size/large"].height !== "40px" &&
-      byKey["size/small"].height !== "24px"
+      byKey["size/small"].height !== "24px",
   )
 
   check(
     `${prefix} A disabled 55% + pointer-events none`,
     byKey.disabled.opacity === "0.55" && byKey.disabled.pointerEvents === "none",
-    `opacity=${byKey.disabled.opacity}`
+    `opacity=${byKey.disabled.opacity}`,
   )
   check(
     `${prefix} A is-loading 无白蒙版（::before content none）+ position 静态`,
     byKey.loadingMask.beforeContent === "none",
-    `content=${byKey.loadingMask.beforeContent}`
+    `content=${byKey.loadingMask.beforeContent}`,
   )
   check(
     `${prefix} A 相邻按钮 margin 清零（壳无 12px 规则）`,
     byKey.adjacent.marginLeft === "0px",
-    byKey.adjacent.marginLeft
+    byKey.adjacent.marginLeft,
   )
 
   // focus-visible ring（CSSOM 规则断言：box-shadow 0 0 0 3px brand）
@@ -432,7 +473,7 @@ const checkMatrix = async (page, prefix, mode) => {
       } catch {
         continue
       }
-      const walk = list => {
+      const walk = (list) => {
         for (const rule of list) {
           if (rule.cssRules && rule.cssRules.length && rule.selectorText === undefined) {
             const r = walk(rule.cssRules)
@@ -440,7 +481,10 @@ const checkMatrix = async (page, prefix, mode) => {
             continue
           }
           if (!rule.selectorText || !rule.style) continue
-          if (rule.selectorText === ".el-button:focus-visible" && rule.style.boxShadow.includes("var(--kb-brand)")) {
+          if (
+            rule.selectorText === ".el-button:focus-visible" &&
+            rule.style.boxShadow.includes("var(--kb-brand)")
+          ) {
             return rule.style.boxShadow
           }
         }
@@ -454,18 +498,20 @@ const checkMatrix = async (page, prefix, mode) => {
   check(
     `${prefix} A focus-visible ring（box-shadow brand 3px 外环 + 1px offset 白环）`,
     Boolean(ring) && ring.includes("var(--kb-brand)") && ring.includes("0 0 0 1px"),
-    ring ?? "missing"
+    ring ?? "missing",
   )
 }
 
 /** B/C 组：真实调用点 */
 const checkRealSites = async (page, prefix, kb, doc, mode) => {
   // B2. trash：工具栏按钮 rounded 8px + ConfirmDialog footer（h-8/px-4/行高 inherit 20.8px）
-  await page.goto(new URL("/knowledge/trash", "http://127.0.0.1:4173").toString(), { waitUntil: "domcontentloaded" })
+  await page.goto(new URL("/knowledge/trash", "http://127.0.0.1:4173").toString(), {
+    waitUntil: "domcontentloaded",
+  })
   await page.waitForTimeout(1500)
   const trash = await page.evaluate(() => {
     const btns = [...document.querySelectorAll(".el-button")]
-    const refresh = btns.find(b => b.textContent.includes("刷新"))
+    const refresh = btns.find((b) => b.textContent.includes("刷新"))
     const out = {}
     if (refresh) {
       const cs = getComputedStyle(refresh)
@@ -481,26 +527,29 @@ const checkRealSites = async (page, prefix, kb, doc, mode) => {
   check(
     `${prefix} B trash 工具栏圆角 8px（壳 rounded-lg 顺序胜出真值）`,
     trash.refresh && trash.refresh.radius === "8px",
-    JSON.stringify(trash.refresh)
+    JSON.stringify(trash.refresh),
   )
   check(
     `${prefix} B trash 工具栏按钮 h-8 + px-3 + 行高 20px（壳 sm text-sm 真值）`,
-    trash.refresh && trash.refresh.h === 32 && trash.refresh.pad === "0px 12px" && trash.refresh.lh === "20px",
-    JSON.stringify(trash.refresh)
+    trash.refresh &&
+      trash.refresh.h === 32 &&
+      trash.refresh.pad === "0px 12px" &&
+      trash.refresh.lh === "20px",
+    JSON.stringify(trash.refresh),
   )
 
   // ConfirmDialog（trash 行删除 → 危险确认弹层）
   await page.locator('[title="彻底删除"]').first().click()
   const confirm = await page.evaluate(() => {
     const dlg = [...document.querySelectorAll(".el-dialog")].find(
-      d => d.getBoundingClientRect().height > 0 && d.textContent.includes("确认")
+      (d) => d.getBoundingClientRect().height > 0 && d.textContent.includes("确认"),
     )
     if (!dlg) return null
     const btns = [...dlg.querySelectorAll(".el-button")].filter(
-      b => b.textContent.includes("删除") || b.textContent.includes("取消")
+      (b) => b.textContent.includes("删除") || b.textContent.includes("取消"),
     )
-    const cancel = btns.find(b => b.textContent.includes("取消"))
-    const ok = btns.find(b => b.textContent.includes("删除"))
+    const cancel = btns.find((b) => b.textContent.includes("取消"))
+    const ok = btns.find((b) => b.textContent.includes("删除"))
     const cs = getComputedStyle(ok)
     return {
       okType: ok.className.includes("el-button--danger"),
@@ -522,26 +571,33 @@ const checkRealSites = async (page, prefix, kb, doc, mode) => {
       confirm.okRadius === "8px" &&
       confirm.cancelPlain &&
       confirm.cancelH === 32,
-    JSON.stringify(confirm)
+    JSON.stringify(confirm),
   )
   await page.keyboard.press("Escape")
   await page.waitForTimeout(400)
 
   // B3. 概要页 KbDialogHeader 关闭钮几何 + QuickActions soft 文字色（信息面板）
   await page
-    .goto(new URL(`/knowledge/${kb.id}/doc/x`, "http://127.0.0.1:4173").toString(), { waitUntil: "domcontentloaded" })
+    .goto(new URL(`/knowledge/${kb.id}/doc/x`, "http://127.0.0.1:4173").toString(), {
+      waitUntil: "domcontentloaded",
+    })
     .catch(() => {})
-  await page.goto(new URL(`/knowledge/${kb.id}`, "http://127.0.0.1:4173").toString(), { waitUntil: "domcontentloaded" })
+  await page.goto(new URL(`/knowledge/${kb.id}`, "http://127.0.0.1:4173").toString(), {
+    waitUntil: "domcontentloaded",
+  })
   await page.getByRole("button", { name: "新建内容", exact: true }).waitFor({ timeout: 15000 })
   await page.waitForTimeout(800)
   const menu = page.locator('[title="新建内容"]').locator("xpath=following-sibling::div")
   await page.getByRole("button", { name: "新建内容", exact: true }).click()
   await menu.getByRole("button", { name: "新建文档", exact: true }).click()
-  await page.locator(".el-dialog").filter({ hasText: "新建文档" }).waitFor({ state: "visible", timeout: 15000 })
+  await page
+    .locator(".el-dialog")
+    .filter({ hasText: "新建文档" })
+    .waitFor({ state: "visible", timeout: 15000 })
   await page.waitForTimeout(500)
   const closeBtn = await page.evaluate(() => {
     const header = [...document.querySelectorAll(".el-dialog")]
-      .find(d => d.getBoundingClientRect().height > 0)
+      .find((d) => d.getBoundingClientRect().height > 0)
       ?.querySelector(".el-dialog__header")
     const btn = header?.querySelector(".el-button")
     if (!btn) return null
@@ -563,7 +619,7 @@ const checkRealSites = async (page, prefix, kb, doc, mode) => {
       closeBtn.radius === "12px" &&
       Math.abs(closeBtn.svgW - 16.8) < 0.5 &&
       closeBtn.plain,
-    JSON.stringify(closeBtn)
+    JSON.stringify(closeBtn),
   )
   await page.keyboard.press("Escape")
   await page.waitForTimeout(400)
@@ -572,9 +628,12 @@ const checkRealSites = async (page, prefix, kb, doc, mode) => {
   //     激活钮 caller bg-brand-faint（twMerge 去重 caller 胜出）必须可见（绿底
   //     brand-ultra-light），而非被 hover:bg-muted 掩盖的 250；方钮圆角 = caller
   //     kb-sm 6px（壳 square 分支无 rounded 类，无顺序冲突）
-  await page.goto(new URL(`/knowledge/${kb.id}/doc/${doc.id}`, "http://127.0.0.1:4173").toString(), {
-    waitUntil: "domcontentloaded",
-  })
+  await page.goto(
+    new URL(`/knowledge/${kb.id}/doc/${doc.id}`, "http://127.0.0.1:4173").toString(),
+    {
+      waitUntil: "domcontentloaded",
+    },
+  )
   await page.locator('[title="讨论"]').waitFor({ timeout: 20000 })
   await page.waitForTimeout(1200)
   await page.locator('[title="讨论"]').click()
@@ -590,25 +649,32 @@ const checkRealSites = async (page, prefix, kb, doc, mode) => {
   const expectedActiveBg = mode === "light" ? "rgb(236, 250, 244)" : "rgb(16, 33, 26)"
   check(
     `${prefix} B 激活钮未 hover 态 bg = brand-faint（caller 胜出可见绿底）+ 圆角 kb-sm 6px`,
-    Boolean(activeUnhovered) && activeUnhovered.bg === expectedActiveBg && activeUnhovered.radius === "6px",
-    JSON.stringify({ ...activeUnhovered, expectedActiveBg, mode })
+    Boolean(activeUnhovered) &&
+      activeUnhovered.bg === expectedActiveBg &&
+      activeUnhovered.radius === "6px",
+    JSON.stringify({ ...activeUnhovered, expectedActiveBg, mode }),
   )
   await page.keyboard.press("Escape")
   await page.waitForTimeout(500)
 
   // C1. CreateKb 确定钮 disabled 语义（空名禁用 + 原生 disabled attribute）
-  await page.goto(new URL("/knowledge/start", "http://127.0.0.1:4173").toString(), { waitUntil: "domcontentloaded" })
+  await page.goto(new URL("/knowledge/start", "http://127.0.0.1:4173").toString(), {
+    waitUntil: "domcontentloaded",
+  })
   await page.getByText("新建知识库", { exact: true }).first().waitFor({ timeout: 15000 })
   await page.waitForTimeout(500)
   await page.getByText("新建知识库", { exact: true }).first().click()
-  await page.locator(".el-dialog").filter({ hasText: "新建知识库" }).waitFor({ state: "visible", timeout: 15000 })
+  await page
+    .locator(".el-dialog")
+    .filter({ hasText: "新建知识库" })
+    .waitFor({ state: "visible", timeout: 15000 })
   const createKb = await page.evaluate(() => {
     const dlg = [...document.querySelectorAll(".el-dialog")].find(
-      d => d.getBoundingClientRect().height > 0 && d.textContent.includes("新建知识库")
+      (d) => d.getBoundingClientRect().height > 0 && d.textContent.includes("新建知识库"),
     )
     const btns = [...dlg.querySelectorAll(".el-button")]
-    const ok = btns.find(b => b.textContent.includes("创建") || b.textContent.includes("确定"))
-    const cancel = btns.find(b => b.textContent.includes("取消"))
+    const ok = btns.find((b) => b.textContent.includes("创建") || b.textContent.includes("确定"))
+    const cancel = btns.find((b) => b.textContent.includes("取消"))
     return {
       okDisabled: ok ? ok.disabled : null,
       okAria: ok ? ok.getAttribute("aria-disabled") : null,
@@ -618,22 +684,33 @@ const checkRealSites = async (page, prefix, kb, doc, mode) => {
   })
   check(
     `${prefix} C CreateKb 确定钮 disabled 语义（空名原生禁用 + aria-disabled + primary）`,
-    createKb && createKb.okDisabled === true && createKb.okAria === "true" && createKb.okType && createKb.cancelPlain,
-    JSON.stringify(createKb)
+    createKb &&
+      createKb.okDisabled === true &&
+      createKb.okAria === "true" &&
+      createKb.okType &&
+      createKb.cancelPlain,
+    JSON.stringify(createKb),
   )
   // 输入名称后启用 + 点击提交链路（走真实 API → 关闭）
-  await page.locator(".el-dialog input[data-autofocus], .el-dialog input").first().fill("T10 验证知识库")
+  await page
+    .locator(".el-dialog input[data-autofocus], .el-dialog input")
+    .first()
+    .fill("T10 验证知识库")
   await page.waitForTimeout(300)
   const enabled = await page.evaluate(() => {
     const dlg = [...document.querySelectorAll(".el-dialog")].find(
-      d => d.getBoundingClientRect().height > 0 && d.textContent.includes("新建知识库")
+      (d) => d.getBoundingClientRect().height > 0 && d.textContent.includes("新建知识库"),
     )
     const ok = [...dlg.querySelectorAll(".el-button")].find(
-      b => b.textContent.includes("创建") || b.textContent.includes("确定")
+      (b) => b.textContent.includes("创建") || b.textContent.includes("确定"),
     )
     return ok.disabled
   })
-  check(`${prefix} C CreateKb 输入后确定钮启用（v-model 驱动）`, enabled === false, `disabled=${enabled}`)
+  check(
+    `${prefix} C CreateKb 输入后确定钮启用（v-model 驱动）`,
+    enabled === false,
+    `disabled=${enabled}`,
+  )
   await page.keyboard.press("Escape")
   await page.waitForTimeout(400)
 
@@ -641,7 +718,7 @@ const checkRealSites = async (page, prefix, kb, doc, mode) => {
   //    （真实 loading 流程由三冒烟覆盖；is-loading 蒙版与自绘 spinner 由 A 组
   //    loadingMask 探针 + 静态哨兵覆盖）
   const overrides = await page.evaluate(() => {
-    const mk = cls => {
+    const mk = (cls) => {
       const b = document.createElement("button")
       b.className = cls
       b.textContent = "探针"
@@ -662,27 +739,29 @@ const checkRealSites = async (page, prefix, kb, doc, mode) => {
     overrides.mdCallerOverride.pad === "8px 16px" &&
       overrides.smH8.pad === "0px 16px" &&
       overrides.ghost.pad === "10px 16px",
-    JSON.stringify(overrides)
+    JSON.stringify(overrides),
   )
   check(
     `${prefix} C ghost（is-text）bg 透明（components 基准）`,
     overrides.ghost.type.includes("is-text"),
-    JSON.stringify(overrides.ghost)
+    JSON.stringify(overrides.ghost),
   )
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T10:${mode}]`
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
   try {
     checkStaticSentinels()
-    await page.goto(new URL("/auth/login", "http://127.0.0.1:4173").toString(), { waitUntil: "domcontentloaded" })
+    await page.goto(new URL("/auth/login", "http://127.0.0.1:4173").toString(), {
+      waitUntil: "domcontentloaded",
+    })
     await page.waitForTimeout(800)
     await checkCssBundleSentinels(page, prefix)
 
@@ -692,7 +771,7 @@ const capturePass = async mode => {
     const login = await page.evaluate(() => {
       const btn =
         document.querySelector('button[type="submit"]') ??
-        [...document.querySelectorAll("button")].find(b => b.getAttribute("type") === "submit")
+        [...document.querySelectorAll("button")].find((b) => b.getAttribute("type") === "submit")
       if (!btn) return null
       const cs = getComputedStyle(btn)
       const r = btn.getBoundingClientRect()
@@ -709,12 +788,12 @@ const capturePass = async mode => {
     check(
       `${prefix} B 登录钮 native-type=submit 且在 form 内`,
       Boolean(login) && login.nativeType === "submit" && login.inForm,
-      JSON.stringify(login)
+      JSON.stringify(login),
     )
     check(
       `${prefix} B 登录钮 block w-full（宽度=表单宽）+ lg 字号 16px`,
       Boolean(login) && Math.abs(login.w - login.formW) < 4 && login.fs === "16px",
-      `w=${login?.w} formW=${login?.formW} fs=${login?.fs}`
+      `w=${login?.w} formW=${login?.formW} fs=${login?.fs}`,
     )
 
     await loginThroughUi(page, prefix)
@@ -742,7 +821,7 @@ const capturePass = async mode => {
 
 const light = await capturePass("light")
 const dark = await capturePass("dark")
-const failed = results.filter(r => !r.ok)
+const failed = results.filter((r) => !r.ok)
 console.log(`\n===== T10 验证：${results.length - failed.length}/${results.length} 通过 =====`)
 if (failed.length) {
   console.log("失败项：")
@@ -756,7 +835,7 @@ const MIN_CHECKS = 120
 const passAborted = !light || !dark
 if (passAborted || results.length < MIN_CHECKS) {
   console.error(
-    `⚠ 本轮仅执行 ${results.length} 条断言（下限 ${MIN_CHECKS}${passAborted ? "，且有 pass 异常中断" : ""}）：后续断言未执行，不得视为通过`
+    `⚠ 本轮仅执行 ${results.length} 条断言（下限 ${MIN_CHECKS}${passAborted ? "，且有 pass 异常中断" : ""}）：后续断言未执行，不得视为通过`,
   )
 }
 if (!light || !dark || failed.length > 0 || results.length < MIN_CHECKS) {

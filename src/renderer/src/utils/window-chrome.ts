@@ -8,5 +8,8 @@
  * - style.css 的 `.kb-window-drag-band`（那条空带是唯一的拖窗区）
  */
 export const setupWindowChrome = (): void => {
-  document.documentElement.classList.toggle("kb-window-hidden-titlebar", window.xiaoyeDesktop?.hiddenTitleBar === true)
+  document.documentElement.classList.toggle(
+    "kb-window-hidden-titlebar",
+    window.xiaoyeDesktop?.hiddenTitleBar === true,
+  )
 }

@@ -66,18 +66,18 @@ const Z_TIER_MAP = {
 /** 只在 CSS 侧存在、无 TS 对应常量的档位（值即基线渲染结果，组件直接 var() 消费）。 */
 const Z_CSS_ONLY_TIERS = new Set(["--kb-z-overlay", "--kb-z-sticky"])
 
-const collectFiles = async dir => {
+const collectFiles = async (dir) => {
   const entries = await readdir(dir, { withFileTypes: true })
   const nested = await Promise.all(
-    entries.map(entry => {
+    entries.map((entry) => {
       const full = path.join(dir, entry.name)
       return entry.isDirectory() ? collectFiles(full) : Promise.resolve([full])
-    })
+    }),
   )
-  return nested.flat().filter(file => SCAN_EXTENSIONS.has(path.extname(file)))
+  return nested.flat().filter((file) => SCAN_EXTENSIONS.has(path.extname(file)))
 }
 
-const rel = file => path.relative(path.resolve(scriptDir, ".."), file)
+const rel = (file) => path.relative(path.resolve(scriptDir, ".."), file)
 
 /** 行号供报错定位：按偏移量回算 1-based 行。 */
 const lineAt = (text, index) => text.slice(0, index).split("\n").length
@@ -86,13 +86,13 @@ const lineAt = (text, index) => text.slice(0, index).split("\n").length
  *  （圆角/阴影两项守卫早就这么做，变量与主题类两项曾经漏——注释里写一句
  *  `var(--yq-yuque-grey-100)` 就会被当成未定义引用）。除块注释与行注释外，
  *  .vue 模板的 HTML 注释同样挖空（注释里举例 z-[999] 曾让 z 契约守卫假红灯）。 */
-const blankComments = text =>
+const blankComments = (text) =>
   text
-    .replace(/<!--[\s\S]*?-->/g, block => block.replace(/[^\n]/g, " "))
-    .replace(/\/\*[\s\S]*?\*\//g, block => block.replace(/[^\n]/g, " "))
-    .replace(/^[ \t]*(\/\/|\*).*$/gm, line => " ".repeat(line.length))
+    .replace(/<!--[\s\S]*?-->/g, (block) => block.replace(/[^\n]/g, " "))
+    .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "))
+    .replace(/^[ \t]*(\/\/|\*).*$/gm, (line) => " ".repeat(line.length))
 
-const definedVarNames = sources => {
+const definedVarNames = (sources) => {
   const names = new Set()
   for (const { text } of sources) {
     for (const match of blankComments(text).matchAll(/(--[a-zA-Z0-9-]+)\s*:/g)) names.add(match[1])
@@ -100,7 +100,7 @@ const definedVarNames = sources => {
   return names
 }
 
-const checkVarReferences = sources => {
+const checkVarReferences = (sources) => {
   const defined = definedVarNames(sources)
   const problems = []
   for (const { file, text } of sources) {
@@ -110,14 +110,15 @@ const checkVarReferences = sources => {
       const name = match[1] || match[2]
       /** 注释里的泛指写法（如 var(--kb-z-*)）不参与判定 */
       if (name.endsWith("-")) continue
-      if (defined.has(name) || EXTERNAL_VAR_PREFIXES.some(prefix => name.startsWith(prefix))) continue
+      if (defined.has(name) || EXTERNAL_VAR_PREFIXES.some((prefix) => name.startsWith(prefix)))
+        continue
       problems.push(`${rel(file)}:${lineAt(text, match.index)} 引用了未定义的变量 ${name}`)
     }
   }
   return problems
 }
 
-const themeColorKeys = styleText => {
+const themeColorKeys = (styleText) => {
   const keys = new Set()
   for (const block of styleText.matchAll(/@theme[^{]*\{([\s\S]*?)\n\}/g)) {
     for (const match of block[1].matchAll(/--color-([a-zA-Z0-9-]+)\s*:/g)) keys.add(match[1])
@@ -127,17 +128,23 @@ const themeColorKeys = styleText => {
 
 const checkThemeClasses = (sources, keys) => {
   if (!keys.size) return ["style.css 中未解析到 @theme 的 --color-* 定义，主题类检查失效"]
-  const utilities = "(?:text|bg|border|ring|fill|stroke|from|via|to|decoration|shadow|outline|accent|caret|divide)"
+  const utilities =
+    "(?:text|bg|border|ring|fill|stroke|from|via|to|decoration|shadow|outline|accent|caret|divide)"
   const family = COLOR_FAMILIES.join("|")
   /** 候选必须取到词尾（不允许回溯），且尾随 = 说明命中的是 SVG 属性名（stroke-linecap） */
-  const pattern = new RegExp(String.raw`(?:[a-z-]+:)*${utilities}-((?:${family})[a-z0-9-]*)(?![a-z0-9-=])`, "g")
+  const pattern = new RegExp(
+    String.raw`(?:[a-z-]+:)*${utilities}-((?:${family})[a-z0-9-]*)(?![a-z0-9-=])`,
+    "g",
+  )
   const problems = []
   for (const { file, text } of sources) {
     if (path.extname(file) === ".css") continue
     for (const match of blankComments(text).matchAll(pattern)) {
       const candidate = match[1]
       if (keys.has(candidate)) continue
-      problems.push(`${rel(file)}:${lineAt(text, match.index)} 使用了不存在的主题色类片段「${candidate}」`)
+      problems.push(
+        `${rel(file)}:${lineAt(text, match.index)} 使用了不存在的主题色类片段「${candidate}」`,
+      )
     }
   }
   return [...new Set(problems)]
@@ -149,10 +156,14 @@ const KB_UTILITY_NAMESPACES = { rounded: "radius", text: "text", leading: "leadi
 const checkKbUtilityClasses = (sources, styleText) => {
   const declared = new Set()
   for (const block of styleText.matchAll(/@theme[^{]*\{([\s\S]*?)\n\}/g)) {
-    for (const match of block[1].matchAll(/--([a-z]+)-(kb-[a-z0-9]+)\s*:/g)) declared.add(`${match[1]}|${match[2]}`)
+    for (const match of block[1].matchAll(/--([a-z]+)-(kb-[a-z0-9]+)\s*:/g))
+      declared.add(`${match[1]}|${match[2]}`)
   }
   const utilities = Object.keys(KB_UTILITY_NAMESPACES).join("|")
-  const pattern = new RegExp(String.raw`(?:[a-z-]+:)*(${utilities})-(kb-[a-z0-9]+)(?![a-z0-9-=])`, "g")
+  const pattern = new RegExp(
+    String.raw`(?:[a-z-]+:)*(${utilities})-(kb-[a-z0-9]+)(?![a-z0-9-=])`,
+    "g",
+  )
   const problems = []
   for (const { file, text } of sources) {
     if (path.extname(file) === ".css") continue
@@ -162,7 +173,7 @@ const checkKbUtilityClasses = (sources, styleText) => {
       const namespace = KB_UTILITY_NAMESPACES[utility]
       if (declared.has(`${namespace}|${suffix}`)) continue
       problems.push(
-        `${rel(file)}:${lineAt(text, match.index)} 使用了 ${utility}-${suffix.replace("kb-", "")}，但 @theme 缺少 --${namespace}-${suffix}`
+        `${rel(file)}:${lineAt(text, match.index)} 使用了 ${utility}-${suffix.replace("kb-", "")}，但 @theme 缺少 --${namespace}-${suffix}`,
       )
     }
   }
@@ -184,18 +195,20 @@ const RADIUS_TO_KB = {
   "4xl": "rounded-kb-3xl（需记档）",
 }
 
-const checkRadiusScale = sources => {
+const checkRadiusScale = (sources) => {
   const problems = []
   for (const { file, text } of sources) {
     if (path.extname(file) === ".css") continue
     // 注释里的举例不是用量。挖空而不是删除：保留原长度与换行，match.index 才是
     // 源文件里的真实行号（同理把行首注释符整行挖成等长空白）
     const code = text
-      .replace(/\/\*[\s\S]*?\*\//g, block => block.replace(/[^\n]/g, " "))
-      .replace(/^[ \t]*(\/\/|\*).*$/gm, line => " ".repeat(line.length))
-    for (const match of code.matchAll(/(?:[a-z-]+:)*rounded-(xs|sm|md|lg|xl|2xl|3xl|4xl)(?![a-z0-9-])/g)) {
+      .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "))
+      .replace(/^[ \t]*(\/\/|\*).*$/gm, (line) => " ".repeat(line.length))
+    for (const match of code.matchAll(
+      /(?:[a-z-]+:)*rounded-(xs|sm|md|lg|xl|2xl|3xl|4xl)(?![a-z0-9-])/g,
+    )) {
       problems.push(
-        `${rel(file)}:${lineAt(text, match.index)} 用了 Tailwind 自带圆角「${match[0]}」，改贴 kb 阶梯：${RADIUS_TO_KB[match[1]]}`
+        `${rel(file)}:${lineAt(text, match.index)} 用了 Tailwind 自带圆角「${match[0]}」，改贴 kb 阶梯：${RADIUS_TO_KB[match[1]]}`,
       )
     }
   }
@@ -205,14 +218,16 @@ const checkRadiusScale = sources => {
 /** 阴影只许走 --kb-*-shadow / --kb-glow-brand-* 档。批 19 之前组件里长期并存 14 处
  *  「手写几何 + rgba」的一次性阴影，其中 7 处把亮色 brand #00b96b 直接钉进了暗色主题
  *  （--kb-brand 暗档是 #2ed790，光晕不跟档）。口径：任意值里不得出现 rgba()/hex 色值。 */
-const checkShadowScale = sources => {
+const checkShadowScale = (sources) => {
   const problems = []
   for (const { file, text } of sources) {
     if (path.extname(file) !== ".vue") continue
-    const code = text.replace(/\/\*[\s\S]*?\*\//g, block => block.replace(/[^\n]/g, " "))
-    for (const match of code.matchAll(/(?:[a-z-]+:)*shadow-\[[^\]]*(rgba\(|#[0-9a-fA-F]{3,8}\b)[^\]]*\]/g)) {
+    const code = text.replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "))
+    for (const match of code.matchAll(
+      /(?:[a-z-]+:)*shadow-\[[^\]]*(rgba\(|#[0-9a-fA-F]{3,8}\b)[^\]]*\]/g,
+    )) {
       problems.push(
-        `${rel(file)}:${lineAt(text, match.index)} 写了散落阴影「${match[0]}」，改贴阶梯：${SHADOW_TIERS_HINT}`
+        `${rel(file)}:${lineAt(text, match.index)} 写了散落阴影「${match[0]}」，改贴阶梯：${SHADOW_TIERS_HINT}`,
       )
     }
   }
@@ -226,22 +241,26 @@ const parseZConstants = async () => {
   const text = await readFile(zIndexFile, "utf8")
 
   const tiers = new Map()
-  for (const match of text.matchAll(/export const (Z_[A-Z_]+) = (\d+)/g)) tiers.set(match[1], Number(match[2]))
+  for (const match of text.matchAll(/export const (Z_[A-Z_]+) = (\d+)/g))
+    tiers.set(match[1], Number(match[2]))
   return tiers
 }
 
 const parseZTokens = async () => {
   const text = await readFile(tokensFile, "utf8")
   const tiers = new Map()
-  for (const match of text.matchAll(/(--kb-z-[a-z-]+)\s*:\s*(\d+)\s*;/g)) tiers.set(match[1], Number(match[2]))
+  for (const match of text.matchAll(/(--kb-z-[a-z-]+)\s*:\s*(\d+)\s*;/g))
+    tiers.set(match[1], Number(match[2]))
   return tiers
 }
 
-const checkZContract = async sources => {
+const checkZContract = async (sources) => {
   const problems = []
   for (const { file, text } of sources) {
     for (const match of blankComments(text).matchAll(/z-\[\d+\]/g)) {
-      problems.push(`${rel(file)}:${lineAt(text, match.index)} 写了散落 z 字面量「${match[0]}」，改走 var(--kb-z-*)`)
+      problems.push(
+        `${rel(file)}:${lineAt(text, match.index)} 写了散落 z 字面量「${match[0]}」，改走 var(--kb-z-*)`,
+      )
     }
   }
   const [constants, tokens] = await Promise.all([parseZConstants(), parseZTokens()])
@@ -265,7 +284,9 @@ const checkZContract = async sources => {
 
 const main = async () => {
   const files = await collectFiles(srcDir)
-  const sources = await Promise.all(files.map(async file => ({ file, text: await readFile(file, "utf8") })))
+  const sources = await Promise.all(
+    files.map(async (file) => ({ file, text: await readFile(file, "utf8") })),
+  )
   const styleText = await readFile(styleFile, "utf8")
   const themeKeys = themeColorKeys(styleText)
 
@@ -277,8 +298,9 @@ const main = async () => {
   const zProblems = await checkZContract(sources)
 
   const literals = sources.reduce(
-    (sum, { text }) => sum + (text.match(/(?:rounded|text|shadow|gap|w|h)-\[[^\]]+\]/g) || []).length,
-    0
+    (sum, { text }) =>
+      sum + (text.match(/(?:rounded|text|shadow|gap|w|h)-\[[^\]]+\]/g) || []).length,
+    0,
   )
 
   for (const [label, problems] of [
@@ -291,10 +313,12 @@ const main = async () => {
   ]) {
     if (!problems.length) continue
     console.error(`\n✗ ${label}（${problems.length}）`)
-    problems.forEach(problem => console.error(`  ${problem}`))
+    problems.forEach((problem) => console.error(`  ${problem}`))
   }
 
-  console.log(`\n参考用量：@theme 颜色 token ${themeKeys.size} 个，任意值字面量 ${literals} 处（不参与判定）`)
+  console.log(
+    `\n参考用量：@theme 颜色 token ${themeKeys.size} 个，任意值字面量 ${literals} 处（不参与判定）`,
+  )
 
   const failed =
     varProblems.length ||

@@ -65,8 +65,18 @@ export const SHORTCUT_ROWS: ShortcutRow[] = [
     type: "globalShortcut",
     defaultShortcut: "CommandOrControl+Shift+Y",
   },
-  { key: "createNewDoc", label: "新建文档", type: "mousetrap", defaultShortcut: "CommandOrControl+N" },
-  { key: "showGlobalSearchModal", label: "全局搜索", type: "mousetrap", defaultShortcut: "CommandOrControl+J" },
+  {
+    key: "createNewDoc",
+    label: "新建文档",
+    type: "mousetrap",
+    defaultShortcut: "CommandOrControl+N",
+  },
+  {
+    key: "showGlobalSearchModal",
+    label: "全局搜索",
+    type: "mousetrap",
+    defaultShortcut: "CommandOrControl+J",
+  },
   {
     key: "lockWindow",
     label: "锁定桌面端",
@@ -156,7 +166,7 @@ export const shortcutToDisplay = (accelerator: string | undefined): string => {
   const map = currentMap()
   return accelerator
     .split("+")
-    .map(part => map.acceleratorToGlyph[part] ?? (part.length === 1 ? part.toUpperCase() : part))
+    .map((part) => map.acceleratorToGlyph[part] ?? (part.length === 1 ? part.toUpperCase() : part))
     .join(map.separator)
 }
 
@@ -166,7 +176,7 @@ export const shortcutToDisplay = (accelerator: string | undefined): string => {
  */
 export const keyboardEventToAccelerator = (event: KeyboardEvent): string | null => {
   const map = currentMap()
-  const metaKeys = map.metaOrder.filter(name => event[name])
+  const metaKeys = map.metaOrder.filter((name) => event[name])
   const { key } = event
 
   if (!metaKeys.length || /^(Meta|Control|Alt|Shift)$/.test(key)) {
@@ -174,15 +184,15 @@ export const keyboardEventToAccelerator = (event: KeyboardEvent): string | null 
   }
 
   const mainKey = key === " " ? "Space" : key.length === 1 ? key.toUpperCase() : key
-  return [...metaKeys.map(name => map.accelerator[name]), mainKey].join("+")
+  return [...metaKeys.map((name) => map.accelerator[name]), mainKey].join("+")
 }
 
 /** 捕获态下只按了修饰键时的占位显示（`⌘ ⌥` / `Ctrl + Alt`）；无修饰键返回空串。 */
 export const shortcutModifiersDisplay = (event: KeyboardEvent): string => {
   const map = currentMap()
   return map.metaOrder
-    .filter(name => event[name])
-    .map(name => map.glyph[name])
+    .filter((name) => event[name])
+    .map((name) => map.glyph[name])
     .join(map.separator)
 }
 
@@ -218,7 +228,12 @@ export interface ProxySettings {
 export const ABOUT_LINKS: { key: string; label: string; url: string; tip?: string }[] = [
   { key: "changelog", label: "更新日志", url: "" },
   { key: "faq", label: "常见问题", url: "" },
-  { key: "feedback", label: "问题反馈", url: "", tip: "反馈前，建议升级到最新版本，问题或许已被修复了哦" },
+  {
+    key: "feedback",
+    label: "问题反馈",
+    url: "",
+    tip: "反馈前，建议升级到最新版本，问题或许已被修复了哦",
+  },
   { key: "terms", label: `${PRODUCT_NAME}服务协议`, url: "" },
 ]
 

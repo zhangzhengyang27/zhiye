@@ -26,10 +26,10 @@ const errorsByPage = {}
 async function shoot(page, name, route, options = {}) {
   const url = new globalThis.URL(route, "http://127.0.0.1:4173").toString()
   errorsByPage[name] = []
-  const onConsole = message => {
+  const onConsole = (message) => {
     if (message.type() === "error") errorsByPage[name].push(message.text())
   }
-  const onPageError = error => errorsByPage[name].push(`pageerror: ${error.message}`)
+  const onPageError = (error) => errorsByPage[name].push(`pageerror: ${error.message}`)
   page.on("console", onConsole)
   page.on("pageerror", onPageError)
 
@@ -72,7 +72,7 @@ await shoot(page, "02-workspace-home", `/knowledge/${kb.id}`)
 
 // 3. 目录树视图：目录行尾展开/收起图标（首页行 ⋯ 应隐藏）
 await shoot(page, "03-workspace-tree", `/knowledge/${kb.id}`, {
-  before: async p => {
+  before: async (p) => {
     const switcher = p.locator("[data-tree-switcher-trigger]")
     if (await switcher.count()) {
       await switcher.first().click()
@@ -84,7 +84,7 @@ await shoot(page, "03-workspace-tree", `/knowledge/${kb.id}`, {
 
 // 4. 全部文档卡片视图：标题卡片 + hover 行尾 ⋮
 await shoot(page, "04-workspace-flat", `/knowledge/${kb.id}`, {
-  before: async p => {
+  before: async (p) => {
     const switcher = p.locator("[data-tree-switcher-trigger]")
     if (await switcher.count()) {
       await switcher.first().click()
@@ -127,7 +127,7 @@ await shoot(page, "07-favorites", "/knowledge/favorites")
 await shoot(page, "08-reading-top", `/knowledge/${kb.id}/doc/${doc.id}?preview=1`, { settle: 1800 })
 await shoot(page, "09-reading-footer", `/knowledge/${kb.id}/doc/${doc.id}?preview=1`, {
   settle: 1800,
-  before: async p => {
+  before: async (p) => {
     const draft = p.locator('textarea[placeholder*="写下你的评论"]')
     if (await draft.count()) {
       await draft.first().scrollIntoViewIfNeeded()
@@ -138,19 +138,27 @@ await shoot(page, "09-reading-footer", `/knowledge/${kb.id}/doc/${doc.id}?previe
 })
 
 // 断言：绿色编辑按钮 + 文末评论区块 + 评论输入就位
-await page.goto(new URL(`/knowledge/${kb.id}/doc/${doc.id}?preview=1`, "http://127.0.0.1:4173").toString(), {
-  waitUntil: "networkidle",
-})
+await page.goto(
+  new URL(`/knowledge/${kb.id}/doc/${doc.id}?preview=1`, "http://127.0.0.1:4173").toString(),
+  {
+    waitUntil: "networkidle",
+  },
+)
 await page.waitForTimeout(1500)
 const assertions = await page.evaluate(() => {
   const buttons = [...document.querySelectorAll("header button, header .el-button")]
-  const editButton = buttons.some(b => b.textContent?.includes("编辑"))
-  const footerTitle = [...document.querySelectorAll("h2")].some(h => h.textContent?.includes("全部评论"))
-  const metaRow = [...document.querySelectorAll("span")].some(s => s.textContent?.includes("更新于"))
+  const editButton = buttons.some((b) => b.textContent?.includes("编辑"))
+  const footerTitle = [...document.querySelectorAll("h2")].some((h) =>
+    h.textContent?.includes("全部评论"),
+  )
+  const metaRow = [...document.querySelectorAll("span")].some((s) =>
+    s.textContent?.includes("更新于"),
+  )
   const noToolbar = !document.querySelector(".yuque-doc-editor__surface .ne-ui")
   return { editButton, footerTitle, metaRow, noToolbar }
 })
-const assertOk = assertions.editButton && assertions.footerTitle && assertions.metaRow && assertions.noToolbar
+const assertOk =
+  assertions.editButton && assertions.footerTitle && assertions.metaRow && assertions.noToolbar
 logStep(prefix, `阅读模式断言: ${JSON.stringify(assertions)} => ${assertOk ? "✓" : "✗"}`)
 if (!assertOk) {
   globalThis.process.exitCode = 1

@@ -8,7 +8,7 @@ c = c.replace(
   `const snapshot = ref("")`,
   `const snapshot = ref("")
 /** 就绪后待挂载的树（画布 v-show 翻转后再 mount，避免 0 尺寸） */
-const pendingTree = ref<KnowledgeMindmapNode | null>(null)`
+const pendingTree = ref<KnowledgeMindmapNode | null>(null)`,
 )
 
 c = c.replace(
@@ -20,7 +20,7 @@ c = c.replace(
   `    pendingTree.value =
       (content?.scheme === KNOWLEDGE_MINDMAP_CONTENT_SCHEME
         ? normalizeNode(content.value)
-        : null) ?? makeRoot(title.value || "中心主题")`
+        : null) ?? makeRoot(title.value || "中心主题")`,
 )
 
 // 2) 加载/错误态翻转后挂载
@@ -55,7 +55,7 @@ c = c.replace(anchor, watcher)
 // 3) nextTick 导入
 c = c.replace(
   'import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"',
-  'import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"'
+  'import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"',
 )
 
 writeFileSync(p, c)

@@ -28,12 +28,12 @@ export interface DocumentCollaboratorItem {
 export const addDocumentCollaborator = (
   documentId: string,
   payload: { email: string; role: "editor" | "reader" },
-  token?: string | null
+  token?: string | null,
 ) =>
   requestKbDriveApi<DocumentCollaboratorItem>(
     `/knowledge/documents/${documentId}/collaborators`,
     { method: "POST", body: JSON.stringify(payload) },
-    token
+    token,
   )
 
 /**
@@ -41,13 +41,13 @@ export const addDocumentCollaborator = (
  */
 export async function listDocumentCollaborators(
   documentId: string,
-  token?: string | null
+  token?: string | null,
 ): Promise<DocumentCollaboratorItem[]> {
   try {
     return await requestKbDriveApi<DocumentCollaboratorItem[]>(
       `/knowledge/documents/${documentId}/collaborators`,
       undefined,
-      token
+      token,
     )
   } catch (error) {
     // 无文档读权限（401 或 403）时表现为「无协作者」而非弹层报错；其余错误照常抛出
@@ -66,18 +66,22 @@ export const updateDocumentCollaborator = (
   documentId: string,
   collaboratorId: string,
   payload: { role: "editor" | "reader" },
-  token?: string | null
+  token?: string | null,
 ) =>
   requestKbDriveApi<DocumentCollaboratorItem>(
     `/knowledge/documents/${documentId}/collaborators/${collaboratorId}`,
     { method: "PATCH", body: JSON.stringify(payload) },
-    token
+    token,
   )
 
 /** 移除协作者。 */
-export const removeDocumentCollaborator = (documentId: string, collaboratorId: string, token?: string | null) =>
+export const removeDocumentCollaborator = (
+  documentId: string,
+  collaboratorId: string,
+  token?: string | null,
+) =>
   requestKbDriveApi<{ ok: boolean }>(
     `/knowledge/documents/${documentId}/collaborators/${collaboratorId}`,
     { method: "DELETE" },
-    token
+    token,
   )

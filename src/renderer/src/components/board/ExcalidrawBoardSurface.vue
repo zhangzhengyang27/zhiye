@@ -1,6 +1,12 @@
 <script setup lang="ts">
 /** 界面组件，负责 Excalidraw 画板实例挂载、数据同步与素材库联动。 */
-import { CaptureUpdateAction, Excalidraw, MainMenu, restoreLibraryItems, serializeAsJSON } from "@excalidraw/excalidraw"
+import {
+  CaptureUpdateAction,
+  Excalidraw,
+  MainMenu,
+  restoreLibraryItems,
+  serializeAsJSON,
+} from "@excalidraw/excalidraw"
 import "@excalidraw/excalidraw/index.css"
 import { createElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -33,7 +39,7 @@ const props = withDefaults(
     readonly: false,
     heightClass: "h-full min-h-[620px]",
     resetToken: "default",
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -81,7 +87,7 @@ const normalizeLibraryItems = (value: unknown) => {
   try {
     const restored = restoreLibraryItems(
       Array.isArray(value) ? (value as Parameters<typeof restoreLibraryItems>[0]) : [],
-      "unpublished"
+      "unpublished",
     )
 
     return JSON.parse(JSON.stringify(restored)) as KnowledgeBoardLibraryItem[]
@@ -140,7 +146,7 @@ const shortcutsMenuIcon = createElement(
     height: 1.75,
     rx: 0.5,
     fill: "currentColor",
-  })
+  }),
 )
 
 const saveBoardMenuIcon = createElement(
@@ -174,7 +180,7 @@ const saveBoardMenuIcon = createElement(
     rx: 0.75,
     stroke: "currentColor",
     strokeWidth: 1.25,
-  })
+  }),
 )
 
 const toggleShortcutsDialog = () => {
@@ -254,10 +260,12 @@ const handleBoardChange = (elements: unknown, appState: unknown, files: unknown)
     exportedScene = JSON.parse(
       serializeAsJSON(
         Array.isArray(elements) ? (elements as SerializeElements) : ([] as SerializeElements),
-        appState && typeof appState === "object" ? (appState as SerializeAppState) : ({} as SerializeAppState),
+        appState && typeof appState === "object"
+          ? (appState as SerializeAppState)
+          : ({} as SerializeAppState),
         files && typeof files === "object" ? (files as SerializeFiles) : ({} as SerializeFiles),
-        "database"
-      )
+        "database",
+      ),
     ) as Record<string, unknown>
   } catch {
     return
@@ -317,7 +325,7 @@ const renderSurface = () => {
   const normalizedLibraryFiles = normalizeKnowledgeBoardLibraryBinaryFiles(props.libraryFiles)
   const mergedFiles = mergeKnowledgeBoardLibraryBinaryFiles(
     normalizeKnowledgeBoardLibraryBinaryFiles(Object.values(scene.files || {})),
-    normalizedLibraryFiles
+    normalizedLibraryFiles,
   )
   lastSerializedScene = JSON.stringify(scene)
   lastSerializedLibrary = JSON.stringify(libraryItems)
@@ -335,7 +343,7 @@ const renderSurface = () => {
     initialData: {
       elements: scene.elements,
       appState: scene.appState,
-      files: Object.fromEntries(mergedFiles.map(file => [file.id, file])),
+      files: Object.fromEntries(mergedFiles.map((file) => [file.id, file])),
       libraryItems,
       scrollToContent: true,
     },
@@ -372,12 +380,12 @@ watch(
   () => [props.resetToken, props.readonly],
   () => {
     renderSurface()
-  }
+  },
 )
 
 watch(
   () => JSON.stringify(normalizeLibraryItems(props.libraryItems)),
-  signature => {
+  (signature) => {
     if (props.readonly || !excalidrawApi || signature === lastSerializedLibrary) {
       return
     }
@@ -390,12 +398,12 @@ watch(
       openLibraryMenu: false,
       defaultStatus: "unpublished",
     })
-  }
+  },
 )
 
 watch(
   () => JSON.stringify(normalizeKnowledgeBoardLibraryBinaryFiles(props.libraryFiles)),
-  signature => {
+  (signature) => {
     if (props.readonly || !excalidrawApi || signature === lastSerializedLibraryFiles) {
       return
     }
@@ -410,18 +418,18 @@ watch(
 
     excalidrawApi.addFiles(normalizedFiles)
     excalidrawApi.refresh()
-  }
+  },
 )
 
 watch(
   () => (props.readonly ? JSON.stringify(normalizeExcalidrawBoardDocument(props.scene)) : ""),
-  signature => {
+  (signature) => {
     if (!signature) {
       return
     }
 
     renderSurface()
-  }
+  },
 )
 
 onMounted(() => {
@@ -479,4 +487,3 @@ onBeforeUnmount(() => {
   padding-top: 1rem !important;
 }
 </style>
-

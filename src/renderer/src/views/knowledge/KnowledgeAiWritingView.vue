@@ -41,8 +41,8 @@ const resultTitle = computed(() => {
   const firstLine =
     resultText.value
       .split("\n")
-      .map(line => line.replace(/^#+\s*/, "").trim())
-      .find(line => line.length > 0) ?? ""
+      .map((line) => line.replace(/^#+\s*/, "").trim())
+      .find((line) => line.length > 0) ?? ""
   return firstLine.slice(0, 30) || "AI 生成文档"
 })
 
@@ -101,7 +101,10 @@ const persistHistoryEntries = () => {
 const addHistoryEntry = (instruction: string, result: string) => {
   historyEntries.value = [
     {
-      id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`,
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}`,
       instruction,
       result,
       deepThink: deepThink.value,
@@ -159,7 +162,7 @@ const handleGenerate = async () => {
           timeoutMs: profile.timeoutMs,
         },
       },
-      authStore.accessToken
+      authStore.accessToken,
     )
     resultText.value = result.text
     addHistoryEntry(trimmed, result.text)
@@ -190,8 +193,9 @@ const saveAsDocument = async () => {
   }
 
   const kbId =
-    knowledgeBases.value.find(item => item.id === window.localStorage.getItem(LAST_ACTIVE_KB_STORAGE_KEY))?.id ??
-    knowledgeBases.value[0]?.id
+    knowledgeBases.value.find(
+      (item) => item.id === window.localStorage.getItem(LAST_ACTIVE_KB_STORAGE_KEY),
+    )?.id ?? knowledgeBases.value[0]?.id
 
   if (!kbId) {
     showToastMessage("暂无可用知识库，请先创建知识库。", "error")
@@ -212,7 +216,7 @@ const saveAsDocument = async () => {
         kbId,
         docId: document.id,
         editorType: document.editorType,
-      })
+      }),
     )
   } catch (error) {
     showToastMessage(error instanceof Error ? error.message : "存为文档失败。", "error")
@@ -239,7 +243,9 @@ onMounted(async () => {
       <div class="kb-content-wrap">
         <!-- 页头：标题档统一走工作台页头既有 text-kb-xl（20px，D1 巡检收口三档并存） -->
         <h1 class="text-kb-xl font-semibold leading-8 text-ink">AI 写作</h1>
-        <p class="mt-1 text-[13px] leading-5 text-ink-tertiary">帮你创作、润色、翻译，激发更多灵感</p>
+        <p class="mt-1 text-[13px] leading-5 text-ink-tertiary">
+          帮你创作、润色、翻译，激发更多灵感
+        </p>
 
         <!-- 指令输入卡 -->
         <div
@@ -278,7 +284,13 @@ onMounted(async () => {
               :disabled="!canGenerate"
               @click="handleGenerate"
             >
-              <Icon v-if="generating" icon="ph:circle-notch" :width="14" :height="14" class="animate-spin" />
+              <Icon
+                v-if="generating"
+                icon="ph:circle-notch"
+                :width="14"
+                :height="14"
+                class="animate-spin"
+              />
               <Icon v-else icon="ph:sparkle" :width="14" :height="14" />
               {{ generating ? "生成中…" : "生成" }}
             </button>
@@ -352,8 +364,12 @@ onMounted(async () => {
               class="flex w-full items-center gap-3 rounded-kb-md px-2.5 py-2 text-left transition hover:bg-grey-100"
               @click="applyHistoryEntry(entry)"
             >
-              <span class="min-w-0 flex-1 truncate text-[13px] text-ink-secondary">{{ entry.instruction }}</span>
-              <span class="shrink-0 text-[12px] text-ink-quaternary">{{ formatHistoryTime(entry.createdAt) }}</span>
+              <span class="min-w-0 flex-1 truncate text-[13px] text-ink-secondary">{{
+                entry.instruction
+              }}</span>
+              <span class="shrink-0 text-[12px] text-ink-quaternary">{{
+                formatHistoryTime(entry.createdAt)
+              }}</span>
             </button>
           </div>
           <p v-else class="mt-2 px-2.5 py-6 text-center text-[13px] text-ink-quaternary">

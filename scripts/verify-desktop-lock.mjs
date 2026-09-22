@@ -109,7 +109,7 @@ const PREFIX = "[desktop-lock]"
 
 let checks = 0
 
-const pass = label => {
+const pass = (label) => {
   checks += 1
   logStep(PREFIX, `✓ ${label}`)
 }
@@ -119,7 +119,7 @@ const check = async (label, fn) => {
   pass(label)
 }
 
-const bridgeCalls = async page => page.evaluate(() => window.__bridgeCalls)
+const bridgeCalls = async (page) => page.evaluate(() => window.__bridgeCalls)
 
 /** goto + 稳定等待：networkidle 可能早于 Vue 异步路由组件挂载完成。 */
 const gotoStable = async (page, pathname) => {
@@ -128,7 +128,7 @@ const gotoStable = async (page, pathname) => {
 }
 
 /** mailto 断言：subject 带版本、body 带平台与 UA 摘要。 */
-const assertFeedbackMailto = rawUrl => {
+const assertFeedbackMailto = (rawUrl) => {
   assert.match(rawUrl, /^mailto:feedback@example\.com\?/)
   const url = new URL(rawUrl)
   const subject = decodeURIComponent(url.searchParams.get("subject") ?? "")
@@ -163,14 +163,20 @@ const run = async () => {
     await page.context().addInitScript(FAKE_DESKTOP_BRIDGE)
     await gotoStable(page, "/settings")
 
-    await check("桌面态锁定组：设置密码/开启锁定/失焦自动锁定控件齐备（无密码时后两者禁用）", async () => {
-      assert.equal(await page.locator('[data-testid="lock-password-toggle"]').count(), 1)
-      assert.equal(await page.getByRole("button", { name: "设置锁定密码" }).count(), 1)
-      assert.equal(await page.locator('[data-testid="lock-now"].is-disabled').count(), 1)
-      assert.equal(await page.locator('[data-testid="lock-auto-switch"].is-disabled').count(), 1)
-      // EP 的 el-select 把 is-disabled 放在内层 wrapper 上（同 verify-desktop-settings 的 change-language）
-      assert.equal(await page.locator('[data-testid="lock-delay"] .el-select__wrapper.is-disabled').count(), 1)
-    })
+    await check(
+      "桌面态锁定组：设置密码/开启锁定/失焦自动锁定控件齐备（无密码时后两者禁用）",
+      async () => {
+        assert.equal(await page.locator('[data-testid="lock-password-toggle"]').count(), 1)
+        assert.equal(await page.getByRole("button", { name: "设置锁定密码" }).count(), 1)
+        assert.equal(await page.locator('[data-testid="lock-now"].is-disabled').count(), 1)
+        assert.equal(await page.locator('[data-testid="lock-auto-switch"].is-disabled').count(), 1)
+        // EP 的 el-select 把 is-disabled 放在内层 wrapper 上（同 verify-desktop-settings 的 change-language）
+        assert.equal(
+          await page.locator('[data-testid="lock-delay"] .el-select__wrapper.is-disabled').count(),
+          1,
+        )
+      },
+    )
 
     await check("设置锁定密码：两遍不一致被拦；一致后经 IPC 下发且状态翻已启用", async () => {
       await page.click('[data-testid="lock-password-toggle"]')
@@ -246,28 +252,31 @@ const run = async () => {
 
     // ---------------- 快捷键条目点亮（⌘L 随既有 globalShortcut 机制） ----------------
     await check("「锁定桌面端 ⌘L」条目点亮：可编辑、默认 ⌘ L、随启动回灌注册", async () => {
-      assert.equal(await page.$$eval(".kb-shortcut-input.is-disabled", nodes => nodes.length), 1)
-      const lockTip = await page.$$eval(".kb-shortcut-tip", nodes => nodes[4]?.textContent.trim())
+      assert.equal(await page.$$eval(".kb-shortcut-input.is-disabled", (nodes) => nodes.length), 1)
+      const lockTip = await page.$$eval(".kb-shortcut-tip", (nodes) => nodes[4]?.textContent.trim())
       assert.equal(lockTip, "⌘ L")
       const calls = await bridgeCalls(page)
       const lockRegistration = calls
         .filter(([name]) => name === "setGlobalShortcut")
         .map(([, payload]) => payload)
-        .find(payload => payload.key === "lockWindow")
+        .find((payload) => payload.key === "lockWindow")
       assert.deepEqual(lockRegistration, { key: "lockWindow", value: "CommandOrControl+L" })
     })
 
     // ---------------- 反馈直达（#30）：侧栏与关于组 ----------------
     await gotoStable(page, "/knowledge")
 
-    await check("侧栏「更多 → 问题反馈」：mailto 预填版本/平台/UA（主进程 shell.openExternal 契约）", async () => {
-      await page.getByRole("button", { name: /^更多/ }).click()
-      await page.click('[data-testid="sidebar-feedback"]')
-      await page.waitForTimeout(300)
-      const calls = await bridgeCalls(page)
-      const applied = calls.filter(([name]) => name === "openExternal").pop()?.[1]
-      assertFeedbackMailto(String(applied))
-    })
+    await check(
+      "侧栏「更多 → 问题反馈」：mailto 预填版本/平台/UA（主进程 shell.openExternal 契约）",
+      async () => {
+        await page.getByRole("button", { name: /^更多/ }).click()
+        await page.click('[data-testid="sidebar-feedback"]')
+        await page.waitForTimeout(300)
+        const calls = await bridgeCalls(page)
+        const applied = calls.filter(([name]) => name === "openExternal").pop()?.[1]
+        assertFeedbackMailto(String(applied))
+      },
+    )
 
     await check("关于组「问题反馈」已点亮，点击走同一 mailto 载荷", async () => {
       await gotoStable(page, "/settings")
@@ -364,7 +373,7 @@ const run = async () => {
   }
 }
 
-run().catch(error => {
+run().catch((error) => {
   console.error(`${PREFIX} 失败：`, error.message)
   process.exitCode = 1
 })

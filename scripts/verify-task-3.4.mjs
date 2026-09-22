@@ -22,7 +22,12 @@
  * 用法：node scripts/verify-task-3.4.mjs（需 4173 preview + 后端 3200 在跑）
  */
 /* global document, getComputedStyle, MutationObserver, performance, window */
-import { createBrowserPage, logStep, loginThroughUi, smokeConfig } from "./lib/knowledge-smoke-utils.mjs"
+import {
+  createBrowserPage,
+  logStep,
+  loginThroughUi,
+  smokeConfig,
+} from "./lib/knowledge-smoke-utils.mjs"
 
 const VIEWPORT = { width: 1247, height: 952 }
 const results = []
@@ -31,11 +36,11 @@ const assert = (name, ok, detail = "") => {
   logStep("[Task3.4:verify]", `${ok ? "✅" : "❌"} ${name}${detail ? ` — ${detail}` : ""}`)
 }
 
-const toastLoc = page => page.locator(".el-notification.kb-toast:visible").last()
-const toastCount = page => page.locator(".el-notification.kb-toast:visible").count()
+const toastLoc = (page) => page.locator(".el-notification.kb-toast:visible").last()
+const toastCount = (page) => page.locator(".el-notification.kb-toast:visible").count()
 const styles = async (page, loc) =>
   page.evaluate(
-    el => {
+    (el) => {
       const cs = getComputedStyle(el)
       const bar = el.querySelector(".kb-toast__bar")
       const barCs = bar ? getComputedStyle(bar) : null
@@ -61,11 +66,11 @@ const styles = async (page, loc) =>
         classes: el.className,
       }
     },
-    await loc.elementHandle()
+    await loc.elementHandle(),
   )
 
 /** 等可见 toast 清零 */
-const waitCleared = async page => {
+const waitCleared = async (page) => {
   for (let i = 0; i < 80; i += 1) {
     if ((await toastCount(page)) === 0) return true
     await page.waitForTimeout(100)
@@ -75,9 +80,9 @@ const waitCleared = async page => {
 
 const run = async () => {
   const { browser, page } = await createBrowserPage({ viewport: VIEWPORT })
-  const url = path => new URL(path, smokeConfig.baseUrl).toString()
+  const url = (path) => new URL(path, smokeConfig.baseUrl).toString()
   const pageErrors = []
-  page.on("pageerror", err => pageErrors.push(err))
+  page.on("pageerror", (err) => pageErrors.push(err))
   try {
     await loginThroughUi(page, "[Task3.4:verify]")
     await page.goto(url("/account"), { waitUntil: "domcontentloaded" })
@@ -91,36 +96,55 @@ const run = async () => {
     await nickname.fill(`${originalNickname}调`)
     const t0 = Date.now()
     await saveButton.click()
-    await page.getByText("账号资料已更新。", { exact: true }).first().waitFor({ state: "visible", timeout: 8000 })
+    await page
+      .getByText("账号资料已更新。", { exact: true })
+      .first()
+      .waitFor({ state: "visible", timeout: 8000 })
     const s1 = await styles(page, toastLoc(page))
-    assert("success toast 出现且带 kb-toast--success 类", s1.classes.includes("kb-toast kb-toast--success"), s1.classes)
+    assert(
+      "success toast 出现且带 kb-toast--success 类",
+      s1.classes.includes("kb-toast kb-toast--success"),
+      s1.classes,
+    )
     assert("position: fixed（与基线一致）", s1.position === "fixed", s1.position)
-    assert("right/top = 24px（基线 right-6 top-6）", s1.right === "24px" && s1.top === "24px", `${s1.right}/${s1.top}`)
+    assert(
+      "right/top = 24px（基线 right-6 top-6）",
+      s1.right === "24px" && s1.top === "24px",
+      `${s1.right}/${s1.top}`,
+    )
     assert(
       "z-index 内联钉 500（--kb-z-toast）",
       s1.inlineZ === "500" && s1.zIndex === "500",
-      `inline=${s1.inlineZ} computed=${s1.zIndex}`
+      `inline=${s1.inlineZ} computed=${s1.zIndex}`,
     )
-    assert("min-width 240 生效（短文案 toast 宽=240）", Math.abs(s1.rect.width - 240) < 0.5, `width=${s1.rect.width}`)
+    assert(
+      "min-width 240 生效（短文案 toast 宽=240）",
+      Math.abs(s1.rect.width - 240) < 0.5,
+      `width=${s1.rect.width}`,
+    )
     assert("圆角 22px", s1.borderRadius === "22px", s1.borderRadius)
     assert(
       "基线阴影 0 22px 48px rgba(15,23,42,0.16)",
       s1.boxShadow.includes("0px 22px 48px") && s1.boxShadow.includes("rgba(15, 23, 42, 0.16)"),
-      s1.boxShadow
+      s1.boxShadow,
     )
     assert("backdrop-blur(8px)", s1.backdropFilter.includes("blur(8px)"), s1.backdropFilter)
 
     // --- 进度条动画（未冻结，运行中）---
     const [name, duration, timing, state] = s1.barAnim.split("|")
     assert("进度条走 kb-toast-countdown scaleX 动画", name === "kb-toast-countdown", s1.barAnim)
-    assert("进度条时长 = 2200ms（与自动关闭同步）", duration === "2.2s" && timing === "linear", `${duration}/${timing}`)
+    assert(
+      "进度条时长 = 2200ms（与自动关闭同步）",
+      duration === "2.2s" && timing === "linear",
+      `${duration}/${timing}`,
+    )
     assert("进度条运行中", state === "running", state)
     const m1 = s1.barTransform.match(/matrix\(([-\d.e]+),/)
     const scaleX1 = m1 ? Number(m1[1]) : null
     await page.waitForTimeout(400)
     const barTransform2 = await page.evaluate(
-      el => getComputedStyle(el.querySelector(".kb-toast__bar")).transform,
-      await toastLoc(page).elementHandle()
+      (el) => getComputedStyle(el.querySelector(".kb-toast__bar")).transform,
+      await toastLoc(page).elementHandle(),
     )
     const scaleX2 = barTransform2.match(/matrix\(([-\d.e]+),/)
       ? Number(barTransform2.match(/matrix\(([-\d.e]+),/)[1])
@@ -128,7 +152,7 @@ const run = async () => {
     assert(
       "进度条 scaleX 随时间收缩",
       scaleX1 !== null && scaleX2 !== null && scaleX2 < scaleX1,
-      `scaleX ${scaleX1} → ${scaleX2}`
+      `scaleX ${scaleX1} → ${scaleX2}`,
     )
 
     // --- 悬停不暂停 + 自动消失时长 ---
@@ -136,7 +160,11 @@ const run = async () => {
     await page.mouse.move(box1.x + box1.width / 2, box1.y + box1.height / 2)
     const cleared = await waitCleared(page)
     const elapsed = Date.now() - t0
-    assert("悬停中仍按时自动消失（pauseOnHover=false）", cleared && elapsed >= 1900 && elapsed <= 3200, `${elapsed}ms`)
+    assert(
+      "悬停中仍按时自动消失（pauseOnHover=false）",
+      cleared && elapsed >= 1900 && elapsed <= 3200,
+      `${elapsed}ms`,
+    )
     assert("无关闭按钮（基线无点击关闭）", s1.closeBtns === 0, `closeBtns=${s1.closeBtns}`)
 
     // --- 点击 toast 本体不关闭（基线无 onClick）---
@@ -155,7 +183,7 @@ const run = async () => {
     assert(
       "info 型类名与边框（--kb-border）",
       sInfo.classes.includes("kb-toast--info") && sInfo.borderColor === "rgb(239, 240, 240)",
-      sInfo.borderColor
+      sInfo.borderColor,
     )
     await waitCleared(page)
 
@@ -170,7 +198,7 @@ const run = async () => {
     assert(
       "error 型类名与边框（--kb-error-light）",
       sErr.classes.includes("kb-toast--error") && sErr.borderColor === "rgb(251, 228, 231)",
-      sErr.borderColor
+      sErr.borderColor,
     )
     await waitCleared(page)
 
@@ -181,10 +209,13 @@ const run = async () => {
     // 断言动画播完与实际关闭对齐（±100ms）。
     await nickname.fill(`${originalNickname}调4`)
     await saveButton.click()
-    await page.getByText("账号资料已更新。", { exact: true }).first().waitFor({ state: "visible", timeout: 8000 })
+    await page
+      .getByText("账号资料已更新。", { exact: true })
+      .first()
+      .waitFor({ state: "visible", timeout: 8000 })
     await page.evaluate(() => {
       const el = document.querySelector(".el-notification.kb-toast:not([style*='display: none'])")
-      const anim = document.getAnimations().find(a => a.animationName === "kb-toast-countdown")
+      const anim = document.getAnimations().find((a) => a.animationName === "kb-toast-countdown")
       window.__toastProbe = { barEnd: null, leaveStart: null, t0: performance.now() }
       if (anim) {
         anim.onfinish = () => {
@@ -192,7 +223,7 @@ const run = async () => {
         }
       }
       if (el) {
-        const mo = new MutationObserver(muts => {
+        const mo = new MutationObserver((muts) => {
           for (const m of muts) {
             if (
               typeof m.target.className === "string" &&
@@ -214,12 +245,14 @@ const run = async () => {
     assert(
       "连续打字期间 toast 仍准时关闭（键盘免疫，~2200ms 档）",
       typedCleared && probe.barEnd !== null && probe.barEnd >= 2000 && probe.barEnd <= 2800,
-      `barEnd=${probe.barEnd}ms（相对探针 t0）`
+      `barEnd=${probe.barEnd}ms（相对探针 t0）`,
     )
     assert(
       "toast 关闭时刻与进度条动画结束对齐（±100ms）",
-      probe.barEnd !== null && probe.leaveStart !== null && Math.abs(probe.leaveStart - probe.barEnd) <= 100,
-      `leaveStart=${probe.leaveStart}ms barEnd=${probe.barEnd}ms`
+      probe.barEnd !== null &&
+        probe.leaveStart !== null &&
+        Math.abs(probe.leaveStart - probe.barEnd) <= 100,
+      `leaveStart=${probe.leaveStart}ms barEnd=${probe.barEnd}ms`,
     )
     await waitCleared(page)
 
@@ -243,7 +276,11 @@ const run = async () => {
       boxes.sort((p, q) => p.y - q.y)
       const gap = boxes[1].y - (boxes[0].y + boxes[0].height)
       assert("堆叠间距 = 16px GAP（EP 机制）", Math.abs(gap - 16) < 1.5, `gap=${gap}`)
-      assert("堆叠右缘对齐（right 24px）", Math.abs(boxes[0].x - boxes[1].x) < 0.5, `x ${boxes[0].x}/${boxes[1].x}`)
+      assert(
+        "堆叠右缘对齐（right 24px）",
+        Math.abs(boxes[0].x - boxes[1].x) < 0.5,
+        `x ${boxes[0].x}/${boxes[1].x}`,
+      )
     }
 
     // --- ESC 关闭（EP 内建，与基线的记档差异——保留）：notification 每实例各自在
@@ -251,7 +288,11 @@ const run = async () => {
     await page.keyboard.press("Escape")
     await page.waitForTimeout(400)
     const escCount = await toastCount(page)
-    assert("ESC 关闭全部可见 toast（EP 内建，与基线的记档差异）", escCount === 0, `count=${escCount}`)
+    assert(
+      "ESC 关闭全部可见 toast（EP 内建，与基线的记档差异）",
+      escCount === 0,
+      `count=${escCount}`,
+    )
     await waitCleared(page)
 
     // --- 弹窗内触发：z 500 压过 AppDialog overlay 400 ---
@@ -267,7 +308,9 @@ const run = async () => {
       .first()
       .waitFor({ state: "visible", timeout: 8000 })
     const zProof = await page.evaluate(() => {
-      const toast = document.querySelector(".el-notification.kb-toast:not([style*='display: none'])")
+      const toast = document.querySelector(
+        ".el-notification.kb-toast:not([style*='display: none'])",
+      )
       const overlay = document.querySelector(".el-overlay")
       const rect = toast.getBoundingClientRect()
       const topEl = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
@@ -280,7 +323,7 @@ const run = async () => {
     assert(
       "弹窗内 toast z=500 > AppDialog overlay z=400",
       Number(zProof.toastZ) === 500 && Number(zProof.overlayZ) === 400,
-      `toast=${zProof.toastZ} overlay=${zProof.overlayZ}`
+      `toast=${zProof.toastZ} overlay=${zProof.overlayZ}`,
     )
     assert("elementFromPoint 命中 toast（真压在弹窗之上）", zProof.hit === true)
 
@@ -294,7 +337,7 @@ const run = async () => {
     assert(
       "弹窗 + toast 并存按 Esc：可见 toast 一并关闭（EP 内建，记档差异）",
       escWithDialogToast === 0,
-      `count=${escWithDialogToast}`
+      `count=${escWithDialogToast}`,
     )
     await waitCleared(page)
 
@@ -307,15 +350,18 @@ const run = async () => {
       .getByText("已恢复为当前保存的账号资料。", { exact: true })
       .first()
       .waitFor({ state: "visible", timeout: 8000 })
-    const darkBg = await page.evaluate(el => getComputedStyle(el).backgroundColor, await toastLoc(page).elementHandle())
+    const darkBg = await page.evaluate(
+      (el) => getComputedStyle(el).backgroundColor,
+      await toastLoc(page).elementHandle(),
+    )
     const darkBar = await page.evaluate(
-      el => getComputedStyle(el.querySelector(".kb-toast__bar")).backgroundColor,
-      await toastLoc(page).elementHandle()
+      (el) => getComputedStyle(el.querySelector(".kb-toast__bar")).backgroundColor,
+      await toastLoc(page).elementHandle(),
     )
     assert(
       "暗色 toast 底色随 --kb-* 换档（≠亮色）",
       darkBg !== sInfo.background,
-      `dark=${darkBg} light=${sInfo.background}`
+      `dark=${darkBg} light=${sInfo.background}`,
     )
     assert("暗色进度条色随 --kb-* 换档", darkBar === "rgb(66, 66, 66)", darkBar)
     await page.evaluate(() => document.documentElement.classList.remove("dark"))
@@ -324,25 +370,28 @@ const run = async () => {
     // --- 恢复昵称原值（数据清场）---
     await nickname.fill(originalNickname)
     await saveButton.click()
-    await page.getByText("账号资料已更新。", { exact: true }).first().waitFor({ state: "visible", timeout: 8000 })
+    await page
+      .getByText("账号资料已更新。", { exact: true })
+      .first()
+      .waitFor({ state: "visible", timeout: 8000 })
     await waitCleared(page)
 
     // --- 全程无 pageerror（Esc 早关后自有计时器经 onClose 回收，不得与 EP 实例生命周期打架）---
     assert(
       "全程无未捕获页面异常（计时器/实例生命周期）",
       pageErrors.length === 0,
-      pageErrors.map(e => e.message).join(" | ") || "clean"
+      pageErrors.map((e) => e.message).join(" | ") || "clean",
     )
   } finally {
     await browser.close()
   }
 
-  const failed = results.filter(r => !r.ok)
+  const failed = results.filter((r) => !r.ok)
   logStep(
     "[Task3.4:verify]",
     failed.length === 0
       ? `🎉 ${results.length}/${results.length} 全部通过`
-      : `❌ ${failed.length}/${results.length} 失败`
+      : `❌ ${failed.length}/${results.length} 失败`,
   )
   if (failed.length > 0) process.exit(1)
 }

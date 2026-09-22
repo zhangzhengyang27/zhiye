@@ -18,7 +18,10 @@ import {
   listRecentKnowledgeDocumentsAll,
   type KnowledgeRecentDocumentItem,
 } from "@/services/knowledge-documents"
-import { getKnowledgeDocumentEditorLabel, getKnowledgeDocumentRouteTarget } from "@/utils/knowledge-document"
+import {
+  getKnowledgeDocumentEditorLabel,
+  getKnowledgeDocumentRouteTarget,
+} from "@/utils/knowledge-document"
 
 const router = useRouter()
 const loading = ref(false)
@@ -31,41 +34,45 @@ const errorMessage = ref("")
 
 const knowledgeBaseItems = computed(() => [
   { label: "全部知识库", value: ALL_KB_VALUE },
-  ...knowledgeBases.value.map(item => ({ label: item.name, value: item.id })),
+  ...knowledgeBases.value.map((item) => ({ label: item.name, value: item.id })),
 ])
 
 const filteredItems = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLowerCase()
 
-  return items.value.filter(item => {
+  return items.value.filter((item) => {
     if (!normalizedKeyword) {
       return true
     }
 
-    return [item.title, item.kb?.name || ""].some(field => field.toLowerCase().includes(normalizedKeyword))
+    return [item.title, item.kb?.name || ""].some((field) =>
+      field.toLowerCase().includes(normalizedKeyword),
+    )
   })
 })
 
 const listItems = computed<DocListItem[]>(() =>
-  filteredItems.value.map(item => ({
+  filteredItems.value.map((item) => ({
     id: item.id,
     title: item.title,
     icon: "ph:file-text",
     badges: item.kb?.name ? [{ label: item.kb.name }] : undefined,
     meta: [getKnowledgeDocumentEditorLabel(item.editorType)],
     time: formatShortDate(item.lastViewedAt),
-  }))
+  })),
 )
 
 const summary = computed(() => {
   const today = new Date().toDateString()
-  const todayCount = filteredItems.value.filter(item => new Date(item.lastViewedAt).toDateString() === today).length
+  const todayCount = filteredItems.value.filter(
+    (item) => new Date(item.lastViewedAt).toDateString() === today,
+  ).length
 
   return `${filteredItems.value.length} 篇 · 今日 ${todayCount} 篇`
 })
 
 const openDocById = (item: DocListItem) => {
-  const matched = filteredItems.value.find(entry => entry.id === item.id)
+  const matched = filteredItems.value.find((entry) => entry.id === item.id)
 
   if (!matched) {
     return
@@ -76,7 +83,7 @@ const openDocById = (item: DocListItem) => {
       kbId: matched.kbId,
       docId: matched.id,
       editorType: matched.editorType,
-    })
+    }),
   )
 }
 
@@ -145,7 +152,7 @@ onMounted(() => {
             placeholder="按文档标题或知识库名称筛选"
             :loading="loading"
             @update:filter-value="
-              value => {
+              (value) => {
                 selectedKbId = value
                 load()
               }

@@ -58,13 +58,15 @@ const handleStatClick = (item: KnowledgePageHeroStat) => {
           :class="
             item.clickable
               ? item.active
-                ? 'cursor-pointer border-[var(--kb-brand-lighter)] bg-[var(--kb-brand-ultra-light)] shadow-[0_14px_32px_rgba(0,185,107,0.12)]'
+                ? 'cursor-pointer border-[var(--kb-brand-lighter)] bg-[var(--kb-brand-ultra-light)] shadow-[var(--kb-glow-brand-faint)]'
                 : 'cursor-pointer hover:-translate-y-0.5 hover:border-[var(--kb-brand-lighter)] hover:bg-surface'
               : 'cursor-default'
           "
           @click="handleStatClick(item)"
         >
-          <p class="text-[11px] uppercase tracking-[0.18em] text-[var(--kb-text-quaternary)]">{{ item.label }}</p>
+          <p class="text-[11px] uppercase tracking-[0.18em] text-[var(--kb-text-quaternary)]">
+            {{ item.label }}
+          </p>
           <p class="mt-2 text-lg font-bold text-ink">{{ item.value }}</p>
         </button>
       </div>

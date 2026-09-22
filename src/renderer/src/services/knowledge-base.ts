@@ -54,14 +54,18 @@ export interface KnowledgeBaseItem {
 /**
  * 更新知识库偏好设置（B4 #16 + 更多设置分区）；defaultExpandLevel 传 null 表示恢复默认（全部折叠）。
  */
-export const updateKnowledgeBasePreferences = (id: string, payload: KnowledgeBaseSettings, token?: string | null) =>
+export const updateKnowledgeBasePreferences = (
+  id: string,
+  payload: KnowledgeBaseSettings,
+  token?: string | null,
+) =>
   requestKbDriveApi<KnowledgeBaseItem>(
     withKnowledgePrefix(`/knowledge-bases/${id}/preferences`),
     {
       method: "PUT",
       body: JSON.stringify(payload),
     },
-    token
+    token,
   )
 
 /**
@@ -88,14 +92,17 @@ export const listKnowledgeBases = (token?: string | null) =>
 /**
  * 批量更新知识库排序。
  */
-export const updateKnowledgeBaseSortOrder = (items: { id: string; sortOrder: number }[], token?: string | null) =>
+export const updateKnowledgeBaseSortOrder = (
+  items: { id: string; sortOrder: number }[],
+  token?: string | null,
+) =>
   requestKbDriveApi<{ success: boolean }>(
     withKnowledgePrefix("/knowledge-bases/sort-order"),
     {
       method: "PATCH",
       body: JSON.stringify({ items }),
     },
-    token
+    token,
   )
 
 /**
@@ -106,7 +113,7 @@ export const listKnowledgeBaseTrash = (
     page?: number
     pageSize?: number
   },
-  token?: string | null
+  token?: string | null,
 ) => {
   const queryText = buildKbDriveQuery({
     page: params?.page,
@@ -116,7 +123,7 @@ export const listKnowledgeBaseTrash = (
   return requestKbDriveApi<KnowledgeBaseTrashResult>(
     withKnowledgePrefix(`/knowledge-bases/trash${queryText ? `?${queryText}` : ""}`),
     undefined,
-    token
+    token,
   )
 }
 
@@ -128,7 +135,7 @@ export const createKnowledgeBase = (
     name: string
     description?: string
   },
-  token?: string | null
+  token?: string | null,
 ) =>
   requestKbDriveApi<KnowledgeBaseItem>(
     withKnowledgePrefix("/knowledge-bases"),
@@ -136,7 +143,7 @@ export const createKnowledgeBase = (
       method: "POST",
       body: JSON.stringify(payload),
     },
-    token
+    token,
   )
 
 /**
@@ -145,7 +152,7 @@ export const createKnowledgeBase = (
 export const updateKnowledgeBase = (
   id: string,
   payload: Partial<Pick<KnowledgeBaseItem, "name" | "description" | "cover" | "slug">>,
-  token?: string | null
+  token?: string | null,
 ) =>
   requestKbDriveApi<KnowledgeBaseItem>(
     withKnowledgePrefix(`/knowledge-bases/${id}`),
@@ -153,7 +160,7 @@ export const updateKnowledgeBase = (
       method: "PATCH",
       body: JSON.stringify(payload),
     },
-    token
+    token,
   )
 
 /**
@@ -165,7 +172,7 @@ export const deleteKnowledgeBase = (id: string, token?: string | null) =>
     {
       method: "DELETE",
     },
-    token
+    token,
   )
 
 /**
@@ -177,11 +184,15 @@ export const restoreKnowledgeBase = (id: string, token?: string | null) =>
     {
       method: "POST",
     },
-    token
+    token,
   )
 
 /**
  * 获取单个知识库详情。
  */
 export const getKnowledgeBase = (id: string, token?: string | null) =>
-  requestKbDriveApi<KnowledgeBaseItem>(withKnowledgePrefix(`/knowledge-bases/${id}`), undefined, token)
+  requestKbDriveApi<KnowledgeBaseItem>(
+    withKnowledgePrefix(`/knowledge-bases/${id}`),
+    undefined,
+    token,
+  )

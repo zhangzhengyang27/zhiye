@@ -24,7 +24,9 @@ const applyLazyImageRule = (markdown: MarkdownInstance) => {
     const [rawTokens, rawIdx, options, env, rawSelf] = args
     const tokens = rawTokens as { attrSet: (name: string, value: string) => void }[]
     const idx = rawIdx as number
-    const self = rawSelf as { renderToken: (tokens: unknown[], idx: number, options: unknown) => string }
+    const self = rawSelf as {
+      renderToken: (tokens: unknown[], idx: number, options: unknown) => string
+    }
     const token = tokens[idx]
 
     if (!token) {
@@ -49,7 +51,9 @@ const renderLegacyFence = (tokens: Array<{ info?: string; content: string }>, id
 }
 
 const getLanguageFromCodeElement = (element: HTMLElement) => {
-  const className = Array.from(element.classList).find(classItem => classItem.startsWith("language-"))
+  const className = Array.from(element.classList).find((classItem) =>
+    classItem.startsWith("language-"),
+  )
   return className ? className.replace("language-", "") : undefined
 }
 
@@ -79,7 +83,7 @@ const normalizeKnowledgeHtmlBody = (content: string) => {
 
     const fragment = parser.parseFromString(
       renderEnhancedCodeBlockHtml(codeElement.textContent || "", attrs),
-      "text/html"
+      "text/html",
     ).body.firstElementChild
 
     if (!fragment) {
@@ -108,7 +112,9 @@ const applyEnhancedCodeBlockFence = (markdown: MarkdownInstance) => {
     const parsed = parseCodeFenceInfo(token.info || "")
 
     if (!parsed.language) {
-      return defaultFence ? defaultFence(tokens, idx, options, env, self) : renderLegacyFence(tokens, idx)
+      return defaultFence
+        ? defaultFence(tokens, idx, options, env, self)
+        : renderLegacyFence(tokens, idx)
     }
 
     return renderEnhancedCodeBlockHtml(
@@ -116,7 +122,7 @@ const applyEnhancedCodeBlockFence = (markdown: MarkdownInstance) => {
       normalizeCodeBlockAttrs({
         language: parsed.language,
         ...parsed.attrs,
-      })
+      }),
     )
   }
 }
@@ -206,9 +212,10 @@ ${enhancedCodeBlockStyles}
 export const renderKnowledgeDocumentBody = (
   content: string,
   contentType: "markdown" | "html",
-  markdown: MarkdownRenderer = getSharedMarkdown()
+  markdown: MarkdownRenderer = getSharedMarkdown(),
 ) => {
-  const body = contentType === "markdown" ? markdown.render(content) : normalizeKnowledgeHtmlBody(content)
+  const body =
+    contentType === "markdown" ? markdown.render(content) : normalizeKnowledgeHtmlBody(content)
   return sanitizeKnowledgeHtml(body)
 }
 
@@ -217,7 +224,7 @@ export const renderKnowledgeDocumentHtml = (
   title: string,
   content: string,
   contentType: "markdown" | "html",
-  markdown: MarkdownRenderer = getSharedMarkdown()
+  markdown: MarkdownRenderer = getSharedMarkdown(),
 ) => {
   const body = renderKnowledgeDocumentBody(content, contentType, markdown)
 
@@ -242,7 +249,7 @@ export const renderKnowledgeDocumentHtmlWithMermaid = async (
   title: string,
   content: string,
   contentType: "markdown" | "html",
-  markdown: MarkdownRenderer = getSharedMarkdown()
+  markdown: MarkdownRenderer = getSharedMarkdown(),
 ) => {
   const html = renderKnowledgeDocumentHtml(title, content, contentType, markdown)
 

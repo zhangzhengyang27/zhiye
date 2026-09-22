@@ -26,7 +26,7 @@ const emit = defineEmits<{
 const localObfuscatedStorage = ref(true)
 
 onMounted(() => {
-  void isLocalObfuscatedStorage().then(value => {
+  void isLocalObfuscatedStorage().then((value) => {
     localObfuscatedStorage.value = value
   })
 })
@@ -123,7 +123,11 @@ const handleTimeoutChange = (value: string) => {
             @update:model-value="patchProfile({ apiKey: $event })"
           />
           <p class="mt-1.5 text-[12px] text-ink-quaternary">
-            {{ localObfuscatedStorage ? "Web 端密钥为本地混淆存储，桌面端为系统级加密" : "密钥由系统密钥链加密保存" }}
+            {{
+              localObfuscatedStorage
+                ? "Web 端密钥为本地混淆存储，桌面端为系统级加密"
+                : "密钥由系统密钥链加密保存"
+            }}
           </p>
         </div>
 
@@ -138,7 +142,9 @@ const handleTimeoutChange = (value: string) => {
           </div>
 
           <div>
-            <label class="mb-1.5 block text-[12px] font-medium text-ink-tertiary">超时（毫秒）</label>
+            <label class="mb-1.5 block text-[12px] font-medium text-ink-tertiary"
+              >超时（毫秒）</label
+            >
             <el-input
               :model-value="timeoutValue"
               type="number"

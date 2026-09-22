@@ -13,7 +13,10 @@ const TREE_PANEL_MIN_WIDTH = 252
 const TREE_PANEL_MAX_WIDTH = 420
 const TREE_PANEL_DEFAULT_WIDTH = 296
 
-export const useTreePanelResize = (options: { kbId: Ref<string>; layoutRef: Ref<HTMLElement | null> }) => {
+export const useTreePanelResize = (options: {
+  kbId: Ref<string>
+  layoutRef: Ref<HTMLElement | null>
+}) => {
   const { kbId, layoutRef } = options
 
   const {

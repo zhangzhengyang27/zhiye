@@ -16,7 +16,10 @@ export const isBoardEditorType = (editorType?: string | null) => {
 
 /** 判断画板内容是否满足条件。 */
 export const isBoardContent = (content?: KnowledgeDocumentContent | null) => {
-  return content?.scheme === KNOWLEDGE_BOARD_CONTENT_SCHEME || content?.scheme === KNOWLEDGE_LEGACY_BOARD_CONTENT_SCHEME
+  return (
+    content?.scheme === KNOWLEDGE_BOARD_CONTENT_SCHEME ||
+    content?.scheme === KNOWLEDGE_LEGACY_BOARD_CONTENT_SCHEME
+  )
 }
 
 /** 判断数据表内容是否满足条件（表格文档与数据表共用同一 scheme，两者区分仍依赖 editorType）。 */

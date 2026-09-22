@@ -49,33 +49,38 @@ const shot = async (page, name) => {
 }
 
 /** 等待当前打开的 dropdown 弹层出现（aria-hidden=false 收窄；动画 settle 由调用方控制） */
-const waitDropdownPopper = page =>
-  page.locator('.el-dropdown__popper[aria-hidden="false"]').waitFor({ state: "visible", timeout: 10000 })
+const waitDropdownPopper = (page) =>
+  page
+    .locator('.el-dropdown__popper[aria-hidden="false"]')
+    .waitFor({ state: "visible", timeout: 10000 })
 
-const closeDropdown = async page => {
+const closeDropdown = async (page) => {
   await page.keyboard.press("Escape")
   await page.waitForTimeout(400)
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T7:${roundName}:${mode}]`
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   try {
     // 1. 数据准备（ensure 语义，两轮复用；先于所有截图——T6 记录 a）
     await loginThroughUi(page, prefix)
     const token = await readAccessToken(page)
     const contentKb = await ensureKnowledgeBase(token, prefix, "Smoke Workspace T7 内容库")
-    const doc = await ensureDocument(contentKb.id, token, { title: DOC_TITLE, content: DOC_CONTENT })
+    const doc = await ensureDocument(contentKb.id, token, {
+      title: DOC_TITLE,
+      content: DOC_CONTENT,
+    })
 
     // 2. start：开始页 3 个筛选（收起 + 各自展开）
     await page.goto(url("/knowledge/start"), { waitUntil: "domcontentloaded" })
@@ -99,7 +104,9 @@ const capturePass = async mode => {
     // 3. editor：更多操作菜单（收起 + 展开 + 5 个子菜单各自展开）
     //    先开一次等 settle 再 reload：Lake 编辑器首开原始 markdown 触发自动保存，
     //    isDirty/pendingSaveRequest 会改菜单项文案（T2 记录 f）
-    await page.goto(url(`/knowledge/${contentKb.id}/doc/${doc.id}`), { waitUntil: "domcontentloaded" })
+    await page.goto(url(`/knowledge/${contentKb.id}/doc/${doc.id}`), {
+      waitUntil: "domcontentloaded",
+    })
     await page.waitForTimeout(3000)
     await page.reload({ waitUntil: "domcontentloaded" })
     await page.waitForTimeout(3000)

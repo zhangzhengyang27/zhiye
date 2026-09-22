@@ -33,7 +33,11 @@ export interface TreeSnapshotDetail extends TreeSnapshotItem {
  * 获取目录快照列表（时间倒序）。
  */
 export const listTreeSnapshots = (kbId: string, token?: string | null) =>
-  requestKbDriveApi<TreeSnapshotItem[]>(`/knowledge/knowledge-bases/${kbId}/tree-snapshots`, undefined, token)
+  requestKbDriveApi<TreeSnapshotItem[]>(
+    `/knowledge/knowledge-bases/${kbId}/tree-snapshots`,
+    undefined,
+    token,
+  )
 
 /**
  * 获取快照详情（树结构数据）。
@@ -42,7 +46,7 @@ export const getTreeSnapshot = (kbId: string, snapshotId: string, token?: string
   requestKbDriveApi<TreeSnapshotDetail>(
     `/knowledge/knowledge-bases/${kbId}/tree-snapshots/${snapshotId}`,
     undefined,
-    token
+    token,
   )
 
 /**
@@ -52,5 +56,5 @@ export const restoreTreeSnapshot = (kbId: string, snapshotId: string, token?: st
   requestKbDriveApi<{ ok: boolean; restored: number; revived: number; skipped: number }>(
     `/knowledge/knowledge-bases/${kbId}/tree-snapshots/${snapshotId}/restore`,
     { method: "POST" },
-    token
+    token,
   )

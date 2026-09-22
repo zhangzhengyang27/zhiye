@@ -27,7 +27,7 @@ const props = withDefaults(
   }>(),
   {
     columns: 4,
-  }
+  },
 )
 
 const emit = defineEmits<{
@@ -91,9 +91,14 @@ const handleSelect = (item: QuickActionItem) => {
       </span>
 
       <span class="min-w-0 flex-1">
-        <span class="block truncate text-kb-base font-medium leading-5 text-ink">{{ item.label }}</span>
+        <span class="block truncate text-kb-base font-medium leading-5 text-ink">{{
+          item.label
+        }}</span>
         <!-- 描述是可读文字：D1 巡检暗色从 quaternary 提到 tertiary（概览页可读性提档） -->
-        <span v-if="item.description" class="mt-0.5 block truncate text-kb-xs leading-4 text-ink-tertiary">
+        <span
+          v-if="item.description"
+          class="mt-0.5 block truncate text-kb-xs leading-4 text-ink-tertiary"
+        >
           {{ item.description }}
         </span>
       </span>

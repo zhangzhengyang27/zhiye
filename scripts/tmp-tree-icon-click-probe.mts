@@ -12,18 +12,25 @@ import {
 
 const TITLE = "ClickProbe 哨兵验证文档标题很长很长"
 
-const hoverChain = page =>
+const hoverChain = (page) =>
   page.evaluate(() =>
     Array.from(document.querySelectorAll(":hover"))
-      .map(el => el.tagName.toLowerCase() + (el.getAttribute("title") ? `[${el.getAttribute("title")}]` : ""))
-      .join(" > ")
+      .map(
+        (el) =>
+          el.tagName.toLowerCase() +
+          (el.getAttribute("title") ? `[${el.getAttribute("title")}]` : ""),
+      )
+      .join(" > "),
   )
 
 const { browser, page } = await createBrowserPage({ viewport: { width: 1247, height: 952 } })
 await loginThroughUi(page, "probe")
 const token = await readAccessToken(page)
 const kb = await ensureKnowledgeBase(token, "probe")
-const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n点击探针。` })
+const doc = await ensureDocument(kb.id, token, {
+  title: TITLE,
+  content: `# ${TITLE}\n\n点击探针。`,
+})
 
 await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
   waitUntil: "networkidle",
@@ -45,7 +52,11 @@ results.hoverChainAfterSingleMove = await hoverChain(page)
 await page.mouse.down()
 await page.mouse.up()
 await page.waitForTimeout(500)
-results.A_menuOpen = await page.locator("text=导出…").first().isVisible().catch(() => false)
+results.A_menuOpen = await page
+  .locator("text=导出…")
+  .first()
+  .isVisible()
+  .catch(() => false)
 results.A_url = page.url()
 
 // B：同样位置，但先补一次 1px 抖动再点
@@ -59,7 +70,11 @@ results.hoverChainAfterJiggle = await hoverChain(page)
 await page.mouse.down()
 await page.mouse.up()
 await page.waitForTimeout(500)
-results.B_menuOpen = await page.locator("text=导出…").first().isVisible().catch(() => false)
+results.B_menuOpen = await page
+  .locator("text=导出…")
+  .first()
+  .isVisible()
+  .catch(() => false)
 
 logStep("probe", JSON.stringify(results, null, 2))
 await browser.close()

@@ -47,7 +47,10 @@ const openSearchPanel = async (kbId, docId) => {
     await page.locator(".ne-ui-toolbar-more-button").click()
     await page.locator(".ne-ui-toolbar-search").click()
   }
-  await page.getByText("查找", { exact: true }).first().waitFor({ state: "visible", timeout: 10_000 })
+  await page
+    .getByText("查找", { exact: true })
+    .first()
+    .waitFor({ state: "visible", timeout: 10_000 })
 }
 
 try {
@@ -74,7 +77,9 @@ try {
   await page.keyboard.type("苹果", { delay: 100 })
   await page.waitForTimeout(800)
   const counter = await page.evaluate(() => {
-    const input = [...document.querySelectorAll("input.ant-input")].find(i => i.getClientRects().length)
+    const input = [...document.querySelectorAll("input.ant-input")].find(
+      (i) => i.getClientRects().length,
+    )
     let panel = input
     for (let i = 0; i < 6 && panel?.parentElement; i++) {
       panel = panel.parentElement
@@ -123,8 +128,10 @@ try {
   await page.waitForTimeout(800)
   const panelAgain = await page.evaluate(() => {
     const hits = [...document.querySelectorAll("*")].filter(
-      e =>
-        /查找|替换/.test(e.textContent || "") && (e.offsetWidth || e.offsetHeight) && (e.textContent || "").length < 50
+      (e) =>
+        /查找|替换/.test(e.textContent || "") &&
+        (e.offsetWidth || e.offsetHeight) &&
+        (e.textContent || "").length < 50,
     )
     return hits.length > 0
   })
@@ -135,8 +142,8 @@ try {
   // console error 各一条），不影响功能（替换已持久化），登记于内核清单；
   // 白名单后断言其余错误
   const RANGE_ERROR = /setStart.*larger than the node's length/
-  const relevantConsoleErrors = diagnostics.consoleErrors.filter(e => !RANGE_ERROR.test(e))
-  const relevantPageErrors = diagnostics.pageErrors.filter(e => !RANGE_ERROR.test(e))
+  const relevantConsoleErrors = diagnostics.consoleErrors.filter((e) => !RANGE_ERROR.test(e))
+  const relevantPageErrors = diagnostics.pageErrors.filter((e) => !RANGE_ERROR.test(e))
   assert.equal(relevantPageErrors.length, 0, `页面异常：${relevantPageErrors.join(" | ")}`)
   assert.equal(relevantConsoleErrors.length, 0, `控制台错误：${relevantConsoleErrors.join(" | ")}`)
   logStep("[验证]", "🎉 查找替换验证全部通过")

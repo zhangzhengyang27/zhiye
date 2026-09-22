@@ -19,7 +19,12 @@ import {
   type TreeDropTarget,
   type TreeRowRegistryItem,
 } from "@/components/knowledge/tree-dnd"
-import { cloneTreeNodes, findTreeNode, normalizeNodeIds, removeTreeNode } from "@/components/knowledge/tree-utils"
+import {
+  cloneTreeNodes,
+  findTreeNode,
+  normalizeNodeIds,
+  removeTreeNode,
+} from "@/components/knowledge/tree-utils"
 
 export const useTreeDrag = (options: {
   /** 当前知识库 id（排序提交时使用） */
@@ -46,7 +51,9 @@ export const useTreeDrag = (options: {
   const treeDropTarget = ref<TreeDropTarget | null>(null)
   const treeDragBlockedReason = ref<string | null>(null)
   // 未过位移阈值的手势不暴露为「拖拽中」，避免行高亮/把手样式误亮
-  const draggingNodeId = computed(() => (treeDragSession.value?.active ? treeDragSession.value.sourceNodeId : null))
+  const draggingNodeId = computed(() =>
+    treeDragSession.value?.active ? treeDragSession.value.sourceNodeId : null,
+  )
   // Map 按 nodeId 存取，注册/注销 O(1)，避免整组 filter+replace 的 O(N²)
   const treeRowRegistry = ref(new Map<string, TreeRowRegistryItem>())
   const treeDragHoverExpandTimer = ref<number | null>(null)
@@ -75,7 +82,8 @@ export const useTreeDrag = (options: {
 
   const getSortedTreeRows = () => {
     return [...treeRowRegistry.value.values()].sort((left, right) => {
-      const topDiff = left.element.getBoundingClientRect().top - right.element.getBoundingClientRect().top
+      const topDiff =
+        left.element.getBoundingClientRect().top - right.element.getBoundingClientRect().top
 
       if (Math.abs(topDiff) > 0.5) {
         return topDiff
@@ -94,7 +102,7 @@ export const useTreeDrag = (options: {
 
   const resolveTreeDropTargetFromPointer = (
     clientY: number,
-    inputMode: TreeDragSession["inputMode"]
+    inputMode: TreeDragSession["inputMode"],
   ): TreeDropTarget | null => {
     const rows = getSortedTreeRows()
 
@@ -126,7 +134,7 @@ export const useTreeDrag = (options: {
       }
     }
 
-    const rootRows = rows.filter(item => item.parentId === null)
+    const rootRows = rows.filter((item) => item.parentId === null)
 
     if (rootRows.length === 0) {
       return {
@@ -140,7 +148,11 @@ export const useTreeDrag = (options: {
 
     const treeContainerRect = scrollRef.value?.getBoundingClientRect()
 
-    if (!treeContainerRect || clientY < treeContainerRect.top || clientY > treeContainerRect.bottom) {
+    if (
+      !treeContainerRect ||
+      clientY < treeContainerRect.top ||
+      clientY > treeContainerRect.bottom
+    ) {
       return null
     }
 
@@ -223,7 +235,10 @@ export const useTreeDrag = (options: {
     return !isDescendantNode(sourceNode.id, target.parentId)
   }
 
-  const resolveTreeDropBlockedReason = (sourceNode: KnowledgeDocumentTreeNode, target: TreeDropTarget) => {
+  const resolveTreeDropBlockedReason = (
+    sourceNode: KnowledgeDocumentTreeNode,
+    target: TreeDropTarget,
+  ) => {
     const targetNode = getTreeDropTargetNode(target)
     const targetParentNode = getTreeDropTargetParentNode(target)
     const targetLabel = targetNode?.title.trim() || targetParentNode?.title.trim() || "当前位置"
@@ -237,7 +252,10 @@ export const useTreeDrag = (options: {
     }
 
     if (sourceNode.type === "folder") {
-      if (target.parentId === sourceNode.id || (target.parentId && isDescendantNode(sourceNode.id, target.parentId))) {
+      if (
+        target.parentId === sourceNode.id ||
+        (target.parentId && isDescendantNode(sourceNode.id, target.parentId))
+      ) {
         return "文件夹不能拖入自己的子级目录，请改放到同级或父级附近。"
       }
     }
@@ -298,7 +316,7 @@ export const useTreeDrag = (options: {
   const scheduleTreeDragHoverExpand = (
     node: KnowledgeDocumentTreeNode,
     position: TreeDropPosition,
-    inputMode: TreeDragSession["inputMode"]
+    inputMode: TreeDragSession["inputMode"],
   ) => {
     if (
       inputMode === "touch" ||
@@ -422,7 +440,9 @@ export const useTreeDrag = (options: {
     await commitTreeDrop(treeDropTarget.value)
   }
 
-  const getChildrenRefByParentId = (parentId: string | null): KnowledgeDocumentTreeNode[] | null => {
+  const getChildrenRefByParentId = (
+    parentId: string | null,
+  ): KnowledgeDocumentTreeNode[] | null => {
     if (!parentId) {
       return treeNodes.value
     }
@@ -443,13 +463,13 @@ export const useTreeDrag = (options: {
       return -1
     }
 
-    return siblings.findIndex(item => item.id === nodeId)
+    return siblings.findIndex((item) => item.id === nodeId)
   }
 
   const buildReorderItems = (parentIds: Array<string | null>) => {
     const visited = new Set<string>()
 
-    return parentIds.flatMap(parentId => {
+    return parentIds.flatMap((parentId) => {
       const key = parentId ?? "__root__"
 
       if (visited.has(key)) {

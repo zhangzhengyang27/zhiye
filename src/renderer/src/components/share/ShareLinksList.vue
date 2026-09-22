@@ -27,7 +27,9 @@ const emit = defineEmits<{
       <div class="flex items-center justify-between gap-3">
         <div>
           <p class="text-sm font-semibold text-ink-secondary">当前分享链接</p>
-          <p class="mt-1 text-[12px] leading-5 text-ink-quaternary">保留现有流转地址，支持复制和删除。</p>
+          <p class="mt-1 text-[12px] leading-5 text-ink-quaternary">
+            保留现有流转地址，支持复制和删除。
+          </p>
         </div>
         <el-tag disable-transitions> {{ shares.length }} 条 </el-tag>
       </div>
@@ -35,15 +37,23 @@ const emit = defineEmits<{
 
     <div class="px-5 py-5">
       <div v-if="loading" class="space-y-3">
-        <div v-for="index in 3" :key="index" class="h-[98px] animate-pulse rounded-kb-3xl bg-surface" />
+        <div
+          v-for="index in 3"
+          :key="index"
+          class="h-[98px] animate-pulse rounded-kb-3xl bg-surface"
+        />
       </div>
 
       <div v-else-if="shares.length === 0" class="rounded-kb-3xl bg-surface px-5 py-10 text-center">
-        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-kb-2xl bg-brand-faint text-brand">
+        <div
+          class="mx-auto flex h-12 w-12 items-center justify-center rounded-kb-2xl bg-brand-faint text-brand"
+        >
           <AppIcon name="i-lucide-copy" class="h-5 w-5" />
         </div>
         <p class="mt-4 text-[15px] font-medium text-ink-secondary">还没有分享链接</p>
-        <p class="mt-2 text-[12px] leading-6 text-ink-tertiary">先在右侧配置权限和有效期，再创建第一条分享地址。</p>
+        <p class="mt-2 text-[12px] leading-6 text-ink-tertiary">
+          先在右侧配置权限和有效期，再创建第一条分享地址。
+        </p>
       </div>
 
       <div v-else class="space-y-3">

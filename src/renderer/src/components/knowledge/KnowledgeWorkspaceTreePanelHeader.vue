@@ -98,7 +98,12 @@ defineExpose({
         >
           <Icon icon="ph:caret-left" :width="15" :height="15" />
         </button>
-        <Icon icon="ph:book-open-text" :width="18" :height="18" class="shrink-0 text-ink-tertiary" />
+        <Icon
+          icon="ph:book-open-text"
+          :width="18"
+          :height="18"
+          class="shrink-0 text-ink-tertiary"
+        />
         <button
           type="button"
           class="min-w-0 flex-1 truncate text-left text-[16px] font-semibold text-ink transition hover:text-brand"
@@ -135,7 +140,12 @@ defineExpose({
               class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-muted"
               @click="handleCreateAction('folder')"
             >
-              <Icon icon="ph:folder-simple-plus" :width="15" :height="15" class="text-ink-tertiary" />
+              <Icon
+                icon="ph:folder-simple-plus"
+                :width="15"
+                :height="15"
+                class="text-ink-tertiary"
+              />
               <span>新建分组</span>
             </button>
             <button
@@ -207,12 +217,19 @@ defineExpose({
           <Icon icon="ph:dots-three-bold" :width="14" :height="14" />
         </button>
       </div>
-      <div class="relative flex items-center gap-1 rounded-kb-md" :class="props.isHome ? '' : 'bg-grey-300'">
+      <div
+        class="relative flex items-center gap-1 rounded-kb-md"
+        :class="props.isHome ? '' : 'bg-grey-300'"
+      >
         <button
           type="button"
           data-tree-switcher-trigger
           class="flex min-w-0 flex-1 items-center gap-2 rounded-kb-md px-2.5 py-1.5 text-left text-[14px] font-medium transition"
-          :class="props.isHome ? 'text-ink-secondary hover:bg-grey-200 hover:text-ink' : 'text-ink hover:bg-grey-200'"
+          :class="
+            props.isHome
+              ? 'text-ink-secondary hover:bg-grey-200 hover:text-ink'
+              : 'text-ink hover:bg-grey-200'
+          "
           title="切换目录视图"
           @click="switcherOpen = !switcherOpen"
         >
@@ -245,18 +262,40 @@ defineExpose({
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[14px] text-ink transition hover:bg-grey-200"
             @click="selectViewMode('tree')"
           >
-            <Icon icon="ph:list-dashes" :width="15" :height="15" class="shrink-0 text-ink-tertiary" />
+            <Icon
+              icon="ph:list-dashes"
+              :width="15"
+              :height="15"
+              class="shrink-0 text-ink-tertiary"
+            />
             <span class="flex-1">目录</span>
-            <Icon v-if="props.viewMode === 'tree'" icon="ph:check-bold" :width="13" :height="13" class="text-ink" />
+            <Icon
+              v-if="props.viewMode === 'tree'"
+              icon="ph:check-bold"
+              :width="13"
+              :height="13"
+              class="text-ink"
+            />
           </button>
           <button
             type="button"
             class="flex w-full items-center gap-2 rounded-kb-md px-3 py-2 text-left text-[14px] text-ink transition hover:bg-grey-200"
             @click="selectViewMode('flat')"
           >
-            <Icon icon="ph:list-checks" :width="15" :height="15" class="shrink-0 text-ink-tertiary" />
+            <Icon
+              icon="ph:list-checks"
+              :width="15"
+              :height="15"
+              class="shrink-0 text-ink-tertiary"
+            />
             <span class="flex-1">全部文档</span>
-            <Icon v-if="props.viewMode === 'flat'" icon="ph:check-bold" :width="13" :height="13" class="text-ink" />
+            <Icon
+              v-if="props.viewMode === 'flat'"
+              icon="ph:check-bold"
+              :width="13"
+              :height="13"
+              class="text-ink"
+            />
           </button>
         </div>
       </div>

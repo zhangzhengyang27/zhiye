@@ -63,13 +63,17 @@ export const useTreeFocus = (options: {
     const result: VisibleTreeNode[] = []
 
     const walk = (nodes: KnowledgeDocumentTreeNode[], depth: number) => {
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         result.push({
           node,
           depth,
         })
 
-        if (node.type === "folder" && expandedFolderIds.value.includes(node.id) && node.children.length > 0) {
+        if (
+          node.type === "folder" &&
+          expandedFolderIds.value.includes(node.id) &&
+          node.children.length > 0
+        ) {
           walk(node.children, depth + 1)
         }
       })
@@ -122,7 +126,7 @@ export const useTreeFocus = (options: {
       return
     }
 
-    const hasFocusedNode = visibleNodes.some(item => item.node.id === focusedNodeId.value)
+    const hasFocusedNode = visibleNodes.some((item) => item.node.id === focusedNodeId.value)
 
     if (!hasFocusedNode) {
       const firstNode = visibleNodes[0]
@@ -137,7 +141,7 @@ export const useTreeFocus = (options: {
       return
     }
 
-    const currentIndex = visibleNodes.findIndex(item => item.node.id === currentNodeId)
+    const currentIndex = visibleNodes.findIndex((item) => item.node.id === currentNodeId)
 
     if (currentIndex < 0) {
       const firstNode = visibleNodes[0]
@@ -157,7 +161,8 @@ export const useTreeFocus = (options: {
       return
     }
 
-    const targetNode = position === "start" ? visibleNodes[0] : visibleNodes[visibleNodes.length - 1]
+    const targetNode =
+      position === "start" ? visibleNodes[0] : visibleNodes[visibleNodes.length - 1]
     focusedNodeId.value = targetNode?.node.id ?? null
   }
 
@@ -174,15 +179,17 @@ export const useTreeFocus = (options: {
       return false
     }
 
-    const currentIndex = focusedNodeId.value ? visibleNodes.findIndex(item => item.node.id === focusedNodeId.value) : -1
+    const currentIndex = focusedNodeId.value
+      ? visibleNodes.findIndex((item) => item.node.id === focusedNodeId.value)
+      : -1
     const candidates =
       currentIndex >= 0
         ? [...visibleNodes.slice(currentIndex + 1), ...visibleNodes.slice(0, currentIndex + 1)]
         : visibleNodes
 
     const matchedNode =
-      candidates.find(item => item.node.title.trim().toLowerCase().startsWith(normalizedQuery)) ||
-      candidates.find(item => item.node.title.trim().toLowerCase().includes(normalizedQuery))
+      candidates.find((item) => item.node.title.trim().toLowerCase().startsWith(normalizedQuery)) ||
+      candidates.find((item) => item.node.title.trim().toLowerCase().includes(normalizedQuery))
 
     if (!matchedNode) {
       return false
@@ -205,7 +212,8 @@ export const useTreeFocus = (options: {
     }
 
     const nextQuery = `${treeTypeaheadQuery.value}${event.key.toLowerCase()}`
-    const matched = focusTreeNodeByTypeahead(nextQuery) || focusTreeNodeByTypeahead(event.key.toLowerCase())
+    const matched =
+      focusTreeNodeByTypeahead(nextQuery) || focusTreeNodeByTypeahead(event.key.toLowerCase())
 
     clearTreeTypeahead()
     treeTypeaheadQuery.value = matched ? nextQuery : event.key.toLowerCase()
@@ -221,7 +229,10 @@ export const useTreeFocus = (options: {
     return matched
   }
 
-  const handleTreeNavigationShortcut = (event: KeyboardEvent, targetNode: KnowledgeDocumentTreeNode) => {
+  const handleTreeNavigationShortcut = (
+    event: KeyboardEvent,
+    targetNode: KnowledgeDocumentTreeNode,
+  ) => {
     if (event.metaKey || event.ctrlKey || event.altKey) {
       return false
     }
@@ -321,7 +332,7 @@ export const useTreeFocus = (options: {
 
   watch(
     () => focusedNodeId.value,
-    async nodeId => {
+    async (nodeId) => {
       if (!nodeId) {
         return
       }
@@ -345,7 +356,7 @@ export const useTreeFocus = (options: {
           behavior: "smooth",
         })
       }
-    }
+    },
   )
 
   onBeforeUnmount(() => {

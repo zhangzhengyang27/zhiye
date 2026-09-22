@@ -5,11 +5,14 @@ import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
 const makeNode = (
   id: string,
   type: "doc" | "folder",
-  children: KnowledgeDocumentTreeNode[] = []
+  children: KnowledgeDocumentTreeNode[] = [],
 ): KnowledgeDocumentTreeNode => ({ id, type, children }) as KnowledgeDocumentTreeNode
 
 const tree = [
-  makeNode("a", "folder", [makeNode("a-1", "doc"), makeNode("a-2", "folder", [makeNode("a-2-1", "doc")])]),
+  makeNode("a", "folder", [
+    makeNode("a-1", "doc"),
+    makeNode("a-2", "folder", [makeNode("a-2-1", "doc")]),
+  ]),
   makeNode("b", "doc"),
 ]
 

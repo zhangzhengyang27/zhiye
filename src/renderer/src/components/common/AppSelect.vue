@@ -91,14 +91,16 @@ const props = withDefaults(
     multiple: false,
     filterable: false,
     clearable: false,
-  }
+  },
 )
 
 // 未适配分支守卫（同 AppInput type=textarea 先例）：基线无这些 API，传入即行为不保真
 if (import.meta.env.DEV) {
   if (props.multiple) console.warn("[AppSelect] multiple 未适配：基线为单选，标签/折叠行为不保真")
   if (props.filterable)
-    console.warn("[AppSelect] filterable 未适配：回显/键盘/Space 转发均按只读触发器实现，开启前先撤 Space 转发")
+    console.warn(
+      "[AppSelect] filterable 未适配：回显/键盘/Space 转发均按只读触发器实现，开启前先撤 Space 转发",
+    )
   if (props.clearable) console.warn("[AppSelect] clearable 未适配：基线无清空按钮")
 }
 
@@ -118,16 +120,18 @@ const selectRef = ref<SelectInstance | null>(null)
  */
 const EMPTY_VALUE_SENTINEL = "__kb_select_empty_value__"
 
-const hasEmptyValueItem = computed(() => props.items.some(item => item.value === ""))
+const hasEmptyValueItem = computed(() => props.items.some((item) => item.value === ""))
 
 const normalizedItems = computed(() =>
   hasEmptyValueItem.value
-    ? props.items.map(item => (item.value === "" ? { ...item, value: EMPTY_VALUE_SENTINEL } : item))
-    : props.items
+    ? props.items.map((item) =>
+        item.value === "" ? { ...item, value: EMPTY_VALUE_SENTINEL } : item,
+      )
+    : props.items,
 )
 
 const normalizedModelValue = computed(() =>
-  hasEmptyValueItem.value && props.modelValue === "" ? EMPTY_VALUE_SENTINEL : props.modelValue
+  hasEmptyValueItem.value && props.modelValue === "" ? EMPTY_VALUE_SENTINEL : props.modelValue,
 )
 
 const forwardedAttrs = computed(() => {
@@ -138,7 +142,9 @@ const forwardedAttrs = computed(() => {
  * 是否有可回显的选中项（决定触发器文字色：墨色 vs 占位灰）。
  * 与 EP 的展示判定同口径：在归一化后的 items/modelValue 上做严格相等匹配。
  */
-const hasSelected = computed(() => normalizedItems.value.some(item => item.value === normalizedModelValue.value))
+const hasSelected = computed(() =>
+  normalizedItems.value.some((item) => item.value === normalizedModelValue.value),
+)
 
 const selectClass = computed(() =>
   cn(
@@ -155,8 +161,8 @@ const selectClass = computed(() =>
     // label 文字同行），必须在 scoped 块里以 unlayered 规则覆盖，见 style 块。
     "kb-el-select h-9 cursor-pointer rounded-[10px] border border-line bg-muted pl-3 pr-2.5 text-[13px] text-ink transition",
     "focus-within:border-brand",
-    String(attrs.class ?? "")
-  )
+    String(attrs.class ?? ""),
+  ),
 )
 
 /** EP 事件负载未收窄到 SelectValue，出参透传原始值（与基线「emit 原始类型值」一致）；
@@ -206,7 +212,7 @@ const handleRootKeydown = (event: KeyboardEvent) => {
           code: event.code,
           bubbles: true,
           cancelable: true,
-        })
+        }),
       )
     }
     return

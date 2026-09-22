@@ -47,7 +47,7 @@ let cachedSession: PersistedAuthSession | null | undefined
 if (typeof window !== "undefined") {
   // 本页签的写入走下方 persist 与 clear 同步更新缓存；其它页签的写入只触发
   // storage 事件（key 为 null 表示 clear() 一类整库清空），据此失效缓存
-  window.addEventListener("storage", event => {
+  window.addEventListener("storage", (event) => {
     if (event.key === AUTH_STORAGE_KEY || event.key === null) {
       cachedSession = undefined
     }
@@ -118,7 +118,7 @@ const decodeJwtExpMs = (token: string): number | null => {
 
     const base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/")
     const binary = atob(base64)
-    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0))
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
     const payload = JSON.parse(new TextDecoder().decode(bytes)) as { exp?: unknown }
 
     return typeof payload.exp === "number" ? payload.exp * 1000 : null
@@ -157,7 +157,7 @@ let refreshInFlight: Promise<AuthSuccessResponse> | null = null
 export const refreshSessionSingleFlight = (): Promise<AuthSuccessResponse> => {
   if (!refreshInFlight) {
     refreshInFlight = requestRefreshSession()
-      .then(result => {
+      .then((result) => {
         setMemoryAccessToken(result.accessToken)
         if (result.user) {
           persistAuthSession({ loggedIn: true, user: result.user })
@@ -219,7 +219,7 @@ export const isRefreshEligibleUrl = (url: string): boolean => {
 
   try {
     const pathname = new URL(url, window.location.origin).pathname.toLowerCase()
-    if (REFRESH_EXEMPT_PATTERNS.some(pattern => pathname.includes(pattern))) {
+    if (REFRESH_EXEMPT_PATTERNS.some((pattern) => pathname.includes(pattern))) {
       return false
     }
     if (pathname.includes("/public/")) {
@@ -242,7 +242,10 @@ export interface AuthAwareFetchInit extends RequestInit {
  * 刷新失败时原样返回 401 响应——登出事件已由 tryRefreshSession 派发过一次，
  * 调用方按常规错误抛出即可。
  */
-export const fetchWithAuthRetry = async (url: string, init: AuthAwareFetchInit = {}): Promise<Response> => {
+export const fetchWithAuthRetry = async (
+  url: string,
+  init: AuthAwareFetchInit = {},
+): Promise<Response> => {
   const { authToken, ...requestInit } = init
 
   const send = (token: string | null) => {
@@ -253,7 +256,8 @@ export const fetchWithAuthRetry = async (url: string, init: AuthAwareFetchInit =
     return fetch(url, { ...requestInit, headers })
   }
 
-  const initialToken = authToken !== undefined && authToken !== null ? authToken : await getAccessToken()
+  const initialToken =
+    authToken !== undefined && authToken !== null ? authToken : await getAccessToken()
   let response = await send(initialToken)
 
   if (response.status === 401 && isRefreshEligibleUrl(url) && (await tryRefreshSession())) {

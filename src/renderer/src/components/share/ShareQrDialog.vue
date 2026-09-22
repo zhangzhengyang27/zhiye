@@ -63,7 +63,7 @@ watch(
       }
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const downloadQr = () => {
@@ -89,7 +89,7 @@ const dialog = useDialogBehavior({
     title="扫码访问"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('close')"
+    @update:model-value="(value) => !value && emit('close')"
   >
     <template #header>
       <KbDialogHeader title="扫码访问" eyebrow="分享设置" @close="emit('close')" />
@@ -99,13 +99,26 @@ const dialog = useDialogBehavior({
       <div
         class="flex h-[240px] w-[240px] items-center justify-center overflow-hidden rounded-kb-2xl border border-line bg-white"
       >
-        <AppIcon v-if="generating" name="i-lucide-loader-circle" class="h-6 w-6 animate-spin text-ink-quaternary" />
-        <img v-else-if="qrDataUrl" :src="qrDataUrl" alt="分享链接二维码" class="h-full w-full object-contain" />
+        <AppIcon
+          v-if="generating"
+          name="i-lucide-loader-circle"
+          class="h-6 w-6 animate-spin text-ink-quaternary"
+        />
+        <img
+          v-else-if="qrDataUrl"
+          :src="qrDataUrl"
+          alt="分享链接二维码"
+          class="h-full w-full object-contain"
+        />
         <span v-else class="px-6 text-center text-[12px] text-ink-tertiary">二维码暂不可用</span>
       </div>
 
-      <p class="max-w-full break-all text-center text-[12px] leading-5 text-ink-tertiary">{{ url }}</p>
-      <p class="text-[12px] text-ink-quaternary">「{{ documentTitle }}」的分享链接，扫码或长按识别访问。</p>
+      <p class="max-w-full break-all text-center text-[12px] leading-5 text-ink-tertiary">
+        {{ url }}
+      </p>
+      <p class="text-[12px] text-ink-quaternary">
+        「{{ documentTitle }}」的分享链接，扫码或长按识别访问。
+      </p>
     </div>
 
     <template #footer>

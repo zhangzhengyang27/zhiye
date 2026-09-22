@@ -6,14 +6,15 @@ let t = readFileSync(p, "utf8")
 t = t.replace(
   '  /** 表格文档（B7 #24b，自由网格 v1） */\n  sheet: "sheet",',
   [
-    '  /** 表格文档（B7 #24b，自由网格 v1） */',
+    "  /** 表格文档（B7 #24b，自由网格 v1） */",
     '  sheet: "sheet",',
     "  /** 思维导图（B7 #24c） */",
     '  mindmap: "mindmap",',
-  ].join("\n")
+  ].join("\n"),
 )
 
-const schemeAnchor = 'export const KNOWLEDGE_DATATABLE_CONTENT_SCHEME = "application/vnd.kb-datatable+json"'
+const schemeAnchor =
+  'export const KNOWLEDGE_DATATABLE_CONTENT_SCHEME = "application/vnd.kb-datatable+json"'
 const schemeAddition = [
   'export const KNOWLEDGE_DATATABLE_CONTENT_SCHEME = "application/vnd.kb-datatable+json"',
   "",

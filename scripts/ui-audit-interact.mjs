@@ -29,7 +29,9 @@ const doc = await ensureDocument(kb.id, token, { title: "Smoke 验收文档" })
 const kbId = kb.id
 
 // 1. 右键树节点菜单（KB 首页目录树）
-await page.goto(new URL(`/knowledge/${kbId}`, "http://127.0.0.1:4173").toString(), { waitUntil: "networkidle" })
+await page.goto(new URL(`/knowledge/${kbId}`, "http://127.0.0.1:4173").toString(), {
+  waitUntil: "networkidle",
+})
 await page.waitForTimeout(1200)
 const treeRow = page.locator("text=T6 行为验证子目录").first()
 if (await treeRow.count()) {
@@ -88,10 +90,14 @@ if (await paragraph.count()) {
 await page.evaluate(() => globalThis.localStorage.setItem("vueuse-color-scheme", "dark"))
 await page.waitForTimeout(600)
 await shot("07-editor-dark")
-await page.goto(new URL("/knowledge/start", "http://127.0.0.1:4173").toString(), { waitUntil: "networkidle" })
+await page.goto(new URL("/knowledge/start", "http://127.0.0.1:4173").toString(), {
+  waitUntil: "networkidle",
+})
 await page.waitForTimeout(800)
 await shot("08-start-dark")
-await page.goto(new URL(`/knowledge/${kbId}`, "http://127.0.0.1:4173").toString(), { waitUntil: "networkidle" })
+await page.goto(new URL(`/knowledge/${kbId}`, "http://127.0.0.1:4173").toString(), {
+  waitUntil: "networkidle",
+})
 await page.waitForTimeout(1000)
 await shot("09-ws-home-dark")
 

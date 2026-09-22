@@ -48,15 +48,24 @@ const report = await page.evaluate(() => {
   walk(surface, 0)
 
   // lakex 暗色类落在哪
-  const darkNodes = [...globalThis.globalThis.document.querySelectorAll(".lakex-dark-theme-dark")].map(n => ({
+  const darkNodes = [
+    ...globalThis.globalThis.document.querySelectorAll(".lakex-dark-theme-dark"),
+  ].map((n) => ({
     tag: n.tagName,
     cls: String(n.className).slice(0, 100),
   }))
 
   // 标题的可见性
-  const heroVisible = title ? { color: titleStyle.color, rect: title.getBoundingClientRect().toJSON() } : null
+  const heroVisible = title
+    ? { color: titleStyle.color, rect: title.getBoundingClientRect().toJSON() }
+    : null
 
-  return { layers, darkNodes, heroVisible, htmlClass: globalThis.document.documentElement.className }
+  return {
+    layers,
+    darkNodes,
+    heroVisible,
+    htmlClass: globalThis.document.documentElement.className,
+  }
 })
 
 console.log(JSON.stringify(report, null, 2))

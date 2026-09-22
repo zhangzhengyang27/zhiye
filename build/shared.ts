@@ -19,7 +19,11 @@ import { loadEnv, type UserConfig } from "vite"
 export const resolveDevProxyTarget = (mode: string, projectRoot: string) => {
   const env = loadEnv(mode, projectRoot, "")
   const developmentEnv = mode === "development" ? env : loadEnv("development", projectRoot, "")
-  return (env.VITE_DEV_PROXY_TARGET || developmentEnv.VITE_DEV_PROXY_TARGET || "http://localhost:3200").trim()
+  return (
+    env.VITE_DEV_PROXY_TARGET ||
+    developmentEnv.VITE_DEV_PROXY_TARGET ||
+    "http://localhost:3200"
+  ).trim()
 }
 
 /**
@@ -41,8 +45,11 @@ export const createApiProxy = (mode: string, projectRoot: string) => ({
 
 /** 读 package.json 的版本号，注入为渲染层的编译期常量。 */
 const readPackageVersion = (projectRoot: string): string =>
-  (JSON.parse(fs.readFileSync(path.resolve(projectRoot, "package.json"), "utf-8")) as { version?: string }).version ??
-  "0.0.0"
+  (
+    JSON.parse(fs.readFileSync(path.resolve(projectRoot, "package.json"), "utf-8")) as {
+      version?: string
+    }
+  ).version ?? "0.0.0"
 
 /**
  * 渲染层（Web 与 Electron 共用）的公共 Vite 配置片段。
@@ -110,7 +117,10 @@ export const createRendererSharedConfig = (projectRoot: string): UserConfig => (
           }
 
           // EP 组件库独立成块；其传递依赖（dayjs/lodash-es@4.18.1 等）走默认拆分，接入 EP 后需 profile 复核
-          if (id.includes("/node_modules/element-plus/") || id.includes("/node_modules/@element-plus/icons-vue/")) {
+          if (
+            id.includes("/node_modules/element-plus/") ||
+            id.includes("/node_modules/@element-plus/icons-vue/")
+          ) {
             return "element-plus"
           }
 

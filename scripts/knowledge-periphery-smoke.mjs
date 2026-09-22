@@ -20,7 +20,7 @@ async function openSidebarPage(page, linkName, pathname, checks) {
   logStep(STEP_PREFIX, `打开「${linkName}」页`)
 
   await Promise.all([
-    page.waitForURL(url => url.pathname === pathname, { timeout: smokeConfig.timeout }),
+    page.waitForURL((url) => url.pathname === pathname, { timeout: smokeConfig.timeout }),
     page.getByRole("link", { name: linkName }).click(),
   ])
 
@@ -36,7 +36,7 @@ async function openPageDirect(page, pathname, checks) {
   logStep(STEP_PREFIX, `打开页面 ${pathname}`)
 
   await page.goto(new globalThis.URL(pathname, smokeConfig.baseUrl).toString())
-  await page.waitForURL(url => url.pathname === pathname, { timeout: smokeConfig.timeout })
+  await page.waitForURL((url) => url.pathname === pathname, { timeout: smokeConfig.timeout })
 
   for (const check of checks) {
     await check.first().waitFor({
@@ -99,7 +99,7 @@ async function main() {
   }
 }
 
-main().catch(error => {
+main().catch((error) => {
   globalThis.console.error(`${STEP_PREFIX} 失败`, error)
   globalThis.process.exitCode = 1
 })

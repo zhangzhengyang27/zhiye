@@ -53,10 +53,10 @@ const canCompare = computed(() => {
   )
 })
 
-const versionIds = computed(() => props.versions.map(version => version.id))
+const versionIds = computed(() => props.versions.map((version) => version.id))
 
 const versionOptions = computed(() => {
-  return props.versions.map(v => ({
+  return props.versions.map((v) => ({
     value: v.id,
     label: `${v.versionName || v.message || "自动保存版本"} - ${formatDateTime(v.createdAt)}`,
   }))
@@ -116,11 +116,13 @@ const syncSelectedVersions = () => {
   }
 
   if (!hasVersion1 || selectedVersion1.value === selectedVersion2.value) {
-    selectedVersion1.value = props.versions.find(version => version.id !== selectedVersion2.value)?.id || ""
+    selectedVersion1.value =
+      props.versions.find((version) => version.id !== selectedVersion2.value)?.id || ""
   }
 
   if (selectedVersion1.value === selectedVersion2.value) {
-    selectedVersion2.value = props.versions.find(version => version.id !== selectedVersion1.value)?.id || ""
+    selectedVersion2.value =
+      props.versions.find((version) => version.id !== selectedVersion1.value)?.id || ""
   }
 
   resetCompareResult()
@@ -176,7 +178,7 @@ const handleClose = () => {
  */
 watch(
   () => props.visible,
-  visible => {
+  (visible) => {
     if (visible && props.versions.length >= 2) {
       // 默认选择最新的两个版本
       selectedVersion1.value = props.versions[1]?.id || ""
@@ -184,7 +186,7 @@ watch(
       resetCompareResult()
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 watch(versionIds, () => {
@@ -204,12 +206,14 @@ const dialog = useDialogBehavior({
     title="版本对比"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && handleClose()"
+    @update:model-value="(value) => !value && handleClose()"
   >
     <template #header>
       <KbDialogHeader
         title="版本对比"
-        :description="isCompareDisabled ? props.compareDisabledReason : '选择两个历史版本并查看内容差异。'"
+        :description="
+          isCompareDisabled ? props.compareDisabledReason : '选择两个历史版本并查看内容差异。'
+        "
         @close="handleClose"
       />
     </template>
@@ -224,7 +228,10 @@ const dialog = useDialogBehavior({
         :save-status-label="saveStatusLabel"
       />
 
-      <div v-if="isCompareDisabled" class="mt-6 rounded-kb-3xl border border-line bg-muted px-6 py-8 text-center">
+      <div
+        v-if="isCompareDisabled"
+        class="mt-6 rounded-kb-3xl border border-line bg-muted px-6 py-8 text-center"
+      >
         <AppIcon name="i-lucide-ban" class="mx-auto h-12 w-12 text-ink-quaternary" />
         <p class="mt-4 text-base font-semibold text-ink-secondary">当前文档暂不支持文本对比</p>
         <p class="mt-2 text-sm leading-6 text-ink-tertiary">
@@ -253,7 +260,9 @@ const dialog = useDialogBehavior({
               :disabled="!selectedVersion1 || loading || !!deletingVersionId"
               :loading="deletingVersionId === selectedVersion1"
               @click="requestDeleteVersion(selectedVersion1)"
-              ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+              ><template #loading
+                ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+              /></template>
               <span class="truncate">删除此版本</span>
             </el-button>
           </div>
@@ -277,7 +286,9 @@ const dialog = useDialogBehavior({
               :disabled="!selectedVersion2 || loading || !!deletingVersionId"
               :loading="deletingVersionId === selectedVersion2"
               @click="requestDeleteVersion(selectedVersion2)"
-              ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+              ><template #loading
+                ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+              /></template>
               <span class="truncate">删除此版本</span>
             </el-button>
           </div>
@@ -286,14 +297,23 @@ const dialog = useDialogBehavior({
 
       <!-- 对比按钮 -->
       <div v-if="!isCompareDisabled" class="mb-6">
-        <el-button type="primary" :disabled="!canCompare || loading" :loading="loading" @click="compareVersions"
-          ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+        <el-button
+          type="primary"
+          :disabled="!canCompare || loading"
+          :loading="loading"
+          @click="compareVersions"
+          ><template #loading
+            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
           <span class="truncate">{{ loading ? "对比中…" : "开始对比" }}</span>
         </el-button>
       </div>
 
       <!-- 差异显示 -->
-      <div v-if="!isCompareDisabled && diffResult.length > 0" class="border border-line rounded-kb-md overflow-hidden">
+      <div
+        v-if="!isCompareDisabled && diffResult.length > 0"
+        class="border border-line rounded-kb-md overflow-hidden"
+      >
         <div class="bg-muted px-4 py-2 border-b border-line">
           <span class="text-sm font-medium text-ink-secondary">差异对比</span>
         </div>
@@ -308,7 +328,9 @@ const dialog = useDialogBehavior({
                   'bg-success-bg': change.added,
                 }"
               >
-                <td class="px-4 py-1 text-ink-tertiary text-right w-12 border-r border-line select-none">
+                <td
+                  class="px-4 py-1 text-ink-tertiary text-right w-12 border-r border-line select-none"
+                >
                   {{ index + 1 }}
                 </td>
                 <td class="px-4 py-1 whitespace-pre-wrap break-all">
@@ -330,4 +352,3 @@ const dialog = useDialogBehavior({
     </div>
   </el-dialog>
 </template>
-

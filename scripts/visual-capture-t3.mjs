@@ -59,7 +59,9 @@ const ensureBoardDocument = async (kbId, token, title) => {
     token,
     errorMessage: "读取文档树失败",
   })
-  const existed = flattenTree(Array.isArray(tree) ? tree : []).find(node => node.type === "doc" && node.title === title)
+  const existed = flattenTree(Array.isArray(tree) ? tree : []).find(
+    (node) => node.type === "doc" && node.title === title,
+  )
   if (existed) {
     return existed
   }
@@ -91,7 +93,7 @@ const ensureBoardDocument = async (kbId, token, title) => {
 }
 
 /** 分享弹层：等加载 → 「允许评论」ensure on（覆盖 switch 选中态）→ 展开高级设置 */
-const openShareDialogFully = async page => {
+const openShareDialogFully = async (page) => {
   await page.getByRole("button", { name: "分享", exact: true }).click()
   await page.getByText("开启分享").first().waitFor({ timeout: 15000 })
 
@@ -110,18 +112,18 @@ const openShareDialogFully = async page => {
   await page.waitForTimeout(900)
 }
 
-const capturePass = async mode => {
+const capturePass = async (mode) => {
   const { browser, context, page } = await createBrowserPage({ viewport: VIEWPORT })
   const prefix = `[T3:${roundName}:${mode}]`
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    mode === "dark" ? "dark" : "light"
+    mode === "dark" ? "dark" : "light",
   )
 
-  const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+  const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 
   try {
     // 1. 数据准备（ensure 语义，两轮复用）

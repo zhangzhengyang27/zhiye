@@ -35,14 +35,18 @@ await page.screenshot({ path: path.join(outDir, "editor-dark-real.png") })
 console.log("✓ editor-dark-real")
 
 await page
-  .goto(new URL(`/knowledge/${kb.id}`, "http://127.0.0.1:4173").toString(), { waitUntil: "networkidle" })
+  .goto(new URL(`/knowledge/${kb.id}`, "http://127.0.0.1:4173").toString(), {
+    waitUntil: "networkidle",
+  })
   .catch(() => {})
 await page.waitForTimeout(1500)
 await page.screenshot({ path: path.join(outDir, "ws-home-dark-real.png") })
 console.log("✓ ws-home-dark-real")
 
 await page
-  .goto(new URL("/knowledge/start", "http://127.0.0.1:4173").toString(), { waitUntil: "networkidle" })
+  .goto(new URL("/knowledge/start", "http://127.0.0.1:4173").toString(), {
+    waitUntil: "networkidle",
+  })
   .catch(() => {})
 await page.waitForTimeout(1200)
 await page.screenshot({ path: path.join(outDir, "start-dark-real.png") })

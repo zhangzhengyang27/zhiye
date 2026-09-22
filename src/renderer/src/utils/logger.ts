@@ -27,7 +27,8 @@ const resolveInitialLogLevel = (): LogLevel => {
 
 let currentMinLevel: LogLevel = resolveInitialLogLevel()
 
-const shouldLog = (level: LogLevel): boolean => LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[currentMinLevel]
+const shouldLog = (level: LogLevel): boolean =>
+  LOG_LEVEL_PRIORITY[level] >= LOG_LEVEL_PRIORITY[currentMinLevel]
 
 const formatMessage = (prefix: string, ...args: unknown[]): unknown[] => {
   const timestamp = new Date().toLocaleTimeString("zh-CN", { hour12: false })

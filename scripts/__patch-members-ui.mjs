@@ -3,17 +3,14 @@ import { readFileSync, writeFileSync } from "node:fs"
 // 1) SpaceMembersDialog：静态 import 改正（去掉双 script hack）
 const dialogPath = "src/renderer/src/components/knowledge/SpaceMembersDialog.vue"
 let d = readFileSync(dialogPath, "utf8")
-d = d.replace(
-  'import ConfirmDialogPlaceholder from "@/components/common/ConfirmDialog.vue"\n',
-  ""
-)
+d = d.replace('import ConfirmDialogPlaceholder from "@/components/common/ConfirmDialog.vue"\n', "")
 d = d.replace(
   'import { useTransientToast } from "@/composables/use-transient-toast"',
-  'import KbDialogHeader from "@/components/common/KbDialogHeader.vue"\nimport { useTransientToast } from "@/composables/use-transient-toast"'
+  'import KbDialogHeader from "@/components/common/KbDialogHeader.vue"\nimport { useTransientToast } from "@/composables/use-transient-toast"',
 )
 d = d.replace(
   /\n<script lang="ts">\nimport KbDialogHeader from "@\/components\/common\/KbDialogHeader.vue"\nexport default \{ components: \{ KbDialogHeader \} \}\n<\/script>\n$/,
-  "\n"
+  "\n",
 )
 writeFileSync(dialogPath, d)
 console.log("dialog imports ok")
@@ -24,7 +21,7 @@ let h = readFileSync(headerPath, "utf8")
 h = h.replace(
   `  "create-space": [name: string]`,
   `  "create-space": [name: string]
-  "manage-members": [spaceId: string]`
+  "manage-members": [spaceId: string]`,
 )
 h = h.replace(
   `            <button
@@ -50,7 +47,7 @@ h = h.replace(
               @click="emit('open-account')"
             >
               个人设置
-            </button>`
+            </button>`,
 )
 writeFileSync(headerPath, h)
 console.log("header manage entry ok")
@@ -60,7 +57,7 @@ const menuPath = "src/renderer/src/components/knowledge/KnowledgeSidebarMenu.vue
 let m = readFileSync(menuPath, "utf8")
 m = m.replace(
   'import KnowledgeSidebarKnowledgeBasesSection from "@/components/knowledge/sidebar/KnowledgeSidebarKnowledgeBasesSection.vue"',
-  'import KnowledgeSidebarKnowledgeBasesSection from "@/components/knowledge/sidebar/KnowledgeSidebarKnowledgeBasesSection.vue"\nimport SpaceMembersDialog from "@/components/knowledge/SpaceMembersDialog.vue"'
+  'import KnowledgeSidebarKnowledgeBasesSection from "@/components/knowledge/sidebar/KnowledgeSidebarKnowledgeBasesSection.vue"\nimport SpaceMembersDialog from "@/components/knowledge/SpaceMembersDialog.vue"',
 )
 m = m.replace(
   "const handleSpaceCreated = async (name: string) => {",
@@ -73,11 +70,11 @@ const handleManageMembers = (spaceId: string) => {
   }
 }
 
-const handleSpaceCreated = async (name: string) => {`
+const handleSpaceCreated = async (name: string) => {`,
 )
 m = m.replace(
   '      @create-space="handleSpaceCreated"',
-  '      @create-space="handleSpaceCreated"\n      @manage-members="handleManageMembers"'
+  '      @create-space="handleSpaceCreated"\n      @manage-members="handleManageMembers"',
 )
 m = m.replace(
   `    <KnowledgeSidebarKnowledgeBasesSection`,
@@ -90,7 +87,7 @@ m = m.replace(
       @close="membersDialogSpace = null"
     />
 
-    <KnowledgeSidebarKnowledgeBasesSection`
+    <KnowledgeSidebarKnowledgeBasesSection`,
 )
 writeFileSync(menuPath, m)
 console.log("menu host ok")

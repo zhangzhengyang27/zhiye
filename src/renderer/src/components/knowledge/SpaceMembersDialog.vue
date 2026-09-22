@@ -83,12 +83,12 @@ const loadMembers = async () => {
 
 watch(
   () => props.visible,
-  visible => {
+  (visible) => {
     if (visible) {
       void loadMembers()
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const handleInvite = async () => {
@@ -144,7 +144,7 @@ const handleClose = () => {
     title="空间成员"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && handleClose()"
+    @update:model-value="(value) => !value && handleClose()"
   >
     <template #header>
       <KbDialogHeader
@@ -169,7 +169,9 @@ const handleClose = () => {
           :loading="inviting"
           :disabled="!inviteEmail.trim()"
           @click="handleInvite"
-          ><template #loading><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin" /></template>
+          ><template #loading
+            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
           <span class="truncate">邀请</span>
         </el-button>
       </div>
@@ -195,15 +197,23 @@ const handleClose = () => {
                 :alt="member.displayName"
                 class="h-full w-full object-cover"
               />
-              <span v-else>{{ (member.displayName || member.email || "?").slice(0, 1).toUpperCase() }}</span>
+              <span v-else>{{
+                (member.displayName || member.email || "?").slice(0, 1).toUpperCase()
+              }}</span>
             </span>
             <div class="min-w-0">
-              <p class="truncate text-[13px] font-medium text-ink">{{ member.displayName || "未命名成员" }}</p>
+              <p class="truncate text-[13px] font-medium text-ink">
+                {{ member.displayName || "未命名成员" }}
+              </p>
               <p class="truncate text-[11px] text-ink-quaternary">{{ member.email ?? "" }}</p>
             </div>
           </div>
           <div class="flex shrink-0 items-center gap-2">
-            <el-tag disable-transitions :type="member.role === 'owner' ? 'success' : undefined" effect="plain">
+            <el-tag
+              disable-transitions
+              :type="member.role === 'owner' ? 'success' : undefined"
+              effect="plain"
+            >
               {{ member.role === "owner" ? "所有者" : "成员" }}
             </el-tag>
             <el-button
@@ -218,7 +228,9 @@ const handleClose = () => {
             </el-button>
           </div>
         </li>
-        <li v-if="members.length === 0" class="py-8 text-center text-[13px] text-ink-tertiary">暂无成员。</li>
+        <li v-if="members.length === 0" class="py-8 text-center text-[13px] text-ink-tertiary">
+          暂无成员。
+        </li>
       </ul>
     </div>
 

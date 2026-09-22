@@ -47,7 +47,11 @@ export type TreeRowRegistryItem = {
 }
 
 /** 根据指针在节点矩形中的纵向位置推断落点方向。 */
-export const resolveDropPositionByRect = (clientY: number, rect: DOMRect, isFolder: boolean): TreeDropPosition => {
+export const resolveDropPositionByRect = (
+  clientY: number,
+  rect: DOMRect,
+  isFolder: boolean,
+): TreeDropPosition => {
   if (rect.height <= 0) {
     return "append"
   }

@@ -81,7 +81,9 @@ const fallbackInitial = (label?: string) => {
             class="h-full w-full object-cover"
             @error="emit('avatar-error')"
           />
-          <span v-else class="text-[13px] font-medium text-ink-secondary">{{ fallbackInitial(userLabel) }}</span>
+          <span v-else class="text-[13px] font-medium text-ink-secondary">{{
+            fallbackInitial(userLabel)
+          }}</span>
         </button>
       </div>
     </div>

@@ -114,26 +114,26 @@ const filteredGroups = computed(() => {
   }
 
   return groups
-    .map(group => ({
+    .map((group) => ({
       title: group.title,
       rows: group.rows.filter(
-        row =>
+        (row) =>
           row.label.toLowerCase().includes(query) ||
           (row.markdown?.[0] ?? "").toLowerCase().includes(query) ||
-          (row.keys ?? []).some(key => key.toLowerCase().includes(query))
+          (row.keys ?? []).some((key) => key.toLowerCase().includes(query)),
       ),
     }))
-    .filter(group => group.rows.length > 0)
+    .filter((group) => group.rows.length > 0)
 })
 
 // 关闭后清空过滤词，避免下次打开仍停留在上次的搜索结果
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (!open) {
       keyword.value = ""
     }
-  }
+  },
 )
 
 const dialog = useDialogBehavior({
@@ -150,7 +150,7 @@ const dialog = useDialogBehavior({
     title="快捷键"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && emit('close')"
+    @update:model-value="(value) => !value && emit('close')"
   >
     <template #header>
       <KbDialogHeader title="快捷键" eyebrow="编辑器" @close="emit('close')" />
@@ -166,7 +166,9 @@ const dialog = useDialogBehavior({
         />
       </div>
 
-      <div class="grid grid-cols-[1fr_auto_auto] items-center gap-x-6 px-1 text-[12px] font-medium text-ink-quaternary">
+      <div
+        class="grid grid-cols-[1fr_auto_auto] items-center gap-x-6 px-1 text-[12px] font-medium text-ink-quaternary"
+      >
         <span>功能</span>
         <span>快捷键</span>
         <span>Markdown</span>
@@ -198,10 +200,16 @@ const dialog = useDialogBehavior({
                   </kbd>
                 </template>
               </span>
-              <span v-if="row.markdown" class="min-w-28 text-right font-mono text-[11px] text-ink-tertiary">
-                {{ row.markdown[0] }}<template v-if="row.markdown[1]"> + {{ row.markdown[1] }}</template>
+              <span
+                v-if="row.markdown"
+                class="min-w-28 text-right font-mono text-[11px] text-ink-tertiary"
+              >
+                {{ row.markdown[0]
+                }}<template v-if="row.markdown[1]"> + {{ row.markdown[1] }}</template>
               </span>
-              <span v-else class="min-w-28 text-right font-mono text-[11px] text-ink-quaternary">—</span>
+              <span v-else class="min-w-28 text-right font-mono text-[11px] text-ink-quaternary"
+                >—</span
+              >
             </li>
           </ul>
         </section>

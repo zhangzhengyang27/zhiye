@@ -37,7 +37,7 @@ const getKnowledgeDocumentLinks = (documentId: string, token?: string | null) =>
   requestKbDriveApi<{ backlinks: KnowledgeLinkDocCard[]; forwardLinks: KnowledgeLinkDocCard[] }>(
     `/knowledge/documents/${documentId}/links`,
     undefined,
-    token
+    token,
   )
 
 type NetworkTab = "backlinks" | "forwardLinks"
@@ -63,7 +63,9 @@ const dialog = useDialogBehavior({
   open: () => props.visible,
 })
 
-const currentList = computed(() => (activeTab.value === "backlinks" ? backlinks.value : forwardLinks.value))
+const currentList = computed(() =>
+  activeTab.value === "backlinks" ? backlinks.value : forwardLinks.value,
+)
 
 const loadLinks = async () => {
   loading.value = true
@@ -81,17 +83,17 @@ const loadLinks = async () => {
 
 watch(
   () => props.visible,
-  visible => {
+  (visible) => {
     if (visible) {
       activeTab.value = "backlinks"
       void loadLinks()
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const emptyText = computed(() =>
-  activeTab.value === "backlinks" ? "本文档暂未被其他文档引用" : "本文档暂未引用其他文档"
+  activeTab.value === "backlinks" ? "本文档暂未被其他文档引用" : "本文档暂未引用其他文档",
 )
 
 const openDoc = (docId: string) => {
@@ -111,7 +113,7 @@ const handleClose = () => {
     title="知识网络"
     close-on-click-modal
     close-on-press-escape
-    @update:model-value="value => !value && handleClose()"
+    @update:model-value="(value) => !value && handleClose()"
   >
     <template #header>
       <KbDialogHeader
@@ -178,7 +180,9 @@ const handleClose = () => {
             @click.exact="openDoc(item.id)"
           >
             <span class="min-w-0">
-              <span class="block truncate text-sm font-medium text-ink">{{ item.title || "未命名文档" }}</span>
+              <span class="block truncate text-sm font-medium text-ink">{{
+                item.title || "未命名文档"
+              }}</span>
               <span class="mt-0.5 block truncate text-[12px] text-ink-tertiary">
                 {{ item.creatorName || "未知用户" }} · 更新于 {{ formatDateTime(item.updatedAt) }}
               </span>

@@ -14,11 +14,19 @@ import {
   extractDocumentPlainText,
   type DocumentOutlineItem,
 } from "@/utils/document-content-metadata"
-import { getKnowledgeDocumentEditorLabel, isBoardContent, isBoardEditorType } from "@/utils/knowledge-document"
+import {
+  getKnowledgeDocumentEditorLabel,
+  isBoardContent,
+  isBoardEditorType,
+} from "@/utils/knowledge-document"
 
 const YuqueDocEditor = defineAsyncComponent(() => import("@/components/editor/YuqueDocEditor.vue"))
-const DocumentInfoPanel = defineAsyncComponent(() => import("@/components/editor/DocumentInfoPanel.vue"))
-const ReadonlyBoardSurface = defineAsyncComponent(() => import("@/components/board/ReadonlyBoardSurface.vue"))
+const DocumentInfoPanel = defineAsyncComponent(
+  () => import("@/components/editor/DocumentInfoPanel.vue"),
+)
+const ReadonlyBoardSurface = defineAsyncComponent(
+  () => import("@/components/board/ReadonlyBoardSurface.vue"),
+)
 
 type SharedContent = {
   scheme: "text/markdown" | "text/html"
@@ -54,7 +62,10 @@ const snapshot = ref<(SharedContent & { title: string }) | null>(null)
 
 const canEdit = computed(() => sharedDoc.value?.permission === "edit")
 const isBoardShare = computed(() => {
-  return isBoardEditorType(sharedDoc.value?.document.editorType) || isBoardContent(sharedDoc.value?.document.content)
+  return (
+    isBoardEditorType(sharedDoc.value?.document.editorType) ||
+    isBoardContent(sharedDoc.value?.document.content)
+  )
 })
 const canEditShareContent = computed(() => canEdit.value && !isBoardShare.value)
 const editorContentType = computed<"markdown" | "html">(() => {
@@ -127,9 +138,9 @@ const shareInfoShortcuts = computed(() => {
   return shortcuts
 })
 
-const shareInfoCollaborators = computed<Array<{ id: string; label: string; role: string; avatar?: string | null }>>(
-  () => []
-)
+const shareInfoCollaborators = computed<
+  Array<{ id: string; label: string; role: string; avatar?: string | null }>
+>(() => [])
 
 const normalizeSharedContent = (rawContent: unknown): SharedContent => {
   if (rawContent && typeof rawContent === "object") {
@@ -262,7 +273,7 @@ const toggleShareInfoPanel = () => {
 }
 
 const jumpToShareOutlineItem = (itemId: string) => {
-  const targetIndex = shareOutlineItems.value.findIndex(item => item.id === itemId)
+  const targetIndex = shareOutlineItems.value.findIndex((item) => item.id === itemId)
 
   if (targetIndex < 0 || typeof document === "undefined") {
     return
@@ -271,8 +282,8 @@ const jumpToShareOutlineItem = (itemId: string) => {
   requestAnimationFrame(() => {
     const headings = Array.from(
       document.querySelectorAll<HTMLElement>(
-        ".yuque-doc-editor__surface h1, .yuque-doc-editor__surface h2, .yuque-doc-editor__surface h3, .yuque-doc-editor__surface h4"
-      )
+        ".yuque-doc-editor__surface h1, .yuque-doc-editor__surface h2, .yuque-doc-editor__surface h3, .yuque-doc-editor__surface h4",
+      ),
     )
 
     headings[targetIndex]?.scrollIntoView({
@@ -365,7 +376,7 @@ watch(
       password.value = ""
       void handleVerify()
     }
-  }
+  },
 )
 
 onBeforeUnmount(() => {
@@ -400,14 +411,19 @@ onBeforeUnmount(() => {
       </header>
 
       <div class="mt-6">
-        <div v-if="loading && !needPassword" class="kb-section-card px-6 py-10 text-center text-sm text-ink-tertiary">
+        <div
+          v-if="loading && !needPassword"
+          class="kb-section-card px-6 py-10 text-center text-sm text-ink-tertiary"
+        >
           正在加载分享内容…
         </div>
 
         <div v-else-if="needPassword || (!sharedDoc && !error)" class="mx-auto max-w-md">
           <div class="kb-panel-shell p-8">
             <div class="flex justify-center">
-              <div class="flex h-16 w-16 items-center justify-center rounded-kb-3xl bg-brand-light text-brand">
+              <div
+                class="flex h-16 w-16 items-center justify-center rounded-kb-3xl bg-brand-light text-brand"
+              >
                 <AppIcon name="i-lucide-lock" class="h-7 w-7" />
               </div>
             </div>
@@ -430,7 +446,11 @@ onBeforeUnmount(() => {
                 {{ error }}
               </p>
 
-              <el-button type="primary" class="w-full py-3 font-semibold" :disabled="verifying" @click="handleVerify"
+              <el-button
+                type="primary"
+                class="w-full py-3 font-semibold"
+                :disabled="verifying"
+                @click="handleVerify"
                 ><span class="truncate">{{ verifying ? "验证中…" : "验证密码" }}</span>
               </el-button>
             </div>
@@ -447,10 +467,14 @@ onBeforeUnmount(() => {
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2 text-sm text-ink-tertiary">
                   <span>{{ sharedDoc.document.kb.name }}</span>
-                  <span class="rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-ink-tertiary">
+                  <span
+                    class="rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-ink-tertiary"
+                  >
                     {{ shareStatusLabel }}
                   </span>
-                  <span class="rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-ink-tertiary">
+                  <span
+                    class="rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-ink-tertiary"
+                  >
                     {{ getKnowledgeDocumentEditorLabel(sharedDoc.document.editorType) }}
                   </span>
                 </div>
@@ -490,7 +514,10 @@ onBeforeUnmount(() => {
                     "
                     title="文档信息"
                     @click="toggleShareInfoPanel"
-                    ><UiIcon icon="i-lucide-panel-right-open" class="h-[1.2em] w-[1.2em] shrink-0" />
+                    ><UiIcon
+                      icon="i-lucide-panel-right-open"
+                      class="h-[1.2em] w-[1.2em] shrink-0"
+                    />
                   </el-button>
                 </div>
                 <RouterLink

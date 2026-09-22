@@ -11,7 +11,13 @@ declare module "markdown-it" {
   }
 
   export interface MarkdownItRendererRule {
-    (tokens: MarkdownItToken[], idx: number, options: unknown, env: unknown, self: MarkdownItRendererContext): string
+    (
+      tokens: MarkdownItToken[],
+      idx: number,
+      options: unknown,
+      env: unknown,
+      self: MarkdownItRendererContext,
+    ): string
   }
 
   export interface MarkdownItRenderer extends MarkdownItRendererContext {

@@ -9,7 +9,11 @@ import NotificationBell from "@/components/knowledge/NotificationBell.vue"
 import KnowledgeSidebarHeader from "@/components/knowledge/sidebar/KnowledgeSidebarHeader.vue"
 import KnowledgeSidebarKnowledgeBasesSection from "@/components/knowledge/sidebar/KnowledgeSidebarKnowledgeBasesSection.vue"
 import KnowledgeSidebarNav from "@/components/knowledge/sidebar/KnowledgeSidebarNav.vue"
-import { listKnowledgeBases, updateKnowledgeBaseSortOrder, type KnowledgeBaseItem } from "@/services/knowledge-base"
+import {
+  listKnowledgeBases,
+  updateKnowledgeBaseSortOrder,
+  type KnowledgeBaseItem,
+} from "@/services/knowledge-base"
 import { openSettingsWindow } from "@/services/desktop-bridge"
 import { IN_APP_COMMAND_EVENT } from "@/composables/use-in-app-shortcuts"
 import { useAuthStore } from "@/stores/auth"
@@ -27,7 +31,7 @@ const props = withDefaults(
     activeMenu: undefined,
     activeKbId: null,
     refreshKey: 0,
-  }
+  },
 )
 
 const route = useRoute()
@@ -171,7 +175,7 @@ const resolveCreateTargetKbId = () => {
     stored = ""
   }
 
-  if (stored && knowledgeBases.value.some(item => item.id === stored)) {
+  if (stored && knowledgeBases.value.some((item) => item.id === stored)) {
     return stored
   }
 
@@ -271,8 +275,8 @@ const loadKnowledgeBases = async () => {
 const handleReorder = async (items: { id: string; sortOrder: number }[]) => {
   // 乐观更新：先更新本地列表
   const sorted = [...knowledgeBases.value].sort((a, b) => {
-    const aOrder = items.find(i => i.id === a.id)?.sortOrder ?? 0
-    const bOrder = items.find(i => i.id === b.id)?.sortOrder ?? 0
+    const aOrder = items.find((i) => i.id === a.id)?.sortOrder ?? 0
+    const bOrder = items.find((i) => i.id === b.id)?.sortOrder ?? 0
     return aOrder - bOrder
   })
   knowledgeBases.value = sorted
@@ -290,7 +294,7 @@ watch(
   () => {
     void loadKnowledgeBases()
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 watch(
@@ -298,19 +302,19 @@ watch(
   () => {
     avatarLoadFailed.value = false
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 watch(
   resolvedActiveKbId,
-  kbId => {
+  (kbId) => {
     if (typeof window === "undefined" || !kbId) {
       return
     }
 
     try {
       window.localStorage.setItem(LAST_ACTIVE_KB_STORAGE_KEY, kbId)
-      const matchedKb = knowledgeBases.value.find(item => item.id === kbId)
+      const matchedKb = knowledgeBases.value.find((item) => item.id === kbId)
 
       if (matchedKb) {
         window.localStorage.setItem("knowledge:last-active-kb-name", matchedKb.name)
@@ -319,7 +323,7 @@ watch(
       // ignore localStorage write errors
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>
 
@@ -396,10 +400,17 @@ watch(
           class="flex w-full items-center gap-2.5 rounded-kb-md px-3 py-1.5 text-left transition hover:bg-grey-200"
           @click="goTrash"
         >
-          <Icon icon="ph:trash-simple" :width="15" :height="15" class="shrink-0 text-ink-tertiary" />
+          <Icon
+            icon="ph:trash-simple"
+            :width="15"
+            :height="15"
+            class="shrink-0 text-ink-tertiary"
+          />
           <span class="min-w-0">
             <span class="block truncate text-[13px] leading-5 text-ink-secondary">回收站</span>
-            <span class="block truncate text-[11px] leading-4 text-ink-quaternary">找回删除的文档与内容</span>
+            <span class="block truncate text-[11px] leading-4 text-ink-quaternary"
+              >找回删除的文档与内容</span
+            >
           </span>
         </button>
         <button
@@ -410,7 +421,9 @@ watch(
           <Icon icon="ph:gear" :width="15" :height="15" class="shrink-0 text-ink-tertiary" />
           <span class="min-w-0">
             <span class="block truncate text-[13px] leading-5 text-ink-secondary">偏好设置</span>
-            <span class="block truncate text-[11px] leading-4 text-ink-quaternary">主题、快捷键与代理</span>
+            <span class="block truncate text-[11px] leading-4 text-ink-quaternary"
+              >主题、快捷键与代理</span
+            >
           </span>
         </button>
       </div>

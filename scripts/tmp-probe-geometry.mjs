@@ -10,16 +10,18 @@ import {
 
 const OUT = process.env.GEOM_OUT || "/tmp/geom.json"
 const prefix = "[几何]"
-const { browser, context, page } = await createBrowserPage({ viewport: { width: 1247, height: 952 } })
+const { browser, context, page } = await createBrowserPage({
+  viewport: { width: 1247, height: 952 },
+})
 await context.addInitScript(() => {
   globalThis.localStorage.setItem("vueuse-color-scheme", "light")
 })
-const url = path => new URL(path, "http://127.0.0.1:4173").toString()
+const url = (path) => new URL(path, "http://127.0.0.1:4173").toString()
 const result = {}
 
-const snapshot = async name => {
+const snapshot = async (name) => {
   result[name] = await page.evaluate(() => {
-    const pick = el => {
+    const pick = (el) => {
       const r = el.getBoundingClientRect()
       const cs = getComputedStyle(el)
       return {
@@ -35,7 +37,7 @@ const snapshot = async name => {
       }
     }
     const out = { buttons: [], points: {} }
-    document.querySelectorAll("button").forEach(b => out.buttons.push(pick(b)))
+    document.querySelectorAll("button").forEach((b) => out.buttons.push(pick(b)))
     return out
   })
 }
@@ -61,7 +63,14 @@ try {
       let cur = el
       for (let i = 0; i < 3 && cur && cur !== document.body; i++) {
         const r = cur.getBoundingClientRect()
-        chain.push({ tag: cur.tagName, cls: String(cur.className?.baseVal ?? cur.className ?? "").slice(0, 80), x: +r.x.toFixed(2), y: +r.y.toFixed(2), w: +r.width.toFixed(2), h: +r.height.toFixed(2) })
+        chain.push({
+          tag: cur.tagName,
+          cls: String(cur.className?.baseVal ?? cur.className ?? "").slice(0, 80),
+          x: +r.x.toFixed(2),
+          y: +r.y.toFixed(2),
+          w: +r.width.toFixed(2),
+          h: +r.height.toFixed(2),
+        })
         cur = cur.parentElement
       }
       return chain
@@ -79,7 +88,14 @@ try {
     let cur = el
     for (let i = 0; i < 4 && cur && cur !== document.body; i++) {
       const r = cur.getBoundingClientRect()
-      chain.push({ tag: cur.tagName, cls: String(cur.className?.baseVal ?? cur.className ?? "").slice(0, 90), x: +r.x.toFixed(2), y: +r.y.toFixed(2), w: +r.width.toFixed(2), h: +r.height.toFixed(2) })
+      chain.push({
+        tag: cur.tagName,
+        cls: String(cur.className?.baseVal ?? cur.className ?? "").slice(0, 90),
+        x: +r.x.toFixed(2),
+        y: +r.y.toFixed(2),
+        w: +r.width.toFixed(2),
+        h: +r.height.toFixed(2),
+      })
       cur = cur.parentElement
     }
     return chain
@@ -91,7 +107,12 @@ try {
   await snapshot("editor")
   result.editorPoints = await page.evaluate(() => {
     const seen = new Map()
-    ;[[680, 20], [760, 20], [900, 20], [1100, 20]].forEach(([x, y]) => {
+    ;[
+      [680, 20],
+      [760, 20],
+      [900, 20],
+      [1100, 20],
+    ].forEach(([x, y]) => {
       const el = document.elementFromPoint(x, y)
       if (!el) return
       const r = el.getBoundingClientRect()

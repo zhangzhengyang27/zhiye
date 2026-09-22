@@ -5,25 +5,30 @@ const BASE = "http://127.0.0.1:4173"
 const HANDLES = { shell: "调整导航栏宽度", tree: "调整目录栏宽度" }
 
 const browser = await chromium.launch({ headless: true, args: ["--no-proxy-server"] })
-const context = await browser.newContext({ viewport: { width: 1280, height: 860 }, deviceScaleFactor: 2 })
+const context = await browser.newContext({
+  viewport: { width: 1280, height: 860 },
+  deviceScaleFactor: 2,
+})
 const page = await context.newPage()
 
 await page.goto(`${BASE}/auth/login`, { waitUntil: "networkidle" })
 await page.getByRole("textbox", { name: "账号" }).fill("demo@example.com")
 await page.getByRole("textbox", { name: "密码" }).fill("123456")
 await page.getByRole("button", { name: "登录并进入" }).click()
-await page.waitForURL(u => u.pathname === "/knowledge")
+await page.waitForURL((u) => u.pathname === "/knowledge")
 const kb = await page.evaluate(async () => {
   const raw = JSON.parse(localStorage.getItem("tools-web-auth-session") || "{}")
-  const r = await fetch("/api/knowledge/knowledge-bases", { headers: { Authorization: `Bearer ${raw.accessToken}` } })
+  const r = await fetch("/api/knowledge/knowledge-bases", {
+    headers: { Authorization: `Bearer ${raw.accessToken}` },
+  })
   const j = await r.json()
   return Array.isArray(j) ? j[0] : j?.data?.[0]
 })
 await page.goto(`${BASE}/knowledge/${kb.id}/overview`, { waitUntil: "networkidle" })
 await page.waitForTimeout(700)
 
-const probe = label =>
-  page.evaluate(l => {
+const probe = (label) =>
+  page.evaluate((l) => {
     const el = document.querySelector(`button[aria-label="${l}"]`)
     const span = el.querySelector("span")
     const panel = el.previousElementSibling
@@ -47,7 +52,16 @@ const drive = (label, steps, dx = 40) =>
       const cx = el.getBoundingClientRect().x + el.getBoundingClientRect().width / 2
       const fire = (t, type, x) =>
         t.dispatchEvent(
-          new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: 400, button: 0, pointerId: 3, isPrimary: true, pointerType: "mouse" })
+          new PointerEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            clientX: x,
+            clientY: 400,
+            button: 0,
+            pointerId: 3,
+            isPrimary: true,
+            pointerType: "mouse",
+          }),
         )
       for (const s of steps) {
         if (s === "down") fire(el, "pointerdown", cx)
@@ -57,12 +71,12 @@ const drive = (label, steps, dx = 40) =>
       }
       return null
     },
-    { l: label, steps, dx }
+    { l: label, steps, dx },
   )
 
 const results = []
 const check = (name, fn) =>
-  fn().then(value => results.push([value.ok ? "PASS" : "FAIL", name, value.detail]))
+  fn().then((value) => results.push([value.ok ? "PASS" : "FAIL", name, value.detail]))
 
 for (const [key, label] of Object.entries(HANDLES)) {
   // 1. pointercancel must end the drag state, and a later move must not keep resizing
@@ -75,7 +89,11 @@ for (const [key, label] of Object.entries(HANDLES)) {
   await page.waitForTimeout(150)
   const ghost = await probe(label)
   results.push([
-    afterCancel.spanBg === "rgba(0, 0, 0, 0)" && ghost.grid === afterCancel.grid && mid.spanBg !== "rgba(0, 0, 0, 0)" ? "PASS" : "FAIL",
+    afterCancel.spanBg === "rgba(0, 0, 0, 0)" &&
+    ghost.grid === afterCancel.grid &&
+    mid.spanBg !== "rgba(0, 0, 0, 0)"
+      ? "PASS"
+      : "FAIL",
     `${key}: 拖拽中显色 / pointercancel 收尾 / 之后不再跟随鼠标`,
     `mid=${mid.spanBg} cancel=${afterCancel.spanBg} grid ${afterCancel.grid} -> ${ghost.grid}`,
   ])
@@ -92,15 +110,19 @@ for (const [key, label] of Object.entries(HANDLES)) {
   ])
 
   // 3. hit area: every offset within +-6px of the divider must land on the handle
-  const hit = await page.evaluate(l => {
+  const hit = await page.evaluate((l) => {
     const el = document.querySelector(`button[aria-label="${l}"]`)
     const r = el.getBoundingClientRect()
-    return [-5, -3, -1, 0, 1, 3, 5].map(dx => {
+    return [-5, -3, -1, 0, 1, 3, 5].map((dx) => {
       const e = document.elementFromPoint(r.x + r.width / 2 + dx, 400)
       return e === el || el.contains(e)
     })
   }, label)
-  results.push([hit.every(Boolean) ? "PASS" : "FAIL", `${key}: 分隔线两侧 ±6px 命中拖拽条`, JSON.stringify(hit)])
+  results.push([
+    hit.every(Boolean) ? "PASS" : "FAIL",
+    `${key}: 分隔线两侧 ±6px 命中拖拽条`,
+    JSON.stringify(hit),
+  ])
 
   // 4. indicator overlays the panel border instead of forming a second line
   await page.mouse.move((await probe(label)).gutter[0] + 2, 400)
@@ -125,7 +147,10 @@ const neighbours = await page.evaluate(() => {
   if (!row) return { pill: onPill?.getAttribute("title") || onPill?.tagName, more: "no row found" }
   const rr = row.getBoundingClientRect()
   const onMore = document.elementFromPoint(rr.x + rr.width / 2, rr.y + rr.height / 2)
-  return { pill: onPill?.getAttribute("title") || onPill?.tagName, more: onMore?.getAttribute("title") || onMore?.tagName }
+  return {
+    pill: onPill?.getAttribute("title") || onPill?.tagName,
+    more: onMore?.getAttribute("title") || onMore?.tagName,
+  }
 })
 results.push([
   neighbours.pill === "收起目录栏" && neighbours.more === "更多操作" ? "PASS" : "FAIL",
@@ -150,7 +175,9 @@ await drive(HANDLES.shell, ["down", "move"])
 const darkActive = await probe(HANDLES.shell)
 await drive(HANDLES.shell, ["up"])
 results.push([
-  darkIdle.spanBg === "rgba(0, 0, 0, 0)" && darkActive.spanBg !== "rgba(0, 0, 0, 0)" ? "PASS" : "FAIL",
+  darkIdle.spanBg === "rgba(0, 0, 0, 0)" && darkActive.spanBg !== "rgba(0, 0, 0, 0)"
+    ? "PASS"
+    : "FAIL",
   "暗色：常态隐形 / 拖拽中显色",
   `idle=${darkIdle.spanBg} active=${darkActive.spanBg}`,
 ])
@@ -158,6 +185,6 @@ results.push([
 for (const [status, name, detail] of results) console.log(`${status}  ${name}\n        ${detail}`)
 await browser.close()
 assert.ok(
-  results.every(r => r[0] === "PASS"),
-  "存在失败项"
+  results.every((r) => r[0] === "PASS"),
+  "存在失败项",
 )

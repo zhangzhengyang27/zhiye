@@ -28,7 +28,7 @@ const props = withDefaults(
   {
     editable: false,
     surfaceSelector: ".yuque-doc-editor__surface",
-  }
+  },
 )
 
 const { showToastMessage } = useTransientToast()
@@ -104,7 +104,8 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", hideBar)
 })
 
-const asEditor = () => (props.editor && typeof props.editor === "object" ? (props.editor as YuqueEditorRef) : null)
+const asEditor = () =>
+  props.editor && typeof props.editor === "object" ? (props.editor as YuqueEditorRef) : null
 
 /** mousedown.prevent 保住 DOM 选区，内核命令才能命中当前选中内容 */
 const runFormat = (action: (editor: YuqueEditorRef) => void) => {
@@ -165,7 +166,7 @@ const runAiAssistant = () => {
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-kb-sm text-[13px] font-semibold text-ink-secondary transition hover:bg-muted"
             title="加粗"
-            @click="runFormat(editor => editor.setBold())"
+            @click="runFormat((editor) => editor.setBold())"
           >
             B
           </button>
@@ -173,7 +174,7 @@ const runAiAssistant = () => {
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-kb-sm text-[13px] italic text-ink-secondary transition hover:bg-muted"
             title="斜体"
-            @click="runFormat(editor => editor.setItalic())"
+            @click="runFormat((editor) => editor.setItalic())"
           >
             I
           </button>
@@ -181,7 +182,7 @@ const runAiAssistant = () => {
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-kb-sm text-[13px] text-ink-secondary line-through transition hover:bg-muted"
             title="删除线"
-            @click="runFormat(editor => editor.setStrikethrough())"
+            @click="runFormat((editor) => editor.setStrikethrough())"
           >
             S
           </button>
@@ -189,7 +190,7 @@ const runAiAssistant = () => {
             type="button"
             class="flex h-7 w-7 items-center justify-center rounded-kb-sm transition hover:bg-muted"
             title="高亮"
-            @click="runFormat(editor => editor.setBgColor(HIGHLIGHT_COLOR))"
+            @click="runFormat((editor) => editor.setBgColor(HIGHLIGHT_COLOR))"
           >
             <AppIcon name="i-lucide-highlighter" class="h-4 w-4 text-warning" />
           </button>

@@ -21,13 +21,22 @@ const openSearchPanel = async (kbId, docId) => {
   await page.waitForTimeout(1000)
   await page.locator(".ne-editor-wrap-content").first().click()
   const directSearch = page.locator(".ne-ui-toolbar-search")
-  if ((await directSearch.count()) > 0 && (await directSearch.first().isVisible().catch(() => false))) {
+  if (
+    (await directSearch.count()) > 0 &&
+    (await directSearch
+      .first()
+      .isVisible()
+      .catch(() => false))
+  ) {
     await directSearch.first().click()
   } else {
     await page.locator(".ne-ui-toolbar-more-button").click()
     await page.locator(".ne-ui-toolbar-search").click()
   }
-  await page.getByText("查找", { exact: true }).first().waitFor({ state: "visible", timeout: 10_000 })
+  await page
+    .getByText("查找", { exact: true })
+    .first()
+    .waitFor({ state: "visible", timeout: 10_000 })
 }
 
 try {
@@ -40,11 +49,11 @@ try {
   await findInput.click()
   await page.keyboard.type("苹果", { delay: 100 })
   await page.waitForTimeout(600)
-  const dump = async label => {
+  const dump = async (label) => {
     const html = await page.evaluate(() => {
       const pick = document.querySelector(".ne-ui-search-panel")
-      const fallback = [...document.querySelectorAll("div")].find(d =>
-        /ne-ui-search/.test(d.className && String(d.className))
+      const fallback = [...document.querySelectorAll("div")].find((d) =>
+        /ne-ui-search/.test(d.className && String(d.className)),
       )
       const el = pick ?? fallback
       return el ? el.outerHTML.replace(/\s+/g, " ").slice(0, 1800) : "NOT FOUND"

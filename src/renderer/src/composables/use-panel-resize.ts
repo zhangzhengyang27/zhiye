@@ -119,21 +119,21 @@ export const usePanelResize = (options: {
 
   watch(
     storageKey,
-    key => {
+    (key) => {
       const stored = readStoredWidth(key)
       width.value = stored === null ? defaultWidth : clamp(stored)
     },
-    { immediate: true }
+    { immediate: true },
   )
 
   watch(
     width,
-    value => {
+    (value) => {
       if (!resizing.value) {
         writeStoredWidth(storageKey.value, value)
       }
     },
-    { flush: "post" }
+    { flush: "post" },
   )
 
   onBeforeUnmount(stop)

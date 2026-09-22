@@ -59,7 +59,11 @@ const emit = defineEmits<{
           </div>
 
           <div class="flex shrink-0 flex-col items-end gap-2">
-            <AppBadge color="success" variant="soft" class="rounded-[6px] px-2 py-0.5 text-[11px] font-medium">
+            <AppBadge
+              color="success"
+              variant="soft"
+              class="rounded-[6px] px-2 py-0.5 text-[11px] font-medium"
+            >
               {{ props.currentUserRole }}
             </AppBadge>
             <div
@@ -92,7 +96,9 @@ const emit = defineEmits<{
               :key="item.label"
               class="rounded-[8px] border border-grey-200 bg-grey-100 px-3 py-2"
             >
-              <p class="text-[11px] uppercase tracking-[0.16em] text-ink-quaternary">{{ item.label }}</p>
+              <p class="text-[11px] uppercase tracking-[0.16em] text-ink-quaternary">
+                {{ item.label }}
+              </p>
               <p class="mt-1 break-all text-sm font-medium text-ink-secondary">{{ item.value }}</p>
             </div>
           </div>
@@ -100,7 +106,12 @@ const emit = defineEmits<{
           <div
             class="flex items-start gap-2 rounded-[8px] border border-grey-200 bg-grey-100 px-3 py-2.5 text-xs text-ink-tertiary"
           >
-            <UiIcon icon="ph:user-circle" :width="16" :height="16" class="mt-0.5 shrink-0 text-ink-quaternary" />
+            <UiIcon
+              icon="ph:user-circle"
+              :width="16"
+              :height="16"
+              class="mt-0.5 shrink-0 text-ink-quaternary"
+            />
             <span>该账号会作为当前知识库的操作身份，用于编辑、协作和历史记录归属。</span>
           </div>
 

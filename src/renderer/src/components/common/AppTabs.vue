@@ -25,7 +25,9 @@ const emit = defineEmits<{
   "update:modelValue": [value: string]
 }>()
 
-const enabledValues = computed(() => props.items.filter(item => !item.disabled).map(item => item.value))
+const enabledValues = computed(() =>
+  props.items.filter((item) => !item.disabled).map((item) => item.value),
+)
 
 const tabRefs = ref<Record<string, HTMLButtonElement | null>>({})
 /** 键盘移动中的焦点值；只有激活/失焦后回落回选中项 */
@@ -40,7 +42,9 @@ const activeKey = computed(() => {
     return focusedValue.value
   }
 
-  return enabledValues.value.includes(props.modelValue) ? props.modelValue : (enabledValues.value[0] ?? "")
+  return enabledValues.value.includes(props.modelValue)
+    ? props.modelValue
+    : (enabledValues.value[0] ?? "")
 })
 
 const handleTablistKeydown = (event: KeyboardEvent) => {

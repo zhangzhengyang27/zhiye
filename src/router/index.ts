@@ -158,7 +158,7 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async to => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   await authStore.ensureHydrated()
 
@@ -186,20 +186,22 @@ router.afterEach(() => {
   const body = document.body
 
   // 移除可能的 overlay 元素（Nuxt UI 通常创建 div.overlay 或类似元素）
-  const overlays = body.querySelectorAll(':scope > div[class*="overlay"], :scope > div[class*="backdrop"]')
-  overlays.forEach(el => el.remove())
+  const overlays = body.querySelectorAll(
+    ':scope > div[class*="overlay"], :scope > div[class*="backdrop"]',
+  )
+  overlays.forEach((el) => el.remove())
 
   // 移除空的 dialog 容器
   const dialogs = body.querySelectorAll(':scope > div[role="dialog"]')
-  dialogs.forEach(el => {
-    if (el.children.length === 0 || el.getAttribute('aria-hidden') === 'true') {
+  dialogs.forEach((el) => {
+    if (el.children.length === 0 || el.getAttribute("aria-hidden") === "true") {
       el.remove()
     }
   })
 
   // 恢复 body 滚动（Modal 可能锁定了滚动）
-  body.style.overflow = ''
-  body.style.paddingRight = ''
+  body.style.overflow = ""
+  body.style.paddingRight = ""
 })
 
 export default router

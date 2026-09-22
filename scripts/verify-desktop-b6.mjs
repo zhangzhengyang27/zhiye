@@ -39,7 +39,7 @@ const PREFIX = "[desktop-b6]"
 
 let checks = 0
 
-const pass = label => {
+const pass = (label) => {
   checks += 1
   logStep(PREFIX, `✓ ${label}`)
 }
@@ -85,8 +85,14 @@ await check("#28 级联夹取：无基准退化为原点级联；越界落点夹
 
 await check("#31 深链解析：knowledge://kb/:id/doc/:id → SPA 路由，非法形态全拒", () => {
   assert.equal(deepLink.DEEP_LINK_PROTOCOL, "knowledge")
-  assert.equal(deepLink.parseKnowledgeDeepLink("knowledge://kb/abc123/doc/xyz_-9"), "/knowledge/abc123/doc/xyz_-9")
-  assert.equal(deepLink.parseKnowledgeDeepLink("knowledge://kb/u1/doc/v2?from=tray"), "/knowledge/u1/doc/v2")
+  assert.equal(
+    deepLink.parseKnowledgeDeepLink("knowledge://kb/abc123/doc/xyz_-9"),
+    "/knowledge/abc123/doc/xyz_-9",
+  )
+  assert.equal(
+    deepLink.parseKnowledgeDeepLink("knowledge://kb/u1/doc/v2?from=tray"),
+    "/knowledge/u1/doc/v2",
+  )
   // 非 knowledge 协议 / 非 kb host / 缺段 / 多段 / 目录穿越 / 非法字符 / 非 URL
   assert.equal(deepLink.parseKnowledgeDeepLink("https://kb/u1/doc/v2"), null)
   assert.equal(deepLink.parseKnowledgeDeepLink("knowledge://other/u1/doc/v2"), null)
@@ -98,7 +104,7 @@ await check("#31 深链解析：knowledge://kb/:id/doc/:id → SPA 路由，非�
 })
 
 // ---------------- 2. 源码结构断言 ----------------
-const readSource = relativePath => fs.readFileSync(path.join(repoRoot, relativePath), "utf-8")
+const readSource = (relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf-8")
 
 const mainSource = readSource("src/main/index.ts")
 const managerSource = readSource("src/main/online-window-manager.ts")
@@ -126,26 +132,37 @@ await check("#29 菜单字面量与快捷键：编辑组查找/历史、窗口�
 })
 
 await check("#29 缩放档位：0.75 / 0.9 / 1.0 / 1.25 / 1.5 / 2.00（对齐语雀字面）", () => {
-  const zoomBlock = mainSource.slice(mainSource.indexOf("ZOOM_LEVELS"), mainSource.indexOf("ZOOM_EPSILON"))
+  const zoomBlock = mainSource.slice(
+    mainSource.indexOf("ZOOM_LEVELS"),
+    mainSource.indexOf("ZOOM_EPSILON"),
+  )
   for (const label of ["0.75", "0.9", "1.0", "1.25", "1.5", "2.00"]) {
     assert.ok(zoomBlock.includes(`label: "${label}"`), `缩放档位缺少 ${label}`)
   }
 })
 
 await check("#28 管理器接管：open-document-window 走管理器，上限/级联/超限 toast 齐", () => {
-  for (const needle of ["MAX_ONLINE_WINDOWS", "ONLINE_WINDOW_LIMIT_TOAST", "computeCascadeOrigin", 'once("closed"']) {
+  for (const needle of [
+    "MAX_ONLINE_WINDOWS",
+    "ONLINE_WINDOW_LIMIT_TOAST",
+    "computeCascadeOrigin",
+    'once("closed"',
+  ]) {
     assert.ok(managerSource.includes(needle), `管理器缺少 ${needle}`)
   }
   assert.ok(mainSource.includes('ipcMain.handle("xiaoye:open-document-window"'), "IPC 通道缺失")
   assert.ok(
     mainSource.includes("openOnlineWindow({") && mainSource.includes("onLimit:"),
-    "open-document-window 未走管理器"
+    "open-document-window 未走管理器",
   )
   assert.ok(mainSource.includes("send(TOAST_CHANNEL, message)"), "超限 toast 未发给渲染层")
 })
 
 await check("#31 协议注册与深链接线：setAsDefaultProtocolClient + open-url/second-instance", () => {
-  assert.ok(mainSource.includes("app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL"), "协议注册缺失")
+  assert.ok(
+    mainSource.includes("app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL"),
+    "协议注册缺失",
+  )
   assert.ok(mainSource.includes('app.on("open-url"'), "open-url 监听缺失")
   assert.ok(mainSource.includes('app.on("second-instance"'), "second-instance 监听缺失")
   assert.ok(mainSource.includes("parseKnowledgeDeepLink"), "深链解析未接入")
@@ -212,7 +229,7 @@ const previewReachable = await fetch(smokeConfig.baseUrl, { method: "GET" })
 if (!previewReachable) {
   logStep(
     PREFIX,
-    "跳过 720 宽四屏审计（preview 不可达：请先 pnpm build:web && pnpm preview:web --port 4173 --host 127.0.0.1）"
+    "跳过 720 宽四屏审计（preview 不可达：请先 pnpm build:web && pnpm preview:web --port 4173 --host 127.0.0.1）",
   )
 } else {
   const { browser, page } = await createBrowserPage({ viewport: { width: 720, height: 760 } })
@@ -234,15 +251,15 @@ if (!previewReachable) {
     const kb = Array.isArray(kbList) ? kbList[0] : null
     let docPath = null
     if (kb) {
-      const tree = await page.evaluate(async kbId => {
+      const tree = await page.evaluate(async (kbId) => {
         const session = JSON.parse(localStorage.getItem("tools-web-auth-session") || "{}")
         const res = await fetch(`/api/knowledge/documents/tree?kbId=${encodeURIComponent(kbId)}`, {
           headers: { Authorization: `Bearer ${session?.accessToken ?? ""}` },
         })
         return res.json()
       }, kb.id)
-      const flatten = nodes => nodes.flatMap(node => [node, ...flatten(node.children || [])])
-      const doc = flatten(Array.isArray(tree) ? tree : []).find(node => node.type === "doc")
+      const flatten = (nodes) => nodes.flatMap((node) => [node, ...flatten(node.children || [])])
+      const doc = flatten(Array.isArray(tree) ? tree : []).find((node) => node.type === "doc")
       if (doc) {
         docPath = `/knowledge/${kb.id}/doc/${doc.id}`
       }
@@ -256,12 +273,14 @@ if (!previewReachable) {
      */
     const auditScreen = async (label, urlPath, strict) => {
       await page.setViewportSize({ width: 720, height: 760 })
-      await page.goto(new URL(urlPath, smokeConfig.baseUrl).toString(), { waitUntil: "networkidle" })
+      await page.goto(new URL(urlPath, smokeConfig.baseUrl).toString(), {
+        waitUntil: "networkidle",
+      })
       await page.waitForTimeout(900)
       const result = await page.evaluate(() => {
         const vw = window.innerWidth
         const scrolling = document.scrollingElement
-        const isScrollable = el => {
+        const isScrollable = (el) => {
           let node = el.parentElement
           while (node && node !== document.body) {
             if (/(auto|scroll)/.test(getComputedStyle(node).overflowX)) {
@@ -293,14 +312,14 @@ if (!previewReachable) {
       assert.equal(
         result.scrollWidth <= result.innerWidth + 1,
         true,
-        `${label} 页面级横向滚动：scrollWidth=${result.scrollWidth}`
+        `${label} 页面级横向滚动：scrollWidth=${result.scrollWidth}`,
       )
       if (strict) {
         assert.equal(result.clipped, 0, `${label} 存在硬剪裁元素（不可达）：${result.clipped}`)
       }
       logStep(
         PREFIX,
-        `${label}: scrollWidth=${result.scrollWidth}/${result.innerWidth} 溢出元素=${result.overflowCount} 硬剪裁=${result.clipped}`
+        `${label}: scrollWidth=${result.scrollWidth}/${result.innerWidth} 溢出元素=${result.overflowCount} 硬剪裁=${result.clipped}`,
       )
       await page.screenshot({ path: path.join(repoRoot, "output", `b6-720-${label}.png`) })
     }
@@ -325,13 +344,16 @@ if (!previewReachable) {
       logStep(PREFIX, "跳过编辑页审计（无文档数据）")
     }
 
-    await check("720 宽·设置页：无页面级横向滚动（780 定宽走自身滚动容器兜底，登记不断言）", async () => {
-      await auditScreen("settings", "/settings", false)
-      logStep(
-        PREFIX,
-        "登记：设置页内容列 780 定宽在 <780 窗宽下出现容器内横向滚动条（views/settings 为 B6 禁改范围，未动）"
-      )
-    })
+    await check(
+      "720 宽·设置页：无页面级横向滚动（780 定宽走自身滚动容器兜底，登记不断言）",
+      async () => {
+        await auditScreen("settings", "/settings", false)
+        logStep(
+          PREFIX,
+          "登记：设置页内容列 780 定宽在 <780 窗宽下出现容器内横向滚动条（views/settings 为 B6 禁改范围，未动）",
+        )
+      },
+    )
 
     assertNoPageErrors(diagnostics)
   } finally {
@@ -341,7 +363,13 @@ if (!previewReachable) {
 
 logStep(PREFIX, `通过 ${checks} 项断言`)
 logStep(PREFIX, "未覆盖（Web 端跑不到，需 pnpm dev --remoteDebuggingPort=9222 真机走查）：")
-logStep(PREFIX, "  #28 连开 6 扇第 6 扇被拒 + 级联落点 + 超限 toast 显现（渲染层消费端待接线）、关窗即移除跟踪")
-logStep(PREFIX, "  #29 菜单点击 → 渲染层 onInAppMenu 事件到达（渲染层消费端待接线）、窗口置顶/缩放真窗生效、演示模式")
+logStep(
+  PREFIX,
+  "  #28 连开 6 扇第 6 扇被拒 + 级联落点 + 超限 toast 显现（渲染层消费端待接线）、关窗即移除跟踪",
+)
+logStep(
+  PREFIX,
+  "  #29 菜单点击 → 渲染层 onInAppMenu 事件到达（渲染层消费端待接线）、窗口置顶/缩放真窗生效、演示模式",
+)
 logStep(PREFIX, "  #31 knowledge:// 冷/热启动路由命中（open -a 真机）、macOS dev argv 协议登记生效")
 logStep(PREFIX, "  #33 Electron 真窗 minWidth=720 拖拽下限（Web 审计已覆盖壳层与溢出收敛）")

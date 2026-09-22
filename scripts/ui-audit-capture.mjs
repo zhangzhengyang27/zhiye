@@ -23,10 +23,10 @@ const errorsByPage = {}
 async function shoot(page, name, route, options = {}) {
   const url = new globalThis.URL(route, smokeConfig.baseUrl).toString()
   errorsByPage[name] = []
-  const onConsole = message => {
+  const onConsole = (message) => {
     if (message.type() === "error") errorsByPage[name].push(message.text())
   }
-  const onPageError = error => errorsByPage[name].push(`pageerror: ${error.message}`)
+  const onPageError = (error) => errorsByPage[name].push(`pageerror: ${error.message}`)
   page.on("console", onConsole)
   page.on("pageerror", onPageError)
 
@@ -44,7 +44,10 @@ async function shoot(page, name, route, options = {}) {
       logStep(prefix, `⚠ ${name} 交互失败: ${error.message.split("\n")[0]}`)
     }
   }
-  await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: options.fullPage ?? false })
+  await page.screenshot({
+    path: path.join(outDir, `${name}.png`),
+    fullPage: options.fullPage ?? false,
+  })
   logStep(prefix, `✓ ${name} (${route})`)
   page.off("console", onConsole)
   page.off("pageerror", onPageError)
@@ -72,8 +75,10 @@ const tree = await (
     headers: { Authorization: `Bearer ${token}` },
   })
 ).json()
-const flat = nodes => nodes.flatMap(n => [n, ...flat(n.children || [])])
-let boardDoc = flat(Array.isArray(tree) ? tree : []).find(n => n.type === "doc" && n.editorType === "board")
+const flat = (nodes) => nodes.flatMap((n) => [n, ...flat(n.children || [])])
+let boardDoc = flat(Array.isArray(tree) ? tree : []).find(
+  (n) => n.type === "doc" && n.editorType === "board",
+)
 if (!boardDoc) {
   boardDoc = await (
     await fetch(`${smokeConfig.apiBaseUrl}/knowledge/documents`, {
@@ -122,7 +127,7 @@ logStep(prefix, "===== console 错误汇总 =====")
 let hasError = false
 for (const [name, errors] of Object.entries(errorsByPage)) {
   const meaningful = errors.filter(
-    e => !e.includes("Failed to load resource: the server responded with a status of 404")
+    (e) => !e.includes("Failed to load resource: the server responded with a status of 404"),
   )
   if (meaningful.length > 0) {
     hasError = true

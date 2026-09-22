@@ -15,7 +15,7 @@ const props = withDefaults(
     color: "neutral",
     variant: "soft",
     size: "sm",
-  }
+  },
 )
 
 const toneClass = computed(() => {
@@ -32,7 +32,10 @@ const toneClass = computed(() => {
   }
 
   const tones: Record<string, { soft: string; subtle: string }> = {
-    primary: { soft: "bg-brand-light text-brand-active", subtle: "bg-brand-faint text-brand-active" },
+    primary: {
+      soft: "bg-brand-light text-brand-active",
+      subtle: "bg-brand-faint text-brand-active",
+    },
     success: { soft: "bg-success-light text-success", subtle: "bg-success-bg text-success" },
     warning: { soft: "bg-warning-light text-warning", subtle: "bg-warning-bg text-warning" },
     error: { soft: "bg-error-light text-error", subtle: "bg-error-bg text-error" },

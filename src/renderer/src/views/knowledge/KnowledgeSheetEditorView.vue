@@ -134,9 +134,11 @@ const serialize = () => ({
     name: colLabel(index),
     type: "text" as const,
   })),
-  rows: cells.value.map(rowValues => ({
+  rows: cells.value.map((rowValues) => ({
     id: `row-${cells.value.indexOf(rowValues)}`,
-    cells: Object.fromEntries(rowValues.map((value, col) => [COLUMN_LETTERS[col] ?? String(col), value])),
+    cells: Object.fromEntries(
+      rowValues.map((value, col) => [COLUMN_LETTERS[col] ?? String(col), value]),
+    ),
   })),
 })
 
@@ -188,7 +190,7 @@ watch(
     editVersion.value += 1
     scheduleSave()
   },
-  { deep: true, flush: "sync" }
+  { deep: true, flush: "sync" },
 )
 
 watch(
@@ -210,7 +212,7 @@ watch(
     savedVersion.value = editVersion.value
     void loadDocument()
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // 目录树点另一篇文档时路由组件被复用（仅 params.docId 变化），onBeforeRouteLeave
@@ -282,17 +284,25 @@ const confirmRemoveRow = () => {
       </span>
       <span v-else-if="saveError" class="text-[12px] text-error">{{ saveError }}</span>
       <span v-else-if="isDirty" class="text-[12px] text-ink-quaternary">有未保存的修改</span>
-      <span v-else-if="savedAtLabel" class="text-[12px] text-ink-quaternary">{{ savedAtLabel }}</span>
+      <span v-else-if="savedAtLabel" class="text-[12px] text-ink-quaternary">{{
+        savedAtLabel
+      }}</span>
     </header>
 
     <!-- 加载态 -->
-    <div v-if="loading" class="flex flex-1 items-center justify-center gap-2 text-kb-sm text-ink-tertiary">
+    <div
+      v-if="loading"
+      class="flex flex-1 items-center justify-center gap-2 text-kb-sm text-ink-tertiary"
+    >
       <UiIcon icon="ph:circle-notch" :width="16" :height="16" class="animate-spin" />
       正在加载表格…
     </div>
 
     <!-- 加载失败：整页错误 + 重试 -->
-    <div v-else-if="loadError" class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+    <div
+      v-else-if="loadError"
+      class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+    >
       <UiIcon icon="ph:warning-circle" :width="28" :height="28" class="text-ink-quaternary" />
       <p class="text-kb-sm text-ink-secondary">{{ loadError }}</p>
       <button
@@ -359,7 +369,11 @@ const confirmRemoveRow = () => {
                 </button>
               </span>
             </th>
-            <td v-for="(cell, colIndex) in row" :key="colIndex" class="border-b border-r border-line p-0">
+            <td
+              v-for="(cell, colIndex) in row"
+              :key="colIndex"
+              class="border-b border-r border-line p-0"
+            >
               <input
                 :value="cell"
                 :disabled="!canEdit"
@@ -391,7 +405,7 @@ const confirmRemoveRow = () => {
       danger
       confirm-text="删除"
       @confirm="confirmRemoveCol"
-      @update:open="value => !value && (pendingColIndex = null)"
+      @update:open="(value) => !value && (pendingColIndex = null)"
     />
     <ConfirmDialog
       :open="pendingRowIndex !== null"
@@ -400,7 +414,7 @@ const confirmRemoveRow = () => {
       danger
       confirm-text="删除"
       @confirm="confirmRemoveRow"
-      @update:open="value => !value && (pendingRowIndex = null)"
+      @update:open="(value) => !value && (pendingRowIndex = null)"
     />
   </div>
 </template>

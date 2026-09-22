@@ -31,7 +31,9 @@ const avatarUrl = ref<string | null>(null)
 const profileSubmitting = ref(false)
 const passwordSubmitting = ref(false)
 
-const initials = computed(() => (profileForm.displayName || "用").trim().charAt(0).toUpperCase() || "用")
+const initials = computed(
+  () => (profileForm.displayName || "用").trim().charAt(0).toUpperCase() || "用",
+)
 
 const applyProfile = (profile: {
   displayName: string
@@ -51,7 +53,7 @@ onMounted(() => {
   }
 
   void fetchMyProfile()
-    .then(profile => {
+    .then((profile) => {
       applyProfile(profile)
       authStore.patchUser({
         displayName: profile.displayName,
@@ -184,12 +186,19 @@ const handleLogout = async () => {
       <!-- 基本资料 -->
       <section class="rounded-[12px] border border-line bg-surface p-5">
         <h2 class="text-[14px] font-semibold text-ink">基本资料</h2>
-        <p class="mt-1 text-[12px] text-ink-tertiary">昵称会展示给协作成员，邮箱与手机号用于登录与通知。</p>
+        <p class="mt-1 text-[12px] text-ink-tertiary">
+          昵称会展示给协作成员，邮箱与手机号用于登录与通知。
+        </p>
 
         <div class="mt-4 flex flex-col gap-4 sm:flex-row">
-          <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-brand-faint">
+          <div
+            class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-brand-faint"
+          >
             <img v-if="avatarUrl" :src="avatarUrl" alt="头像" class="h-full w-full object-cover" />
-            <span v-else class="flex h-full w-full items-center justify-center bg-brand text-lg font-semibold text-on-brand">
+            <span
+              v-else
+              class="flex h-full w-full items-center justify-center bg-brand text-lg font-semibold text-on-brand"
+            >
               {{ initials }}
             </span>
           </div>
@@ -211,7 +220,9 @@ const handleLogout = async () => {
         </div>
 
         <div class="mt-4 flex justify-end">
-          <el-button type="primary" :loading="profileSubmitting" @click="saveProfile">保存资料</el-button>
+          <el-button type="primary" :loading="profileSubmitting" @click="saveProfile"
+            >保存资料</el-button
+          >
         </div>
       </section>
 
@@ -223,20 +234,37 @@ const handleLogout = async () => {
         <div class="mt-4 grid gap-3 sm:grid-cols-3">
           <label class="block">
             <span class="mb-1.5 block text-[12px] text-ink-secondary">当前密码</span>
-            <el-input v-model="passwordForm.current" type="password" show-password placeholder="当前密码" />
+            <el-input
+              v-model="passwordForm.current"
+              type="password"
+              show-password
+              placeholder="当前密码"
+            />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-[12px] text-ink-secondary">新密码</span>
-            <el-input v-model="passwordForm.next" type="password" show-password placeholder="至少 6 位" />
+            <el-input
+              v-model="passwordForm.next"
+              type="password"
+              show-password
+              placeholder="至少 6 位"
+            />
           </label>
           <label class="block">
             <span class="mb-1.5 block text-[12px] text-ink-secondary">确认新密码</span>
-            <el-input v-model="passwordForm.confirm" type="password" show-password placeholder="再输入一次" />
+            <el-input
+              v-model="passwordForm.confirm"
+              type="password"
+              show-password
+              placeholder="再输入一次"
+            />
           </label>
         </div>
 
         <div class="mt-4 flex justify-end">
-          <el-button type="primary" :loading="passwordSubmitting" @click="changePassword">更新密码</el-button>
+          <el-button type="primary" :loading="passwordSubmitting" @click="changePassword"
+            >更新密码</el-button
+          >
         </div>
       </section>
 

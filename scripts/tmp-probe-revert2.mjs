@@ -1,8 +1,8 @@
-import {
-  createBrowserPage,
-} from "./lib/knowledge-smoke-utils.mjs"
+import { createBrowserPage } from "./lib/knowledge-smoke-utils.mjs"
 
-const { browser, context, page } = await createBrowserPage({ viewport: { width: 800, height: 600 } })
+const { browser, context, page } = await createBrowserPage({
+  viewport: { width: 800, height: 600 },
+})
 const html = `<!doctype html><html><head><style>
 @layer utilities { .inline-flex { display: inline-flex } .bg-a { background-color: rgb(1,2,3) } }
 .el-button { display: inline-flex; height: 32px; background-color: white; }

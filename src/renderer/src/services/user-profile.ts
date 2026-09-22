@@ -59,7 +59,7 @@ export const fetchMyProfile = async (token?: string | null): Promise<UserProfile
  */
 export const updateMyProfile = async (
   token: string | null | undefined,
-  payload: UpdateUserProfileInput
+  payload: UpdateUserProfileInput,
 ): Promise<UserProfile> => {
   const response = await fetchWithAuthRetry(buildApiUrl("/users/me"), {
     method: "PATCH",
@@ -77,7 +77,7 @@ export const updateMyProfile = async (
  */
 export const changeMyPassword = async (
   token: string | null | undefined,
-  payload: ChangeMyPasswordInput
+  payload: ChangeMyPasswordInput,
 ): Promise<{ success: true }> => {
   const response = await fetchWithAuthRetry(buildApiUrl("/users/me/change-password"), {
     method: "POST",

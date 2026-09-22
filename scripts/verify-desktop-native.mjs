@@ -15,11 +15,13 @@ import { chromium } from "playwright"
  *  两个候选都探一次，取真实存在的那个。 */
 const SNAP =
   ["xiaoye", "知识库"]
-    .map(name => path.join(os.homedir(), "Library/Application Support", name, "desktop-settings.json"))
-    .find(candidate => fs.existsSync(candidate)) ?? ""
-const step = msg => console.log(`[桌面] ${msg}`)
+    .map((name) =>
+      path.join(os.homedir(), "Library/Application Support", name, "desktop-settings.json"),
+    )
+    .find((candidate) => fs.existsSync(candidate)) ?? ""
+const step = (msg) => console.log(`[桌面] ${msg}`)
 let checks = 0
-const ok = msg => {
+const ok = (msg) => {
   checks += 1
   step(`✓ ${msg}`)
 }
@@ -34,12 +36,14 @@ const readSnapshot = () => {
 
 const cdp = await chromium.connectOverCDP("http://127.0.0.1:9222")
 const context = cdp.contexts()[0]
-const page = context.pages().find(p => !p.url().startsWith("devtools"))
+const page = context.pages().find((p) => !p.url().startsWith("devtools"))
 assert.ok(page, "没找到应用窗口")
 step(`已连接 ${page.url()}`)
 
-const goto = async path => {
-  await page.goto(new URL(path, page.url()).toString(), { waitUntil: "domcontentloaded" }).catch(() => {})
+const goto = async (path) => {
+  await page
+    .goto(new URL(path, page.url()).toString(), { waitUntil: "domcontentloaded" })
+    .catch(() => {})
   await page.waitForTimeout(1500)
 }
 
@@ -59,8 +63,8 @@ ok(`桌面端桥接可用，后端 ${cfg.serverBaseUrl}`)
 
 // ---------- 1. macOS 分组齐备 ----------
 await goto("/settings")
-const titles = await page.$$eval(".kb-settings-group > h2, .kb-proxy-wrapper > h2", nodes =>
-  nodes.map(node => node.textContent.trim())
+const titles = await page.$$eval(".kb-settings-group > h2, .kb-proxy-wrapper > h2", (nodes) =>
+  nodes.map((node) => node.textContent.trim()),
 )
 assert.deepEqual(titles, [
   "颜色主题",
@@ -77,18 +81,24 @@ ok(`9 个分组齐备（macOS 的「其他设置」在位）`)
 
 // ---------- 2. 开机自启：记录 → 真开 → 断言 → 还原 ----------
 const beforeAutoLogin = await page.evaluate(() => window.xiaoyeDesktop.getOpenAtLogin())
-const turnedOn = await page.evaluate(v => window.xiaoyeDesktop.setOpenAtLogin(v), !beforeAutoLogin)
+const turnedOn = await page.evaluate(
+  (v) => window.xiaoyeDesktop.setOpenAtLogin(v),
+  !beforeAutoLogin,
+)
 const afterOn = await page.evaluate(() => window.xiaoyeDesktop.getOpenAtLogin())
 assert.equal(turnedOn, true, "setOpenAtLogin 未成功")
 assert.equal(afterOn, !beforeAutoLogin, "系统真值未随写入翻转")
-await page.evaluate(v => window.xiaoyeDesktop.setOpenAtLogin(v), beforeAutoLogin)
+await page.evaluate((v) => window.xiaoyeDesktop.setOpenAtLogin(v), beforeAutoLogin)
 const restored = await page.evaluate(() => window.xiaoyeDesktop.getOpenAtLogin())
 assert.equal(restored, beforeAutoLogin, "开机自启未还原")
 ok(`开机自启真跑并还原（原值 ${beforeAutoLogin} → 翻转 ${afterOn} → 还原 ${restored}）`)
 
 // ---------- 3. globalShortcut：真注册 + 占用回退 ----------
 const acc = (key, value) =>
-  page.evaluate(([k, v]) => window.xiaoyeDesktop.setGlobalShortcut({ key: k, value: v }), [key, value])
+  page.evaluate(
+    ([k, v]) => window.xiaoyeDesktop.setGlobalShortcut({ key: k, value: v }),
+    [key, value],
+  )
 
 const registered = await acc("openMainWindow", "CommandOrControl+Alt+Y")
 assert.equal(registered, true, "默认全局快捷键注册失败")
@@ -118,29 +128,31 @@ ok(`快照已落盘：${SNAP}`)
  */
 const lanIp = Object.values(os.networkInterfaces())
   .flat()
-  .find(addr => addr?.family === "IPv4" && !addr.internal)?.address
+  .find((addr) => addr?.family === "IPv4" && !addr.internal)?.address
 assert.ok(lanIp, "找不到非 loopback 的 IPv4，代理无法验证")
 const PROBE_SERVER = `http://${lanIp}:${new URL(cfg.serverBaseUrl).port || "3200"}`
 const DEAD_PROXY = "http://127.0.0.1:9"
 
-const reachable = async target =>
-  page.evaluate(async url => {
+const reachable = async (target) =>
+  page.evaluate(async (url) => {
     try {
-      const res = await fetch(`${url}/api/knowledge/knowledge-bases`, { signal: AbortSignal.timeout(6000) })
+      const res = await fetch(`${url}/api/knowledge/knowledge-bases`, {
+        signal: AbortSignal.timeout(6000),
+      })
       return `http:${res.status}`
     } catch (error) {
       return `err:${error.message}`
     }
   }, target)
 
-const setProxy = enable =>
+const setProxy = (enable) =>
   page.evaluate(
     ([on, url, key]) => {
       const value = { enable: on, mode: "HTTP", type: "HTTP", url: on ? url : "" }
       localStorage.setItem(key, JSON.stringify(value))
       return window.xiaoyeDesktop.setProxySettings(value)
     },
-    [enable, DEAD_PROXY, "proxy"]
+    [enable, DEAD_PROXY, "proxy"],
   )
 
 const baseline = await reachable(PROBE_SERVER)
@@ -154,7 +166,9 @@ assert.equal(await setProxy(false), true)
 await page.waitForTimeout(1200)
 const afterOff = await reachable(PROBE_SERVER)
 
-step(`代理实验（探针 ${PROBE_SERVER}）：基线 ${baseline} / 开代理 ${throughProxy} / 关代理 ${afterOff}`)
+step(
+  `代理实验（探针 ${PROBE_SERVER}）：基线 ${baseline} / 开代理 ${throughProxy} / 关代理 ${afterOff}`,
+)
 assert.match(throughProxy, /^err:/, `开了死代理仍可直连（${throughProxy}）——代理没落到 session`)
 assert.match(afterOff, /^http:/, `关闭代理后未恢复直连（${afterOff}）`)
 ok("代理真落到 session：死端口令请求失败，关掉后恢复")
@@ -172,7 +186,7 @@ ok("状态栏图标可销毁与重建（开关往返不报错）")
 
 // ---------- 6. 偏好设置是独立窗口，不带走主窗口 ----------
 await goto("/knowledge")
-const before = context.pages().filter(item => !item.url().startsWith("devtools"))
+const before = context.pages().filter((item) => !item.url().startsWith("devtools"))
 /**
  * 菜单 accelerator 由原生菜单层处理，CDP 注入的按键到不了（实测 press Meta+Comma
  * 无反应），只能像人一样点：先按 pid 锁定本应用（本机还有别的 Electron 应用同名），
@@ -183,7 +197,7 @@ const before = context.pages().filter(item => !item.url().startsWith("devtools")
 const ourPid = execFileSync(
   "pgrep",
   ["-f", "electron@44.1.1/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"],
-  { encoding: "utf-8" }
+  { encoding: "utf-8" },
 )
   .trim()
   .split("\n")[0]
@@ -195,7 +209,7 @@ const clickPrefsMenu = () =>
   ])
 clickPrefsMenu()
 await page.waitForTimeout(2500)
-const settingsPage = context.pages().find(item => new URL(item.url()).pathname === "/settings")
+const settingsPage = context.pages().find((item) => new URL(item.url()).pathname === "/settings")
 assert.ok(settingsPage, "⌘, 没有开出偏好设置窗口")
 const settingsSize = await settingsPage.evaluate(() => [window.outerWidth, window.outerHeight])
 assert.deepEqual(settingsSize, [830, 768], `设置窗尺寸应为 830x768，实测 ${settingsSize.join("x")}`)
@@ -205,9 +219,9 @@ ok(`⌘, 开出独立设置窗 ${settingsSize.join("x")}，主窗口留在 /know
 clickPrefsMenu()
 await page.waitForTimeout(1500)
 assert.equal(
-  context.pages().filter(item => new URL(item.url()).pathname === "/settings").length,
+  context.pages().filter((item) => new URL(item.url()).pathname === "/settings").length,
   1,
-  "设置窗未复用（开了第二个）"
+  "设置窗未复用（开了第二个）",
 )
 ok("重复打开复用同一个设置窗")
 await settingsPage.close()
@@ -215,9 +229,11 @@ assert.equal(context.pages().length, before.length, "关闭设置窗后主窗口
 
 // ---------- 还原 ----------
 await page.evaluate(
-  keys => keys.forEach(key => localStorage.removeItem(key)),
-  ["proxy", "custom-short-cut", "tray_status", "vueuse-color-scheme"]
+  (keys) => keys.forEach((key) => localStorage.removeItem(key)),
+  ["proxy", "custom-short-cut", "tray_status", "vueuse-color-scheme"],
 )
 step(`通过 ${checks} 项桌面断言`)
-step("未覆盖：系统级快捷键的「按下触发」需真实键盘事件（CDP 注入不进 globalShortcut），托盘图标的肉眼可见性")
+step(
+  "未覆盖：系统级快捷键的「按下触发」需真实键盘事件（CDP 注入不进 globalShortcut），托盘图标的肉眼可见性",
+)
 await cdp.close()

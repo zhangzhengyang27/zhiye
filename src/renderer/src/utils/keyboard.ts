@@ -6,4 +6,5 @@
  * 所有「输入框内按 Enter 提交」的入口都必须先过这个守卫，否则中文输入
  * 每次选词都会误触发提交/搜索。
  */
-export const isImeComposing = (event: KeyboardEvent): boolean => event.isComposing || event.keyCode === 229
+export const isImeComposing = (event: KeyboardEvent): boolean =>
+  event.isComposing || event.keyCode === 229

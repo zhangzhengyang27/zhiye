@@ -57,7 +57,9 @@ const sectionItems = [
   { key: "settings" as SettingsSection, label: "设置", icon: "ph:gear" },
 ]
 
-const sectionTitle = computed(() => sectionItems.find(item => item.key === activeSection.value)?.label ?? "概要")
+const sectionTitle = computed(
+  () => sectionItems.find((item) => item.key === activeSection.value)?.label ?? "概要",
+)
 
 const closeSettings = () => {
   router.replace({
@@ -145,7 +147,7 @@ const confirmRestoreSnapshot = async () => {
       result.revived > 0
         ? `已恢复目录结构（${result.restored} 项，其中 ${result.revived} 个文档从回收站还原）。`
         : `已恢复目录结构（${result.restored} 项）。`,
-      "success"
+      "success",
     )
     snapshotToRestore.value = null
     await workspaceContext.refreshTree()
@@ -163,7 +165,10 @@ const confirmRestoreSnapshot = async () => {
 /** 快照节点 → 缩进树预览行 */
 const snapshotTreeRows = computed(() => {
   const nodes = selectedSnapshotDetail.value?.data ?? []
-  const childrenOf = new Map<string | null, TreeSnapshotItem["id"] extends never ? never : (typeof nodes)[number][]>()
+  const childrenOf = new Map<
+    string | null,
+    TreeSnapshotItem["id"] extends never ? never : (typeof nodes)[number][]
+  >()
   for (const node of nodes) {
     const key = node.parentId ?? "__root__"
     const list = childrenOf.get(key) ?? []
@@ -183,8 +188,8 @@ const snapshotTreeRows = computed(() => {
   for (const node of nodes) {
     if (
       node.parentId &&
-      !nodes.some(candidate => candidate.id === node.parentId) &&
-      !rows.some(row => row.node.id === node.id)
+      !nodes.some((candidate) => candidate.id === node.parentId) &&
+      !rows.some((row) => row.node.id === node.id)
     ) {
       rows.push({ node, depth: 0 })
     }
@@ -192,7 +197,7 @@ const snapshotTreeRows = computed(() => {
   return rows
 })
 
-watch(activeSection, section => {
+watch(activeSection, (section) => {
   if (section === "history" && snapshots.value.length === 0) {
     void loadSnapshots()
   }
@@ -213,7 +218,12 @@ const roleOptions = [
 
 const visibilityOptions = [
   { value: "private", label: "私有", icon: "ph:lock", description: "仅成员可见" },
-  { value: "public", label: "公开", icon: "ph:globe", description: "所有人可见，编辑仍受成员角色控制" },
+  {
+    value: "public",
+    label: "公开",
+    icon: "ph:globe",
+    description: "所有人可见，编辑仍受成员角色控制",
+  },
 ] as const
 
 const currentUserRole = computed(() => workspaceContext.permissions.value?.role ?? null)
@@ -222,7 +232,8 @@ const canEditContent = computed(() => workspaceContext.permissions.value?.canEdi
 const canChangeVisibility = computed(() => currentUserRole.value === "owner")
 
 const syncVisibilityFromWorkspace = () => {
-  visibility.value = workspaceContext.knowledgeBase.value?.visibility === "public" ? "public" : "private"
+  visibility.value =
+    workspaceContext.knowledgeBase.value?.visibility === "public" ? "public" : "private"
 }
 
 /** 概要统计：文档 / 字数来自详情接口的 stats，缺失时回退目录树计数 */
@@ -233,7 +244,7 @@ const summaryStats = computed(() => {
     let count = 0
 
     const walk = (nodes: KnowledgeDocumentTreeNode[]) => {
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         if (predicate(node)) {
           count += 1
         }
@@ -247,14 +258,18 @@ const summaryStats = computed(() => {
   }
 
   return [
-    { key: "docs", label: "文档", value: formatNumber(stats?.docCount ?? countTree(node => node.type === "doc")) },
+    {
+      key: "docs",
+      label: "文档",
+      value: formatNumber(stats?.docCount ?? countTree((node) => node.type === "doc")),
+    },
     { key: "words", label: "字数", value: formatNumber(stats?.wordCount ?? 0) },
     { key: "members", label: "成员", value: formatNumber(members.value.length) },
   ]
 })
 
 const memberRoleLabel = (role: string) =>
-  roleOptions.find(option => option.value === role)?.label ?? (role === "owner" ? "所有者" : role)
+  roleOptions.find((option) => option.value === role)?.label ?? (role === "owner" ? "所有者" : role)
 
 const loadMembers = async () => {
   const requestedKbId = workspaceContext.kbId.value
@@ -313,7 +328,7 @@ const handleAddMember = async () => {
 
 const handleRoleChange = async (
   member: KnowledgeBaseMember,
-  nextRole: string | number | boolean | null | undefined
+  nextRole: string | number | boolean | null | undefined,
 ) => {
   if (!canManage.value) {
     showToastMessage("当前角色没有成员管理权限", "error")
@@ -420,17 +435,17 @@ watch(
     syncVisibilityFromWorkspace()
     void loadMembers()
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 watch(
   () => workspaceContext.knowledgeBase.value?.visibility,
   () => {
     syncVisibilityFromWorkspace()
-  }
+  },
 )
 
-watch(canManage, allowed => {
+watch(canManage, (allowed) => {
   if (!allowed) {
     showAddMemberDialog.value = false
   }
@@ -455,7 +470,12 @@ onMounted(() => {
       </button>
 
       <div class="mt-3 flex items-center gap-2 px-4 pb-2">
-        <Icon icon="ph:book-open-text" :width="15" :height="15" class="shrink-0 text-ink-tertiary" />
+        <Icon
+          icon="ph:book-open-text"
+          :width="15"
+          :height="15"
+          class="shrink-0 text-ink-tertiary"
+        />
         <span class="min-w-0 truncate text-[13px] font-semibold text-ink">
           {{ workspaceContext.knowledgeBase.value?.name || "知识库管理" }}
         </span>
@@ -504,7 +524,9 @@ onMounted(() => {
               class="rounded-[12px] border border-line bg-surface-soft px-4 py-3.5"
             >
               <p class="text-[12px] text-ink-quaternary">{{ stat.label }}</p>
-              <p class="mt-1 text-[22px] font-semibold leading-7 tabular-nums tracking-[-0.02em] text-ink">
+              <p
+                class="mt-1 text-[22px] font-semibold leading-7 tabular-nums tracking-[-0.02em] text-ink"
+              >
                 {{ stat.value }}
               </p>
             </div>
@@ -523,10 +545,18 @@ onMounted(() => {
             </div>
 
             <div v-if="loading" class="mt-3 space-y-2">
-              <div v-for="index in 3" :key="index" class="h-9 animate-pulse rounded-[8px] bg-grey-200" />
+              <div
+                v-for="index in 3"
+                :key="index"
+                class="h-9 animate-pulse rounded-[8px] bg-grey-200"
+              />
             </div>
             <ul v-else class="mt-2 divide-y divide-line">
-              <li v-for="member in members" :key="member.userId" class="flex items-center gap-2.5 py-2">
+              <li
+                v-for="member in members"
+                :key="member.userId"
+                class="flex items-center gap-2.5 py-2"
+              >
                 <span
                   class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-faint text-[11px] font-medium text-brand"
                 >
@@ -538,11 +568,18 @@ onMounted(() => {
                     {{ member.user.email }}
                   </span>
                 </span>
-                <span class="shrink-0 rounded-full bg-grey-200 px-2 py-0.5 text-[11px] text-ink-tertiary">
+                <span
+                  class="shrink-0 rounded-full bg-grey-200 px-2 py-0.5 text-[11px] text-ink-tertiary"
+                >
                   {{ memberRoleLabel(member.role) }}
                 </span>
               </li>
-              <li v-if="members.length === 0" class="py-4 text-center text-[13px] text-ink-quaternary">暂无成员</li>
+              <li
+                v-if="members.length === 0"
+                class="py-4 text-center text-[13px] text-ink-quaternary"
+              >
+                暂无成员
+              </li>
             </ul>
           </div>
 
@@ -598,8 +635,13 @@ onMounted(() => {
           <div class="flex min-h-[360px] gap-4">
             <!-- 左：快照列表 -->
             <div class="w-64 shrink-0 space-y-1 overflow-y-auto">
-              <p v-if="snapshotsLoading" class="px-2 py-6 text-[13px] text-ink-quaternary">加载中…</p>
-              <p v-else-if="snapshots.length === 0" class="px-2 py-6 text-[13px] text-ink-quaternary">
+              <p v-if="snapshotsLoading" class="px-2 py-6 text-[13px] text-ink-quaternary">
+                加载中…
+              </p>
+              <p
+                v-else-if="snapshots.length === 0"
+                class="px-2 py-6 text-[13px] text-ink-quaternary"
+              >
                 还没有目录快照，目录结构发生变更后会自动记录。
               </p>
               <button
@@ -610,33 +652,49 @@ onMounted(() => {
                 :class="selectedSnapshotId === snapshot.id ? 'bg-grey-300' : 'hover:bg-grey-200'"
                 @click="selectSnapshot(snapshot)"
               >
-                <p class="text-[13px] font-medium text-ink">{{ formatDateTime(snapshot.createdAt) }}</p>
-                <p class="mt-0.5 truncate text-[12px] text-ink-tertiary">{{ snapshot.user.displayName }}</p>
+                <p class="text-[13px] font-medium text-ink">
+                  {{ formatDateTime(snapshot.createdAt) }}
+                </p>
+                <p class="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                  {{ snapshot.user.displayName }}
+                </p>
               </button>
             </div>
 
             <!-- 右：快照树预览 + 恢复 -->
             <div class="min-w-0 flex-1 rounded-[12px] border border-line p-4">
-              <p v-if="!selectedSnapshotId" class="py-10 text-center text-[13px] text-ink-quaternary">
+              <p
+                v-if="!selectedSnapshotId"
+                class="py-10 text-center text-[13px] text-ink-quaternary"
+              >
                 从左侧选择一个快照查看当时的目录结构
               </p>
               <template v-else>
                 <div class="flex items-center justify-between gap-3">
                   <p class="text-[13px] font-medium text-ink">
-                    {{ selectedSnapshotDetail ? formatDateTime(selectedSnapshotDetail.createdAt) : "加载中…" }}
+                    {{
+                      selectedSnapshotDetail
+                        ? formatDateTime(selectedSnapshotDetail.createdAt)
+                        : "加载中…"
+                    }}
                   </p>
                   <button
                     type="button"
                     class="inline-flex h-8 items-center rounded-[8px] border border-line bg-surface px-3 text-[12px] font-medium text-ink-secondary transition hover:border-error-light hover:text-error disabled:cursor-not-allowed disabled:opacity-55"
                     :disabled="restoringSnapshot"
-                    @click="snapshotToRestore = snapshots.find(item => item.id === selectedSnapshotId) ?? null"
+                    @click="
+                      snapshotToRestore =
+                        snapshots.find((item) => item.id === selectedSnapshotId) ?? null
+                    "
                   >
                     <Icon icon="ph:arrow-counter-clockwise" :width="13" :height="13" class="mr-1" />
                     恢复到这个版本
                   </button>
                 </div>
 
-                <p v-if="detailLoading" class="py-10 text-center text-[13px] text-ink-quaternary">加载中…</p>
+                <p v-if="detailLoading" class="py-10 text-center text-[13px] text-ink-quaternary">
+                  加载中…
+                </p>
                 <div v-else class="mt-3 max-h-[380px] space-y-0.5 overflow-y-auto">
                   <p
                     v-for="row in snapshotTreeRows"
@@ -652,7 +710,10 @@ onMounted(() => {
                     />
                     <span class="truncate">{{ row.node.title || "无标题" }}</span>
                   </p>
-                  <p v-if="snapshotTreeRows.length === 0" class="py-6 text-center text-[13px] text-ink-quaternary">
+                  <p
+                    v-if="snapshotTreeRows.length === 0"
+                    class="py-6 text-center text-[13px] text-ink-quaternary"
+                  >
                     该快照没有目录节点
                   </p>
                 </div>
@@ -719,7 +780,7 @@ onMounted(() => {
       confirm-text="恢复"
       :loading="restoringSnapshot ? true : null"
       @update:open="
-        value => {
+        (value) => {
           if (!value) snapshotToRestore = null
         }
       "

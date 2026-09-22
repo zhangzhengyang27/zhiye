@@ -10,7 +10,10 @@ import type { KnowledgeBaseItem } from "@/services/knowledge-base"
 import { getKnowledgeBase } from "@/services/knowledge-base"
 import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
 import { getKnowledgeDocumentTree } from "@/services/knowledge-documents"
-import { checkKnowledgeBasePermissions, type KnowledgeBasePermissions } from "@/services/knowledge-permissions"
+import {
+  checkKnowledgeBasePermissions,
+  type KnowledgeBasePermissions,
+} from "@/services/knowledge-permissions"
 import { getApiErrorMessage } from "@/services/http-client"
 import { collectFolderIds } from "@/components/knowledge/tree-utils"
 
@@ -70,7 +73,9 @@ export const useWorkspaceLoader = (options: {
         expandedFolderIds.value = allFolderIds
       } else {
         const validFolderIds = new Set(allFolderIds)
-        expandedFolderIds.value = expandedFolderIds.value.filter(folderId => validFolderIds.has(folderId))
+        expandedFolderIds.value = expandedFolderIds.value.filter((folderId) =>
+          validFolderIds.has(folderId),
+        )
       }
 
       if (options.focusedNodeId.value) {
@@ -122,7 +127,11 @@ export const useWorkspaceLoader = (options: {
     errorMessage.value = ""
 
     try {
-      await Promise.all([loadKnowledgeBase(targetKbId), loadTree(targetKbId), loadPermissions(targetKbId)])
+      await Promise.all([
+        loadKnowledgeBase(targetKbId),
+        loadTree(targetKbId),
+        loadPermissions(targetKbId),
+      ])
     } catch (error) {
       if (seq === workspaceLoadSeq) {
         errorMessage.value = getApiErrorMessage(error, "加载知识库工作区失败。")

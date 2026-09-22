@@ -17,7 +17,11 @@ defineProps<{
     </div>
 
     <div class="mt-4 grid grid-cols-2 gap-2">
-      <div v-for="item in stats" :key="item.label" class="rounded-kb-2xl border border-line bg-muted px-3 py-3">
+      <div
+        v-for="item in stats"
+        :key="item.label"
+        class="rounded-kb-2xl border border-line bg-muted px-3 py-3"
+      >
         <p class="text-[11px] font-medium text-ink-quaternary">{{ item.label }}</p>
         <p class="mt-1 text-[16px] font-semibold text-ink">{{ item.value }}</p>
       </div>

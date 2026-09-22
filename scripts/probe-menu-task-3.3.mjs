@@ -13,10 +13,13 @@ import {
   smokeConfig,
 } from "./lib/knowledge-smoke-utils.mjs"
 
-const CONTENT = "# EP 迁移基线文档\n\n用于 AppDropdownMenu 换底前后的像素对比。\n\n- 列表项一\n- 列表项二\n\n**加粗文本**与正文。\n"
+const CONTENT =
+  "# EP 迁移基线文档\n\n用于 AppDropdownMenu 换底前后的像素对比。\n\n- 列表项一\n- 列表项二\n\n**加粗文本**与正文。\n"
 
 const probe = async () => {
-  const { browser, context, page } = await createBrowserPage({ viewport: { width: 1247, height: 952 } })
+  const { browser, context, page } = await createBrowserPage({
+    viewport: { width: 1247, height: 952 },
+  })
   const prefix = "[probe]"
   try {
     await loginThroughUi(page, prefix)
@@ -29,7 +32,7 @@ const probe = async () => {
       body: { content: { scheme: "text/markdown", value: CONTENT } },
       errorMessage: "写入基线文档内容失败",
     })
-    const url = path => new URL(path, smokeConfig.baseUrl).toString()
+    const url = (path) => new URL(path, smokeConfig.baseUrl).toString()
     await page.goto(url(`/knowledge/${kb.id}/doc/${doc.id}`), { waitUntil: "domcontentloaded" })
     await page.waitForTimeout(2500)
     await page.locator("header").first().getByRole("button", { name: "更多操作" }).click()
@@ -37,10 +40,12 @@ const probe = async () => {
     await page.waitForTimeout(600)
 
     const data = await page.evaluate(() => {
-      const panel = document.querySelector(".kb-el-dropdown-popper") ?? document.querySelector("div[role='menu']")
+      const panel =
+        document.querySelector(".kb-el-dropdown-popper") ??
+        document.querySelector("div[role='menu']")
       const cs = getComputedStyle(panel)
       const rect = panel.getBoundingClientRect()
-      const items = [...panel.querySelectorAll("[role='menuitem']")].map(li => {
+      const items = [...panel.querySelectorAll("[role='menuitem']")].map((li) => {
         const r = li.getBoundingClientRect()
         const c = getComputedStyle(li)
         return {

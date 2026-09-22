@@ -16,15 +16,15 @@ const TITLE = "DiagFlat 原始标题"
 
 const { browser, page } = await createBrowserPage({ viewport: { width: 1247, height: 952 } })
 const reqs = []
-page.on("request", r => {
+page.on("request", (r) => {
   if (r.method() !== "GET" && r.url().includes("/knowledge/documents")) {
     reqs.push(`${r.method()} ${r.url()} :: ${r.postData() ?? ""}`.slice(0, 260))
   }
 })
-page.on("console", m => {
+page.on("console", (m) => {
   if (m.type() === "error") reqs.push(`CONSOLE ${m.text().slice(0, 200)}`)
 })
-page.on("pageerror", e => reqs.push(`PAGEERROR ${String(e).slice(0, 200)}`))
+page.on("pageerror", (e) => reqs.push(`PAGEERROR ${String(e).slice(0, 200)}`))
 
 await loginThroughUi(page, "probe")
 const token = await readAccessToken(page)
@@ -32,12 +32,16 @@ const kb = await ensureKnowledgeBase(token, "probe")
 const doc = await ensureDocument(kb.id, token, { title: TITLE, content: `# ${TITLE}\n\n诊断。` })
 
 const serverTitle = async () => {
-  const tree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, { token })
-  const hit = flattenTree(Array.isArray(tree) ? tree : []).find(node => node.id === doc.id)
+  const tree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, {
+    token,
+  })
+  const hit = flattenTree(Array.isArray(tree) ? tree : []).find((node) => node.id === doc.id)
   return hit?.title ?? null
 }
 
-await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), { waitUntil: "networkidle" })
+await page.goto(new globalThis.URL(`/knowledge/${kb.id}`, smokeConfig.baseUrl).toString(), {
+  waitUntil: "networkidle",
+})
 await page.locator("[data-tree-switcher-trigger]").first().click()
 await page.waitForTimeout(400)
 await page.locator("[data-tree-switcher] button", { hasText: "全部文档" }).first().click()
@@ -62,7 +66,10 @@ logStep("opened", JSON.stringify(opened))
 await page.keyboard.type("DiagFlat 已改")
 const beforeEnter = await page.evaluate(() => {
   const a = document.activeElement
-  return { isInput: a instanceof HTMLInputElement, value: a instanceof HTMLInputElement ? a.value : null }
+  return {
+    isInput: a instanceof HTMLInputElement,
+    value: a instanceof HTMLInputElement ? a.value : null,
+  }
 })
 logStep("beforeEnter", JSON.stringify(beforeEnter))
 

@@ -74,7 +74,9 @@ function getTreeRowLocator(page, nodeId) {
 }
 
 function getTreeHandleLocator(page, nodeId) {
-  return page.locator(`[data-knowledge-node-id="${nodeId}"] [data-knowledge-tree-drag-handle]`).first()
+  return page
+    .locator(`[data-knowledge-node-id="${nodeId}"] [data-knowledge-tree-drag-handle]`)
+    .first()
 }
 
 async function waitForTreeReady(page) {
@@ -192,7 +194,9 @@ async function dispatchTouchPointer(page, type, point, sourceNodeId) {
       if (type === "pointerdown") {
         const startTarget =
           (sourceNodeId
-            ? document.querySelector(`[data-knowledge-node-id="${sourceNodeId}"] [data-knowledge-tree-drag-handle]`)
+            ? document.querySelector(
+                `[data-knowledge-node-id="${sourceNodeId}"] [data-knowledge-tree-drag-handle]`,
+              )
             : null) || document.elementFromPoint(point.x, point.y)
 
         if (!(startTarget instanceof HTMLElement)) {
@@ -214,11 +218,11 @@ async function dispatchTouchPointer(page, type, point, sourceNodeId) {
             clientY: point.y,
             button: 0,
             buttons: 0,
-          })
+          }),
         )
       }
     },
-    { type, point, sourceNodeId }
+    { type, point, sourceNodeId },
   )
 }
 
@@ -270,16 +274,19 @@ function parseRequestPayload(request) {
 
 async function waitForReorderResult(page, trigger) {
   const requestPromise = page.waitForRequest(
-    request => request.method() === "POST" && request.url().includes("/knowledge/documents/reorder"),
+    (request) =>
+      request.method() === "POST" && request.url().includes("/knowledge/documents/reorder"),
     {
       timeout: smokeConfig.timeout,
-    }
+    },
   )
   const responsePromise = page.waitForResponse(
-    response => response.request().method() === "POST" && response.url().includes("/knowledge/documents/reorder"),
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().includes("/knowledge/documents/reorder"),
     {
       timeout: smokeConfig.timeout,
-    }
+    },
   )
 
   await trigger()
@@ -294,7 +301,7 @@ async function waitForReorderResult(page, trigger) {
 }
 
 function assertItemOrder(payload, idsInExpectedOrder) {
-  const indexMap = new Map(payload.items.map(item => [item.id, item.order]))
+  const indexMap = new Map(payload.items.map((item) => [item.id, item.order]))
 
   for (let index = 0; index < idsInExpectedOrder.length - 1; index += 1) {
     const currentId = idsInExpectedOrder[index]
@@ -310,8 +317,9 @@ function assertItemOrder(payload, idsInExpectedOrder) {
 
 function clearExpectedReorderFailureConsoleErrors(diagnostics) {
   diagnostics.consoleErrors = diagnostics.consoleErrors.filter(
-    message =>
-      message.trim() !== "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    (message) =>
+      message.trim() !==
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
   )
 }
 
@@ -320,7 +328,7 @@ async function runDesktopTreeDragScenario(page, kbId, nodes, diagnostics) {
   await openWorkspace(page, kbId)
 
   const reorderSameLevel = await waitForReorderResult(page, () =>
-    dragNodeWithMouse(page, nodes.docB.id, nodes.docA.id, "before")
+    dragNodeWithMouse(page, nodes.docB.id, nodes.docA.id, "before"),
   )
 
   assert.ok(reorderSameLevel.response.ok(), "同级拖拽排序请求失败")
@@ -329,16 +337,16 @@ async function runDesktopTreeDragScenario(page, kbId, nodes, diagnostics) {
 
   logStep(STEP_PREFIX, "验证桌面端目录拖拽：拖入目录")
   const reorderIntoFolder = await waitForReorderResult(page, () =>
-    dragNodeWithMouse(page, nodes.docA.id, nodes.folder.id, "inside")
+    dragNodeWithMouse(page, nodes.docA.id, nodes.folder.id, "inside"),
   )
 
   assert.ok(reorderIntoFolder.response.ok(), "拖入目录排序请求失败")
-  const movedIntoFolder = reorderIntoFolder.payload.items.find(item => item.id === nodes.docA.id)
+  const movedIntoFolder = reorderIntoFolder.payload.items.find((item) => item.id === nodes.docA.id)
   assert.equal(movedIntoFolder?.parentId ?? null, nodes.folder.id, "文档未移动到目标目录")
   assert.equal(movedIntoFolder?.order, 0, "文档移动到空目录后的顺序应为 0")
 
   logStep(STEP_PREFIX, "验证桌面端目录拖拽：失败回滚")
-  const failRouteHandler = route => {
+  const failRouteHandler = (route) => {
     return route.fulfill({
       status: 500,
       contentType: "application/json",
@@ -350,7 +358,7 @@ async function runDesktopTreeDragScenario(page, kbId, nodes, diagnostics) {
 
   await page.route("**/knowledge/documents/reorder", failRouteHandler)
   const failedReorder = await waitForReorderResult(page, () =>
-    dragNodeWithMouse(page, nodes.docB.id, nodes.docEditor.id, "before")
+    dragNodeWithMouse(page, nodes.docB.id, nodes.docEditor.id, "before"),
   )
 
   assert.equal(failedReorder.response.status(), 500, "失败回滚场景未命中 mock 失败响应")
@@ -360,7 +368,11 @@ async function runDesktopTreeDragScenario(page, kbId, nodes, diagnostics) {
 
   const movedRow = getTreeRowLocator(page, nodes.docB.id)
   await movedRow.waitFor({ state: "visible", timeout: smokeConfig.timeout })
-  assert.equal(await movedRow.getAttribute("aria-level"), "1", "失败回滚后根层节点未恢复到原目录层级")
+  assert.equal(
+    await movedRow.getAttribute("aria-level"),
+    "1",
+    "失败回滚后根层节点未恢复到原目录层级",
+  )
 }
 
 async function runTouchTreeDragScenario(page, kbId, nodes, diagnostics) {
@@ -368,7 +380,7 @@ async function runTouchTreeDragScenario(page, kbId, nodes, diagnostics) {
   await openWorkspace(page, kbId)
 
   const touchReorderSameLevel = await waitForReorderResult(page, () =>
-    dragNodeWithTouch(page, nodes.docB.id, nodes.docA.id, "before")
+    dragNodeWithTouch(page, nodes.docB.id, nodes.docA.id, "before"),
   )
 
   assert.ok(touchReorderSameLevel.response.ok(), "触屏同级拖拽排序请求失败")
@@ -376,19 +388,25 @@ async function runTouchTreeDragScenario(page, kbId, nodes, diagnostics) {
 
   logStep(STEP_PREFIX, "验证触屏目录拖拽：拖入目录并自动展开")
   const touchReorderIntoFolder = await waitForReorderResult(page, () =>
-    dragNodeWithTouch(page, nodes.docA.id, nodes.folder.id, "inside")
+    dragNodeWithTouch(page, nodes.docA.id, nodes.folder.id, "inside"),
   )
 
   assert.ok(touchReorderIntoFolder.response.ok(), "触屏拖入目录排序请求失败")
-  const movedIntoFolder = touchReorderIntoFolder.payload.items.find(item => item.id === nodes.docA.id)
+  const movedIntoFolder = touchReorderIntoFolder.payload.items.find(
+    (item) => item.id === nodes.docA.id,
+  )
   assert.equal(movedIntoFolder?.parentId ?? null, nodes.folder.id, "触屏拖入目录后 parentId 不正确")
 
   const folderRow = getTreeRowLocator(page, nodes.folder.id)
   await folderRow.waitFor({ state: "visible", timeout: smokeConfig.timeout })
-  assert.equal(await folderRow.getAttribute("aria-expanded"), "true", "触屏拖入目录后目标文件夹应自动展开")
+  assert.equal(
+    await folderRow.getAttribute("aria-expanded"),
+    "true",
+    "触屏拖入目录后目标文件夹应自动展开",
+  )
 
   logStep(STEP_PREFIX, "验证触屏目录拖拽：失败回滚")
-  const failRouteHandler = route => {
+  const failRouteHandler = (route) => {
     return route.fulfill({
       status: 500,
       contentType: "application/json",
@@ -400,7 +418,7 @@ async function runTouchTreeDragScenario(page, kbId, nodes, diagnostics) {
 
   await page.route("**/knowledge/documents/reorder", failRouteHandler)
   const failedReorder = await waitForReorderResult(page, () =>
-    dragNodeWithTouch(page, nodes.docB.id, nodes.docEditor.id, "before")
+    dragNodeWithTouch(page, nodes.docB.id, nodes.docEditor.id, "before"),
   )
 
   assert.equal(failedReorder.response.status(), 500, "触屏失败回滚场景未命中 mock 失败响应")
@@ -410,7 +428,11 @@ async function runTouchTreeDragScenario(page, kbId, nodes, diagnostics) {
 
   const movedRow = getTreeRowLocator(page, nodes.docB.id)
   await movedRow.waitFor({ state: "visible", timeout: smokeConfig.timeout })
-  assert.equal(await movedRow.getAttribute("aria-level"), "1", "触屏失败回滚后根层节点未恢复到原目录层级")
+  assert.equal(
+    await movedRow.getAttribute("aria-level"),
+    "1",
+    "触屏失败回滚后根层节点未恢复到原目录层级",
+  )
 }
 
 async function seedWorkspaceTree(token, kbId, prefix) {
@@ -512,8 +534,7 @@ async function main() {
   }
 }
 
-main().catch(error => {
+main().catch((error) => {
   globalThis.console.error(`${STEP_PREFIX} 失败`, error)
   globalThis.process.exitCode = 1
 })
-

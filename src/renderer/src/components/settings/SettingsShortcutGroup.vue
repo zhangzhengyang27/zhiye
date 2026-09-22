@@ -32,7 +32,9 @@ const handleCommit = async (key: string, value: string) => {
 <template>
   <div class="kb-settings-group kb-shortcut-group">
     <h2>全局快捷键</h2>
-    <a v-if="SHORTCUT_HELP_URL" class="kb-shortcut-help" @click="openExternal(SHORTCUT_HELP_URL)">更多快捷键</a>
+    <a v-if="SHORTCUT_HELP_URL" class="kb-shortcut-help" @click="openExternal(SHORTCUT_HELP_URL)"
+      >更多快捷键</a
+    >
     <div class="kb-shortcut-item">
       <div v-for="row in rows" :key="row.key" class="kb-settings-row">
         <span>{{ row.label }}</span>
@@ -41,7 +43,7 @@ const handleCommit = async (key: string, value: string) => {
           :value="settings.shortcuts[row.key] ?? ''"
           :default-shortcut="row.defaultShortcut"
           :disabled="isRowDisabled(row)"
-          @commit="value => void handleCommit(row.key, value)"
+          @commit="(value) => void handleCommit(row.key, value)"
         />
       </div>
     </div>

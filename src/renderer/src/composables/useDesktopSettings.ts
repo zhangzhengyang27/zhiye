@@ -69,7 +69,10 @@ const state = reactive<DesktopSettingsState>({
   locale: readJson<string>(SETTINGS_STORAGE_KEYS.locale, "zh-CN"),
   openAtLogin: false,
   shortcuts: loadShortcuts(),
-  proxy: { ...DEFAULT_PROXY_SETTINGS, ...readJson<Partial<ProxySettings>>(SETTINGS_STORAGE_KEYS.proxy, {}) },
+  proxy: {
+    ...DEFAULT_PROXY_SETTINGS,
+    ...readJson<Partial<ProxySettings>>(SETTINGS_STORAGE_KEYS.proxy, {}),
+  },
   trayVisible: readJson<boolean>(SETTINGS_STORAGE_KEYS.trayStatus, true),
   isBetaVersion: readJson<boolean>(SETTINGS_STORAGE_KEYS.isBetaVersion, false),
 })
@@ -113,7 +116,9 @@ const bootstrap = async () => {
     if (row.type !== "globalShortcut" || row.unavailable) {
       continue
     }
-    await desktop.setGlobalShortcut({ key: row.key, value: state.shortcuts[row.key] ?? NO_SHORTCUT }).catch(() => false)
+    await desktop
+      .setGlobalShortcut({ key: row.key, value: state.shortcuts[row.key] ?? NO_SHORTCUT })
+      .catch(() => false)
   }
 
   // 代理与状态栏图标：主进程启动时已按快照应用，这里只在值与快照可能不一致时补一次
@@ -125,7 +130,7 @@ const bootstrap = async () => {
 
 /** 写快捷键；返回 false 表示该组合键已被系统占用，调用方保持原值并提示。 */
 const setShortcut = async (key: string, value: string): Promise<boolean> => {
-  const row = SHORTCUT_ROWS.find(item => item.key === key)
+  const row = SHORTCUT_ROWS.find((item) => item.key === key)
   if (!row || row.unavailable) {
     return false
   }
@@ -143,7 +148,7 @@ const setShortcut = async (key: string, value: string): Promise<boolean> => {
 }
 
 const resetShortcut = (key: string) => {
-  const row = SHORTCUT_ROWS.find(item => item.key === key)
+  const row = SHORTCUT_ROWS.find((item) => item.key === key)
   return row ? setShortcut(key, row.defaultShortcut) : Promise.resolve(false)
 }
 

@@ -56,11 +56,17 @@ const publishedOnly = ref(false)
 
 /** 全部记录 = 全部保存记录；版本 = 命名版本（保存时填写了版本名） */
 const recordsList = computed(() =>
-  publishedOnly.value ? props.versions.filter(version => version.status === "published") : props.versions
+  publishedOnly.value
+    ? props.versions.filter((version) => version.status === "published")
+    : props.versions,
 )
-const namedVersionsList = computed(() => props.versions.filter(version => Boolean(version.versionName)))
+const namedVersionsList = computed(() =>
+  props.versions.filter((version) => Boolean(version.versionName)),
+)
 
-const currentList = computed(() => (historyTab.value === "versions" ? namedVersionsList.value : recordsList.value))
+const currentList = computed(() =>
+  historyTab.value === "versions" ? namedVersionsList.value : recordsList.value,
+)
 
 const historyTabs: Array<{ key: HistoryTab; label: string }> = [
   { key: "records", label: "全部记录" },
@@ -77,14 +83,14 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 watch(
   () => props.open,
-  open => {
+  (open) => {
     if (open) {
       window.addEventListener("keydown", handleKeydown)
     } else {
       window.removeEventListener("keydown", handleKeydown)
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 onBeforeUnmount(() => {
@@ -114,7 +120,9 @@ onBeforeUnmount(() => {
               历史版本
             </div>
             <h3 class="mt-3 text-[18px] font-semibold tracking-[-0.02em] text-ink">回看文档演进</h3>
-            <p class="mt-1 text-xs leading-5 text-ink-tertiary">适合查找保存节点、对比改动和快速回滚。</p>
+            <p class="mt-1 text-xs leading-5 text-ink-tertiary">
+              适合查找保存节点、对比改动和快速回滚。
+            </p>
           </div>
 
           <div class="flex items-center gap-2">
@@ -141,7 +149,10 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="mt-4">
-          <DocumentSidePanelTabs :active-tab="activeTab || 'versions'" @switch-tab="emit('switch-tab', $event)" />
+          <DocumentSidePanelTabs
+            :active-tab="activeTab || 'versions'"
+            @switch-tab="emit('switch-tab', $event)"
+          />
         </div>
 
         <!-- 历史记录内部分区：全部记录 / 版本 / 本地缓存（对齐语雀历史面板） -->
@@ -151,11 +162,16 @@ onBeforeUnmount(() => {
             :key="tab.key"
             type="button"
             class="relative -mb-px pb-2 text-[13px] transition"
-            :class="historyTab === tab.key ? 'font-medium text-brand' : 'text-ink-tertiary hover:text-ink'"
+            :class="
+              historyTab === tab.key ? 'font-medium text-brand' : 'text-ink-tertiary hover:text-ink'
+            "
             @click="historyTab = tab.key"
           >
             {{ tab.label }}
-            <span v-if="historyTab === tab.key" class="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-brand" />
+            <span
+              v-if="historyTab === tab.key"
+              class="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-brand"
+            />
           </button>
         </div>
 
@@ -182,7 +198,10 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div v-if="historyTab !== 'local' && currentList.length > 0" class="border-b border-line px-4 py-4">
+      <div
+        v-if="historyTab !== 'local' && currentList.length > 0"
+        class="border-b border-line px-4 py-4"
+      >
         <DocumentVersionsBatchActions
           :selected-version-count="selectedVersionCount"
           :all-versions-selected="allVersionsSelected"
@@ -196,7 +215,10 @@ onBeforeUnmount(() => {
 
       <div class="flex-1 overflow-auto bg-muted px-3 py-3">
         <template v-if="historyTab === 'local'">
-          <div v-if="(localCacheItems ?? []).length === 0" class="flex h-full items-center justify-center">
+          <div
+            v-if="(localCacheItems ?? []).length === 0"
+            class="flex h-full items-center justify-center"
+          >
             <div class="rounded-kb-3xl bg-surface px-6 py-10 text-center">
               <AppIcon name="i-lucide-hard-drive" class="mx-auto h-12 w-12 text-ink-quaternary" />
               <p class="mt-3 text-sm font-medium text-ink-secondary">暂无本地缓存</p>
@@ -217,7 +239,9 @@ onBeforeUnmount(() => {
                   :icon="item.tone === 'warning' ? 'ph:warning-circle' : 'ph:hard-drive'"
                   :width="15"
                   :height="15"
-                  :class="item.tone === 'warning' ? 'shrink-0 text-warning' : 'shrink-0 text-ink-tertiary'"
+                  :class="
+                    item.tone === 'warning' ? 'shrink-0 text-warning' : 'shrink-0 text-ink-tertiary'
+                  "
                 />
                 <p class="text-[13px] font-medium text-ink">{{ item.title }}</p>
               </div>
@@ -285,6 +309,10 @@ onBeforeUnmount(() => {
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
-    <div v-if="open" class="fixed inset-0 z-[var(--kb-z-side-panel-overlay)] bg-black/20" @click="emit('close')" />
+    <div
+      v-if="open"
+      class="fixed inset-0 z-[var(--kb-z-side-panel-overlay)] bg-black/20"
+      @click="emit('close')"
+    />
   </Transition>
 </template>

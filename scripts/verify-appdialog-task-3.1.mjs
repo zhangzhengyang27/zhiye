@@ -23,7 +23,7 @@ const record = (name, pass, detail = "") => {
   logStep("[行为]", `${pass ? "✅" : "❌"} ${name}${detail ? ` —— ${detail}` : ""}`)
 }
 
-const activeInfo = page =>
+const activeInfo = (page) =>
   page.evaluate(() => {
     const el = document.activeElement
     return {
@@ -45,21 +45,21 @@ const activeInfo = page =>
     }
   })
 
-const overlayState = page =>
+const overlayState = (page) =>
   page.evaluate(() => {
     const overlays = Array.from(document.querySelectorAll(".el-overlay"))
-    const visible = overlays.filter(o => getComputedStyle(o).display !== "none")
-    const dialogs = visible.map(o => o.querySelector(".el-overlay-dialog"))
+    const visible = overlays.filter((o) => getComputedStyle(o).display !== "none")
+    const dialogs = visible.map((o) => o.querySelector(".el-overlay-dialog"))
     return {
       visibleOverlayCount: visible.length,
       zIndex: visible[0] ? getComputedStyle(visible[0]).zIndex : null,
       maskColor: visible[0] ? getComputedStyle(visible[0]).backgroundColor : null,
-      dialogTitles: dialogs.map(d => d?.querySelector("h3")?.textContent?.trim() ?? null),
+      dialogTitles: dialogs.map((d) => d?.querySelector("h3")?.textContent?.trim() ?? null),
       bodyOverflow: document.body.style.overflow,
     }
   })
 
-const pressImeEsc = page =>
+const pressImeEsc = (page) =>
   page.evaluate(() => {
     const target = document.activeElement
     const event = new KeyboardEvent("keydown", {
@@ -73,7 +73,7 @@ const pressImeEsc = page =>
     target.dispatchEvent(event)
   })
 
-const captureEnterAnimation = async page => {
+const captureEnterAnimation = async (page) => {
   // 点击后立刻采样：EP dialog-fade 挂在 .el-overlay（modal-fade-in）与
   // .el-overlay-dialog（dialog-fade-in）两条 animation 上
   await page.evaluate(() => {
@@ -83,18 +83,25 @@ const captureEnterAnimation = async page => {
       const layer = document.querySelector(".el-overlay-dialog")
       if (overlay && layer) {
         globalThis.__task31Anim = {
-          overlayAnims: overlay.getAnimations().map(a => a.animationName),
-          layerAnims: layer.getAnimations().map(a => a.animationName),
+          overlayAnims: overlay.getAnimations().map((a) => a.animationName),
+          layerAnims: layer.getAnimations().map((a) => a.animationName),
         }
       }
     }
     const observer = new MutationObserver(() => sample())
-    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ["style", "class"] })
+    observer.observe(document.body, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["style", "class"],
+    })
     globalThis.__task31AnimObserver = observer
   })
   await page.locator(".kb-sidebar button[title='新建']").click()
   await page.getByRole("button", { name: "创建知识库" }).click()
-  await page.locator('[role="dialog"]').filter({ hasText: "新建知识库" }).waitFor({ state: "visible", timeout: 10_000 })
+  await page
+    .locator('[role="dialog"]')
+    .filter({ hasText: "新建知识库" })
+    .waitFor({ state: "visible", timeout: 10_000 })
   const anims = await page.evaluate(() => {
     globalThis.__task31AnimObserver?.disconnect()
     return globalThis.__task31Anim
@@ -102,19 +109,21 @@ const captureEnterAnimation = async page => {
   return anims
 }
 
-const runPass = async mode => {
-  const { browser, context, page } = await createBrowserPage({ viewport: { width: 1247, height: 952 } })
+const runPass = async (mode) => {
+  const { browser, context, page } = await createBrowserPage({
+    viewport: { width: 1247, height: 952 },
+  })
   const prefix = `[行为:${mode}]`
   const dark = mode === "dark"
 
   await context.addInitScript(
-    scheme => {
+    (scheme) => {
       globalThis.localStorage.setItem("vueuse-color-scheme", scheme)
     },
-    dark ? "dark" : "light"
+    dark ? "dark" : "light",
   )
 
-  const url = path => new URL(path, smokeConfig.baseUrl).toString()
+  const url = (path) => new URL(path, smokeConfig.baseUrl).toString()
 
   try {
     await loginThroughUi(page, prefix)
@@ -134,9 +143,9 @@ const runPass = async mode => {
     record(
       "动画开合：打开时有 dialog-fade 过渡",
       !!anims &&
-        anims.overlayAnims.some(n => n.includes("modal-fade")) &&
-        anims.layerAnims.some(n => n.includes("dialog-fade")),
-      JSON.stringify(anims)
+        anims.overlayAnims.some((n) => n.includes("modal-fade")) &&
+        anims.layerAnims.some((n) => n.includes("dialog-fade")),
+      JSON.stringify(anims),
     )
 
     // 1b. data-autofocus 命中（EP 容器聚焦之后由 setTimeout 聚焦接管）
@@ -144,13 +153,17 @@ const runPass = async mode => {
     record(
       "data-autofocus 优先聚焦命中原生 input",
       focusAfterOpen.dataAutofocus && focusAfterOpen.inDialog,
-      JSON.stringify(focusAfterOpen)
+      JSON.stringify(focusAfterOpen),
     )
 
     // 1c. 遮罩色 / z-index / 滚动锁（实例 1）
     const state1 = await overlayState(page)
     const expectedMask = dark ? "rgba(0, 0, 0, 0.6)" : "rgba(15, 23, 42, 0.24)"
-    record(`遮罩色（${mode}）= ${expectedMask}`, state1.maskColor === expectedMask, `实测 ${state1.maskColor}`)
+    record(
+      `遮罩色（${mode}）= ${expectedMask}`,
+      state1.maskColor === expectedMask,
+      `实测 ${state1.maskColor}`,
+    )
     record("遮罩 z-index=400（基线语义钉住）", state1.zIndex === "400", `实测 ${state1.zIndex}`)
     record("打开后 body 滚动锁生效（实例1）", state1.bodyOverflow === "hidden", state1.bodyOverflow)
 
@@ -162,8 +175,8 @@ const runPass = async mode => {
     }
     record(
       "Tab 焦点循环始终在面板内",
-      tabPath.every(f => f.inDialog),
-      tabPath.map(f => f.desc).join(" → ")
+      tabPath.every((f) => f.inDialog),
+      tabPath.map((f) => f.desc).join(" → "),
     )
 
     // 1e. IME 组词 Esc 不关闭；真实 Esc 关闭
@@ -173,7 +186,7 @@ const runPass = async mode => {
     record(
       "IME 组词中 Esc 不关闭对话框",
       stateAfterIme.visibleOverlayCount === 1,
-      `叠层数 ${stateAfterIme.visibleOverlayCount}`
+      `叠层数 ${stateAfterIme.visibleOverlayCount}`,
     )
     await page.keyboard.press("Escape")
     await page.waitForTimeout(400)
@@ -181,13 +194,16 @@ const runPass = async mode => {
     record(
       "Esc 关闭栈顶（单弹窗）",
       stateAfterEsc.visibleOverlayCount === 0 && stateAfterEsc.bodyOverflow === "",
-      `叠层数 ${stateAfterEsc.visibleOverlayCount} / overflow=${stateAfterEsc.bodyOverflow}`
+      `叠层数 ${stateAfterEsc.visibleOverlayCount} / overflow=${stateAfterEsc.bodyOverflow}`,
     )
 
     // 1f. 点遮罩关闭（closeOnOverlay 默认 true）
     await page.locator(".kb-sidebar button[title='新建']").click()
     await page.getByRole("button", { name: "创建知识库" }).click()
-    await page.locator('[role="dialog"]').filter({ hasText: "新建知识库" }).waitFor({ state: "visible" })
+    await page
+      .locator('[role="dialog"]')
+      .filter({ hasText: "新建知识库" })
+      .waitFor({ state: "visible" })
     await page.waitForTimeout(300)
     await page.mouse.click(30, 30)
     await page.waitForTimeout(400)
@@ -195,7 +211,7 @@ const runPass = async mode => {
     record(
       "点遮罩关闭（closeOnOverlay=true）",
       stateAfterOverlayClick.visibleOverlayCount === 0,
-      `叠层数 ${stateAfterOverlayClick.visibleOverlayCount}`
+      `叠层数 ${stateAfterOverlayClick.visibleOverlayCount}`,
     )
 
     // ---------- 2. 移动弹窗 data-autofocus（原生 input data-autofocus 写法） ----------
@@ -206,14 +222,17 @@ const runPass = async mode => {
     const targetRow = rowVisible ? row : page.locator("[data-knowledge-tree-row]").first()
     await targetRow.click({ button: "right" })
     await page.getByRole("menuitem", { name: "移动..." }).click()
-    await page.locator('[role="dialog"]').filter({ hasText: "移动至" }).waitFor({ state: "visible" })
+    await page
+      .locator('[role="dialog"]')
+      .filter({ hasText: "移动至" })
+      .waitFor({ state: "visible" })
     await page.waitForTimeout(300)
     // data-autofocus 原生 input（KnowledgeMoveNodeDialog 自带 data-autofocus）
     const moveFocus = await activeInfo(page)
     record(
       "移动弹窗 data-autofocus 命中搜索框",
       moveFocus.dataAutofocus && moveFocus.inDialog,
-      JSON.stringify(moveFocus)
+      JSON.stringify(moveFocus),
     )
     await page.keyboard.press("Escape")
     await page.waitForTimeout(400)
@@ -225,18 +244,24 @@ const runPass = async mode => {
     const shareBtn = page.getByRole("button", { name: "分享", exact: true }).first()
     await shareBtn.focus()
     await shareBtn.click()
-    await page.locator('[role="dialog"]').filter({ hasText: "分享" }).waitFor({ state: "visible", timeout: 10_000 })
+    await page
+      .locator('[role="dialog"]')
+      .filter({ hasText: "分享" })
+      .waitFor({ state: "visible", timeout: 10_000 })
     await page.waitForTimeout(500)
     const shareState = await overlayState(page)
     record(
       "分享弹窗打开（实例1）+ 滚动锁",
       shareState.visibleOverlayCount === 1 && shareState.bodyOverflow === "hidden",
-      JSON.stringify(shareState)
+      JSON.stringify(shareState),
     )
 
     // 开启分享（幂等：已开启则跳过）→ 展开更多分享设置 → 点二维码按钮，叠放扫码弹窗
     const shareDialog = page.locator('[role="dialog"]').filter({ hasText: "分享" })
-    const switchChecked = await shareDialog.locator(".el-switch__input").first().getAttribute("aria-checked")
+    const switchChecked = await shareDialog
+      .locator(".el-switch__input")
+      .first()
+      .getAttribute("aria-checked")
     if (switchChecked !== "true") {
       await shareDialog.locator(".el-switch__core").first().click()
       await page.getByText("链接已生成").waitFor({ state: "visible", timeout: 10_000 })
@@ -247,9 +272,12 @@ const runPass = async mode => {
       await qrBtn.waitFor({ state: "visible", timeout: 15_000 })
     } catch (error) {
       const dump = await page.evaluate(() => {
-        const dlg = Array.from(document.querySelectorAll(".kb-el-dialog")).find(d => d.textContent.includes("分享"))
+        const dlg = Array.from(document.querySelectorAll(".kb-el-dialog")).find((d) =>
+          d.textContent.includes("分享"),
+        )
         return {
-          switchChecked: dlg?.querySelector(".el-switch__input")?.getAttribute("aria-checked") ?? null,
+          switchChecked:
+            dlg?.querySelector(".el-switch__input")?.getAttribute("aria-checked") ?? null,
           caretRotated: !!dlg?.querySelector('[class*="rotate-180"]'),
           hasLinkText: dlg?.textContent.includes("链接已生成") ?? null,
           hasAdvText: dlg?.textContent.includes("当前分享链接") ?? null,
@@ -260,13 +288,16 @@ const runPass = async mode => {
       throw error
     }
     await qrBtn.click()
-    await page.locator('[role="dialog"]').filter({ hasText: "扫码访问" }).waitFor({ state: "visible", timeout: 10_000 })
+    await page
+      .locator('[role="dialog"]')
+      .filter({ hasText: "扫码访问" })
+      .waitFor({ state: "visible", timeout: 10_000 })
     await page.waitForTimeout(500)
     const stackState = await overlayState(page)
     record(
       "双弹窗叠放（分享 + 扫码访问）",
       stackState.visibleOverlayCount === 2 && stackState.bodyOverflow === "hidden",
-      JSON.stringify(stackState.dialogTitles)
+      JSON.stringify(stackState.dialogTitles),
     )
 
     // 叠放时 Tab 只在栈顶循环
@@ -277,7 +308,7 @@ const runPass = async mode => {
     record(
       "叠放时 Tab 只在栈顶（扫码访问）循环",
       tabInTop.whichDialog === "qr" && tabInTop.inDialog,
-      JSON.stringify(tabInTop)
+      JSON.stringify(tabInTop),
     )
 
     // 叠放时 Esc 只关栈顶（二段式第一段）
@@ -289,12 +320,15 @@ const runPass = async mode => {
       afterFirstEsc.visibleOverlayCount === 1 &&
         afterFirstEsc.dialogTitles.includes("分享") &&
         afterFirstEsc.bodyOverflow === "hidden",
-      JSON.stringify(afterFirstEsc)
+      JSON.stringify(afterFirstEsc),
     )
 
     // 栈顶点遮罩也只关栈顶
     await page.locator('button[title="扫码访问"]').first().click()
-    await page.locator('[role="dialog"]').filter({ hasText: "扫码访问" }).waitFor({ state: "visible" })
+    await page
+      .locator('[role="dialog"]')
+      .filter({ hasText: "扫码访问" })
+      .waitFor({ state: "visible" })
     await page.waitForTimeout(300)
     await page.mouse.click(30, 30)
     await page.waitForTimeout(400)
@@ -302,7 +336,7 @@ const runPass = async mode => {
     record(
       "叠放时点遮罩只关栈顶",
       afterTopOverlay.visibleOverlayCount === 1 && afterTopOverlay.dialogTitles.includes("分享"),
-      JSON.stringify(afterTopOverlay.dialogTitles)
+      JSON.stringify(afterTopOverlay.dialogTitles),
     )
 
     // 第二段 Esc 关分享弹窗，滚动锁解除（计数归零）
@@ -312,7 +346,7 @@ const runPass = async mode => {
     record(
       "Esc 二段式：第二段关分享弹窗，body 滚动锁解除",
       afterSecondEsc.visibleOverlayCount === 0 && afterSecondEsc.bodyOverflow === "",
-      `overflow=${afterSecondEsc.bodyOverflow}`
+      `overflow=${afterSecondEsc.bodyOverflow}`,
     )
 
     // 焦点还原：触发元素（分享按钮，稳定存续）应重新获得焦点
@@ -324,7 +358,11 @@ const runPass = async mode => {
         isShareBtn: el?.textContent?.trim() === "分享",
       }
     })
-    record("关闭后焦点还原到触发元素（分享按钮）", focusRestored.isShareBtn, JSON.stringify(focusRestored))
+    record(
+      "关闭后焦点还原到触发元素（分享按钮）",
+      focusRestored.isShareBtn,
+      JSON.stringify(focusRestored),
+    )
   } finally {
     await browser.close()
   }
@@ -334,10 +372,9 @@ let failed = 0
 for (const mode of ["light", "dark"]) {
   const before = results.length
   await runPass(mode)
-  failed += results.slice(before).filter(r => !r.pass).length
+  failed += results.slice(before).filter((r) => !r.pass).length
 }
 
-logStep("[行为]", results.map(r => `${r.pass ? "PASS" : "FAIL"} ${r.name}`).join("\n"))
+logStep("[行为]", results.map((r) => `${r.pass ? "PASS" : "FAIL"} ${r.name}`).join("\n"))
 logStep("[行为]", `共 ${results.length} 项，失败 ${failed} 项`)
 process.exit(failed > 0 ? 1 : 0)
-

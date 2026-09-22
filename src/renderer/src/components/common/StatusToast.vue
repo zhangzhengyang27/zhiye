@@ -24,11 +24,11 @@ const barKey = ref(0)
 
 watch(
   () => props.show && !!props.message,
-  active => {
+  (active) => {
     if (active) {
       barKey.value += 1
     }
-  }
+  },
 )
 
 const toastMeta = computed(() => {
@@ -75,7 +75,7 @@ const toastMeta = computed(() => {
       v-if="show && message"
       role="status"
       aria-live="polite"
-      class="fixed right-6 top-6 z-[500] min-w-[240px] max-w-[380px] rounded-[22px] border px-4 py-3.5 shadow-[0_22px_48px_rgba(15,23,42,0.16)] backdrop-blur"
+      class="fixed right-6 top-6 z-[var(--kb-z-toast)] min-w-[240px] max-w-[380px] rounded-[22px] border px-4 py-3.5 shadow-[var(--kb-float-shadow)] backdrop-blur"
       :class="toastMeta.shellClass"
     >
       <div class="flex items-start gap-3">
@@ -86,7 +86,9 @@ const toastMeta = computed(() => {
           <AppIcon :name="toastMeta.icon" class="h-[18px] w-[18px]" />
         </span>
         <div class="min-w-0 flex-1">
-          <p class="text-[11px] font-medium tracking-[0.08em] text-ink-quaternary">{{ toastMeta.label }}</p>
+          <p class="text-[11px] font-medium tracking-[0.08em] text-ink-quaternary">
+            {{ toastMeta.label }}
+          </p>
           <div class="mt-1 min-w-0 text-sm font-medium leading-6">{{ message }}</div>
         </div>
       </div>

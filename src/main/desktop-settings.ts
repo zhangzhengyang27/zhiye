@@ -229,7 +229,7 @@ export const restoreDesktopSettings = () => {
   snapshot = readSnapshot()
 
   if (snapshot.proxy) {
-    void applyProxy(snapshot.proxy).then(ok => {
+    void applyProxy(snapshot.proxy).then((ok) => {
       if (!ok) {
         console.warn("[xiaoye] 快照中的代理地址非法，已忽略")
       }

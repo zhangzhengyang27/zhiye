@@ -1,5 +1,9 @@
 import { computed, ref } from "vue"
-import type { TreeDragSession, TreeDropTarget, TreeRowRegistryItem } from "@/components/knowledge/tree-dnd"
+import type {
+  TreeDragSession,
+  TreeDropTarget,
+  TreeRowRegistryItem,
+} from "@/components/knowledge/tree-dnd"
 import { getAutoScrollVelocity, resolveDropPositionByRect } from "@/components/knowledge/tree-dnd"
 import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
 
@@ -30,7 +34,7 @@ export function useTreeDnd(options: {
   }
 
   const registerTreeRow = (payload: TreeRowRegistryItem) => {
-    const index = treeRowRegistry.value.findIndex(r => r.nodeId === payload.nodeId)
+    const index = treeRowRegistry.value.findIndex((r) => r.nodeId === payload.nodeId)
 
     if (index >= 0) {
       treeRowRegistry.value[index] = payload
@@ -40,7 +44,7 @@ export function useTreeDnd(options: {
   }
 
   const unregisterTreeRow = (payload: { nodeId: string }) => {
-    treeRowRegistry.value = treeRowRegistry.value.filter(r => r.nodeId !== payload.nodeId)
+    treeRowRegistry.value = treeRowRegistry.value.filter((r) => r.nodeId !== payload.nodeId)
   }
 
   const getSortedTreeRows = () =>
@@ -50,7 +54,10 @@ export function useTreeDnd(options: {
       return aTop - bTop
     })
 
-  const resolveTreeDropTargetFromPointer = (clientX: number, clientY: number): TreeDropTarget | null => {
+  const resolveTreeDropTargetFromPointer = (
+    clientX: number,
+    clientY: number,
+  ): TreeDropTarget | null => {
     if (!draggingNodeId.value) {
       return null
     }
@@ -64,7 +71,12 @@ export function useTreeDnd(options: {
 
       const rect = row.element.getBoundingClientRect()
 
-      if (clientY >= rect.top && clientY <= rect.bottom && clientX >= rect.left && clientX <= rect.right) {
+      if (
+        clientY >= rect.top &&
+        clientY <= rect.bottom &&
+        clientX >= rect.left &&
+        clientX <= rect.right
+      ) {
         const position = resolveDropPositionByRect(clientY, rect, row.type === "folder")
 
         return {
@@ -84,7 +96,9 @@ export function useTreeDnd(options: {
     return options.findTreeNode(options.treeNodes(), target.nodeId ?? "")
   }
 
-  const getTreeDropTargetParentNode = (target: TreeDropTarget): KnowledgeDocumentTreeNode | null => {
+  const getTreeDropTargetParentNode = (
+    target: TreeDropTarget,
+  ): KnowledgeDocumentTreeNode | null => {
     if (target.position === "inside" || target.parentId === null) {
       return getTreeDropTargetNode(target)
     }
@@ -92,7 +106,10 @@ export function useTreeDnd(options: {
     return options.findTreeNode(options.treeNodes(), target.parentId ?? "")
   }
 
-  const canDropTreeNode = (sourceNode: KnowledgeDocumentTreeNode, target: TreeDropTarget): boolean => {
+  const canDropTreeNode = (
+    sourceNode: KnowledgeDocumentTreeNode,
+    target: TreeDropTarget,
+  ): boolean => {
     if (!target.nodeId) {
       return false
     }
@@ -170,7 +187,7 @@ export function useTreeDnd(options: {
 
   const resolveTreeDropBlockedReason = (
     sourceNode: KnowledgeDocumentTreeNode,
-    target: TreeDropTarget
+    target: TreeDropTarget,
   ): string | null => {
     if (!canDropTreeNode(sourceNode, target)) {
       return "无法放置到该位置"
@@ -199,7 +216,9 @@ export function useTreeDnd(options: {
     return ids
   }
 
-  const treeDragDisabled = computed(() => !options.canEdit() || options.loadingTree() || options.reorderingTree())
+  const treeDragDisabled = computed(
+    () => !options.canEdit() || options.loadingTree() || options.reorderingTree(),
+  )
 
   return {
     treeDropTarget,

@@ -69,7 +69,7 @@ export const getOnlineWindowCount = (): number => {
 /** 跟踪项快照：path + 当前几何（记忆 URL/几何的只读视图）。 */
 export const getOnlineWindowSnapshots = () => {
   pruneDestroyed()
-  return onlineWindows.map(entry => ({
+  return onlineWindows.map((entry) => ({
     path: entry.path,
     bounds: entry.win.isDestroyed() ? null : entry.win.getBounds(),
   }))
@@ -93,7 +93,7 @@ export const openOnlineWindow = (options: OpenOnlineWindowOptions): OpenOnlineWi
   onlineWindows.push({ win, path: options.targetPath })
 
   win.once("closed", () => {
-    const index = onlineWindows.findIndex(entry => entry.win === win)
+    const index = onlineWindows.findIndex((entry) => entry.win === win)
     if (index >= 0) {
       onlineWindows.splice(index, 1)
     }

@@ -38,9 +38,7 @@ export interface KnowledgeLegacyBoardShapeNode extends KnowledgeLegacyBoardNodeB
 
 /** 表示旧版画板可能出现的节点类型。 */
 export type KnowledgeLegacyBoardNode =
-  | KnowledgeLegacyBoardTextNode
-  | KnowledgeLegacyBoardStickyNode
-  | KnowledgeLegacyBoardShapeNode
+  KnowledgeLegacyBoardTextNode | KnowledgeLegacyBoardStickyNode | KnowledgeLegacyBoardShapeNode
 
 /** 描述旧版画板中的连线。 */
 export interface KnowledgeLegacyBoardConnector {

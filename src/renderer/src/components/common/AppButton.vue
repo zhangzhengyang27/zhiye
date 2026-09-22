@@ -91,7 +91,7 @@ const props = withDefaults(
     trailingIcon: undefined,
     square: false,
     multiline: false,
-  }
+  },
 )
 
 const attrs = useAttrs()
@@ -117,14 +117,17 @@ const variantColorClass = computed(() => {
   const color = resolvedColor.value
 
   if (color === "primary") {
-    if (variant === "solid") return "border-transparent bg-brand text-white hover:bg-brand-hover active:bg-brand-active"
+    if (variant === "solid")
+      return "border-transparent bg-brand text-white hover:bg-brand-hover active:bg-brand-active"
     if (variant === "outline") return "border-brand bg-transparent text-brand hover:bg-brand-faint"
-    if (variant === "soft") return "border-transparent bg-brand-light text-brand-active hover:bg-brand-lighter"
+    if (variant === "soft")
+      return "border-transparent bg-brand-light text-brand-active hover:bg-brand-lighter"
     return "border-transparent bg-transparent text-brand hover:bg-brand-faint"
   }
 
   if (color === "error") {
-    if (variant === "solid") return "border-transparent bg-error text-white hover:bg-error-hover active:bg-error-active"
+    if (variant === "solid")
+      return "border-transparent bg-error text-white hover:bg-error-hover active:bg-error-active"
     if (variant === "outline") return "border-error bg-transparent text-error hover:bg-error-bg"
     if (variant === "soft") return "border-transparent bg-error-light text-error hover:bg-error-bg"
     return "border-transparent bg-transparent text-error hover:bg-error-bg"
@@ -133,13 +136,16 @@ const variantColorClass = computed(() => {
   if (color === "success") {
     if (variant === "solid")
       return "border-transparent bg-success text-white hover:bg-success-hover active:bg-success-active"
-    if (variant === "outline") return "border-success bg-transparent text-success hover:bg-success-bg"
-    if (variant === "soft") return "border-transparent bg-success-light text-success hover:bg-success-bg"
+    if (variant === "outline")
+      return "border-success bg-transparent text-success hover:bg-success-bg"
+    if (variant === "soft")
+      return "border-transparent bg-success-light text-success hover:bg-success-bg"
     return "border-transparent bg-transparent text-success hover:bg-success-bg"
   }
 
   // neutral：明暗两态的底色/文字由 --kb-neutral* 语义层换档（见 tokens.css）
-  if (variant === "solid") return "border-transparent bg-neutral text-neutral-ink hover:bg-neutral-hover"
+  if (variant === "solid")
+    return "border-transparent bg-neutral text-neutral-ink hover:bg-neutral-hover"
   if (variant === "outline") return "border-line bg-transparent text-ink-secondary hover:bg-muted"
   if (variant === "soft") return "border-transparent bg-muted text-ink-secondary hover:bg-grey-200"
   return "border-transparent bg-transparent text-ink-secondary hover:bg-muted"
@@ -151,34 +157,43 @@ const sizeClass = computed(() => {
   // 调用方自带宽/高类（图标按钮常用 h-7 w-7）时，固定尺寸内再叠内边距会把内容挤出按钮，
   // 按方向剔除对应的默认内边距；其余冲突（rounded/bg/text 等）交给 cn() 裁决。
   const tokens = attrsClassString.value.split(/\s+/).filter(Boolean)
-  const hasHorizontalSize = tokens.some(token => token.startsWith("w-") || token.startsWith("size-"))
-  const hasVerticalSize = tokens.some(token => token.startsWith("h-") || token.startsWith("size-"))
+  const hasHorizontalSize = tokens.some(
+    (token) => token.startsWith("w-") || token.startsWith("size-"),
+  )
+  const hasVerticalSize = tokens.some(
+    (token) => token.startsWith("h-") || token.startsWith("size-"),
+  )
 
   if (size === "xs") {
     return square
       ? "aspect-square p-0 text-xs"
-      : `text-xs gap-1 rounded-lg ${hasHorizontalSize ? "" : "px-2.5"} ${hasVerticalSize ? "" : "py-1"}`
+      : `text-xs gap-1 rounded-kb-md ${hasHorizontalSize ? "" : "px-2.5"} ${hasVerticalSize ? "" : "py-1"}`
   }
 
   if (size === "sm") {
     return square
       ? "aspect-square p-0 text-sm"
-      : `text-sm gap-1.5 rounded-lg ${hasHorizontalSize ? "" : "px-3"} ${hasVerticalSize ? "" : "py-1.5"}`
+      : `text-sm gap-1.5 rounded-kb-md ${hasHorizontalSize ? "" : "px-3"} ${hasVerticalSize ? "" : "py-1.5"}`
   }
 
   if (size === "lg") {
     return square
       ? "aspect-square p-0 text-base"
-      : `text-base gap-2 rounded-xl ${hasHorizontalSize ? "" : "px-5"} ${hasVerticalSize ? "" : "py-3"}`
+      : `text-base gap-2 rounded-kb-xl ${hasHorizontalSize ? "" : "px-5"} ${hasVerticalSize ? "" : "py-3"}`
   }
 
   return square
     ? "aspect-square p-0 text-sm"
-    : `text-sm gap-2 rounded-xl ${hasHorizontalSize ? "" : "px-4"} ${hasVerticalSize ? "" : "py-2.5"}`
+    : `text-sm gap-2 rounded-kb-xl ${hasHorizontalSize ? "" : "px-4"} ${hasVerticalSize ? "" : "py-2.5"}`
 })
 
 const buttonClass = computed(() =>
-  cn(variantColorClass.value, sizeClass.value, props.block ? "w-full" : "", String(attrs.class ?? ""))
+  cn(
+    variantColorClass.value,
+    sizeClass.value,
+    props.block ? "w-full" : "",
+    String(attrs.class ?? ""),
+  ),
 )
 </script>
 
