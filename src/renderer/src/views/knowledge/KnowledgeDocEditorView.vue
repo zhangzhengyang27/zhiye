@@ -2791,7 +2791,7 @@ onBeforeUnmount(() => {
                     class="inline-flex h-8 shrink-0 items-center gap-1 rounded-kb-md border border-line bg-surface px-2.5 text-[12px] text-ink-secondary transition hover:border-brand-lighter"
                   >
                     {{ docCollabRoleLabel[inviteRole] }}
-                    <Icon icon="ph:caret-down" :width="12" :height="12" />
+                    <UiIcon icon="ph:caret-down" :width="12" :height="12" />
                   </button>
                   <template #dropdown>
                     <el-dropdown-menu>
@@ -2862,7 +2862,7 @@ onBeforeUnmount(() => {
                       class="inline-flex h-7 shrink-0 items-center gap-1 rounded-kb-md border border-line bg-surface px-2.5 text-[12px] text-ink-secondary transition hover:border-brand-lighter"
                     >
                       {{ docCollabRoleLabel[collaborator.role] }}
-                      <Icon icon="ph:caret-down" :width="11" :height="11" />
+                      <UiIcon icon="ph:caret-down" :width="11" :height="11" />
                     </button>
                     <template #dropdown>
                       <el-dropdown-menu>
@@ -2894,7 +2894,7 @@ onBeforeUnmount(() => {
                     :disabled="docCollabBusy"
                     @click="handleRemoveDocCollaborator(collaborator)"
                   >
-                    <Icon icon="ph:x" :width="14" :height="14" />
+                    <UiIcon icon="ph:x" :width="14" :height="14" />
                   </button>
                 </li>
               </ul>

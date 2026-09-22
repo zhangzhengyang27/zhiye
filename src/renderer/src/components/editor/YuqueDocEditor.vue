@@ -140,11 +140,6 @@ const mountCodeBlockButton = () => {
   }
   removeCodeBlockButton()
 
-  const toolbar = surfaceRef.value?.querySelector(".ne-ui")
-  if (!toolbar) {
-    return
-  }
-
   const button = document.createElement("button")
   button.type = "button"
   button.className = "lake-toolbar-codeblock-btn"
@@ -152,8 +147,38 @@ const mountCodeBlockButton = () => {
   button.setAttribute("aria-label", "插入代码块")
   button.innerHTML = CODE_BLOCK_BUTTON_ICON
   button.addEventListener("click", insertCodeBlock)
-  toolbar.appendChild(button)
-  codeBlockButton = button
+
+  const surface = surfaceRef.value
+  if (!surface) {
+    return
+  }
+
+  // 锚定工具栏行容器 .ne-ui-toolbar-content（B/I/A 等按钮的直接父层）；Lake 初始化
+  // 是异步的，工具栏可能晚于 load 事件渲染，短轮询等待，超时才退回 .ne-ui 首个匹配
+  const tryMount = (attempt: number): void => {
+    if (codeBlockButton?.isConnected || !surface.isConnected) {
+      return
+    }
+
+    const toolbarRow = surface.querySelector(".ne-ui-toolbar-content")
+    const fallbackToolbar = surface.querySelector(".ne-ui")
+
+    if (toolbarRow) {
+      toolbarRow.appendChild(button)
+      codeBlockButton = button
+      return
+    }
+
+    if (fallbackToolbar && attempt >= 10) {
+      fallbackToolbar.appendChild(button)
+      codeBlockButton = button
+      return
+    }
+
+    window.setTimeout(() => tryMount(attempt + 1), 200)
+  }
+
+  tryMount(0)
 }
 
 onMounted(() => {
