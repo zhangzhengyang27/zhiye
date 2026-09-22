@@ -88,7 +88,7 @@ const YuqueDocEditor = defineAsyncComponent(() => import("@/components/editor/Yu
 
 /** Lake 编辑器组件实例：阅读态进出时经它开关内核原生大纲侧栏（toggleTocView）
  *  defineAsyncComponent 的 InstanceType 不透出 defineExpose 成员，这里以结构类型承接 */
-const lakeEditorRef = ref<{ toggleToc?: () => void } | null>(null)
+const lakeEditorRef = ref<{ toggleToc?: () => void; insertEmojiCard?: (...args: unknown[]) => unknown } | null>(null)
 
 /** 对齐语雀桌面端工具栏的可见项，保留常用格式化工具。 */
 const EDITOR_TOOLBAR_ITEMS = [
@@ -3373,10 +3373,7 @@ onBeforeUnmount(() => {
         <button
           type="button"
           class="rounded-kb-xl bg-muted px-4 py-3 text-left transition hover:bg-brand-faint/40"
-          @click="
-            showStatsDialog = false
-            openVersions()
-          "
+          @click="showStatsDialog = false; openVersions()"
         >
           <p class="text-[11px] text-ink-tertiary">历史版本</p>
           <p class="mt-1 flex items-center gap-1 text-[18px] font-semibold text-ink">
@@ -3532,7 +3529,7 @@ onBeforeUnmount(() => {
       @open-history="openVersions"
       @open-template-library="handleRequestTemplateLibrary"
       @open-knowledge-network="openKnowledgeNetwork"
-      @insert-emoji="lakeEditorRef?.insertEmojiCard()"
+      @insert-emoji="lakeEditorRef?.insertEmojiCard?.()"
       @copy-markdown-link="copyCurrentDocumentMarkdownLink"
       @open-in-browser="openCurrentDocumentInNewTab"
       @export-action="handleInfoExportAction"

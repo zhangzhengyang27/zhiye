@@ -48,7 +48,6 @@ import { PhFunnel } from "@phosphor-icons/vue"
 import { PhGear } from "@phosphor-icons/vue"
 import { PhGlobe } from "@phosphor-icons/vue"
 import { PhGridNine } from "@phosphor-icons/vue"
-import { PhHardDrive } from "@phosphor-icons/vue"
 import { PhHouseSimple } from "@phosphor-icons/vue"
 import { PhImage } from "@phosphor-icons/vue"
 import { PhInfo } from "@phosphor-icons/vue"
@@ -122,7 +121,6 @@ import { FileText } from "lucide-vue-next"
 import { FlaskConical } from "lucide-vue-next"
 import { Folder } from "lucide-vue-next"
 import { GitCompare } from "lucide-vue-next"
-import { HardDrive } from "lucide-vue-next"
 import { Highlighter } from "lucide-vue-next"
 import { History } from "lucide-vue-next"
 import { Image } from "lucide-vue-next"
@@ -218,7 +216,6 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:gear": { component: PhGear },
   "ph:globe": { component: PhGlobe },
   "ph:grid-nine": { component: PhGridNine },
-  "ph:hard-drive": { component: PhHardDrive },
   "ph:house-simple": { component: PhHouseSimple },
   "ph:image": { component: PhImage },
   "ph:info": { component: PhInfo },
@@ -292,7 +289,6 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-flask-conical": { component: FlaskConical },
   "i-lucide-folder": { component: Folder },
   "i-lucide-git-compare": { component: GitCompare },
-  "i-lucide-hard-drive": { component: HardDrive },
   "i-lucide-highlighter": { component: Highlighter },
   "i-lucide-history": { component: History },
   "i-lucide-image": { component: Image },

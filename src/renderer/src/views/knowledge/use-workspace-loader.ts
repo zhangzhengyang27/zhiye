@@ -40,6 +40,10 @@ export const useWorkspaceLoader = (options: {
   let workspaceLoadSeq = 0
 
   const loadKnowledgeBase = async (targetKbId: string) => {
+    // 触屏拖拽回滚等瞬态会把 kbId 短暂置空，直接请求会打 undefined 路径
+    if (!targetKbId) {
+      return
+    }
     const result = await getKnowledgeBase(targetKbId)
 
     if (kbId.value === targetKbId) {
@@ -48,6 +52,9 @@ export const useWorkspaceLoader = (options: {
   }
 
   const loadPermissions = async (targetKbId: string) => {
+    if (!targetKbId) {
+      return
+    }
     const result = await checkKnowledgeBasePermissions(targetKbId)
 
     if (kbId.value === targetKbId) {
@@ -56,6 +63,9 @@ export const useWorkspaceLoader = (options: {
   }
 
   const loadTree = async (targetKbId: string) => {
+    if (!targetKbId) {
+      return
+    }
     loadingTree.value = true
 
     try {
@@ -97,6 +107,9 @@ export const useWorkspaceLoader = (options: {
   }
 
   const refreshPermissions = async () => {
+    if (!kbId.value) {
+      return
+    }
     try {
       await loadPermissions(kbId.value)
     } catch (error) {
