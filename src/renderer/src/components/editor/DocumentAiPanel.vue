@@ -7,7 +7,7 @@
  * 结果支持一键复制与「插入到文档末尾」。
  * 模型配置沿用画板 AI 的本地激活 profile，未配置时展示服务端提示。
  */
-import { ref } from "vue"
+import { ref, watch } from "vue"
 import UiIcon from "@/components/common/UiIcon.vue"
 import AppIcon from "@/components/common/AppIcon.vue"
 // DocumentSidePanelTabs 不引入：AI 框无 tab 条（顶栏竖条开关直达，见下方头部注释），
@@ -28,10 +28,13 @@ const props = withDefaults(
     documentId: string
     token?: string | null
     userId?: string | null
+    /** 划选 AI 入口注入的种子指令（选中文本）；消费后由父层清空 */
+    seedInstruction?: string | null
   }>(),
   {
     token: null,
     userId: null,
+    seedInstruction: null,
   },
 )
 
@@ -63,6 +66,18 @@ const clearOutput = () => {
   copied.value = false
   inserted.value = false
 }
+
+/** 划选 AI（B1 #7）：种子指令（选中文本）到达即切自定义模式预填，用户补一句指令或直接生成 */
+watch(
+  () => props.seedInstruction,
+  (seed) => {
+    if (!seed) return
+    activeAction.value = "custom"
+    instruction.value = `请基于以下选中内容：\n\n${seed}\n\n`
+    clearOutput()
+  },
+  { immediate: true },
+)
 
 const run = async (action: DocAiAction) => {
   activeAction.value = action
@@ -145,7 +160,7 @@ const insertToEnd = () => {
 <template>
   <aside
     class="flex h-full w-[375px] shrink-0 flex-col overflow-hidden border-l border-line bg-surface"
-    aria-label="AI 写作独立框"
+    aria-label="AI 助手面板"
   >
     <div class="shrink-0 px-4 pt-4">
       <!-- 对齐语雀「AI 独立框」头部：标题 + 收起，无 tab 条（顶栏竖条开关直达） -->

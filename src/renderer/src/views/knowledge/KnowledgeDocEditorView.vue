@@ -3,7 +3,16 @@
 /** 页面组件，负责知识库文档编辑、保存、评论与版本侧栏的主流程编排。 */
 import { formatClockTime, formatDateTime } from "@/utils/date-format"
 import { isImeComposing } from "@/utils/keyboard"
-import { computed, defineAsyncComponent, inject, onBeforeUnmount, onMounted, ref, watch } from "vue"
+import {
+  computed,
+  defineAsyncComponent,
+  inject,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue"
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from "vue-router"
 import { onClickOutside, refDebounced } from "@vueuse/core"
 import { useTransientToast } from "@/composables/use-transient-toast"
@@ -693,6 +702,17 @@ const beginCommentFromSelection = () => {
   commentDraftAnchor = anchor
   commentComposeQuote.value = anchor.text
   void openSidePanel("comments")
+}
+
+/** 划选 AI 助手（对齐语雀浮动条 AI 入口）：选中内容作为种子指令注入 AI 侧栏 */
+const aiSeedInstruction = ref<string | null>(null)
+const beginAiFromSelection = (text: string) => {
+  aiSeedInstruction.value = text
+  void openSidePanel("ai")
+  // 面板挂载即消费种子（immediate watch）；消费后清空，避免下次从顶栏打开带出旧选区
+  void nextTick(() => {
+    if (aiSeedInstruction.value) aiSeedInstruction.value = null
+  })
 }
 
 const cancelCommentCompose = () => {
@@ -3350,6 +3370,7 @@ onBeforeUnmount(() => {
         :editor="editorInstance"
         :editable="canEdit && !isPreviewMode"
         @comment="beginCommentFromSelection"
+        @ai="beginAiFromSelection"
       />
 
       <DocumentCommentsPanel
@@ -3380,6 +3401,7 @@ onBeforeUnmount(() => {
         :document-id="docId"
         :token="authStore.accessToken"
         :user-id="authStore.user?.id ?? null"
+        :seed-instruction="aiSeedInstruction"
         @close="closeSidePanels(null)"
         @switch-tab="handleSidePanelSwitch"
         @insert-to-end="handleAiInsertToEnd"
