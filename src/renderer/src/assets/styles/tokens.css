@@ -1,0 +1,469 @@
+/* ============================================================
+ * Design Tokens —— 三层结构，色值移植自语雀 v4.2.1（明暗两套）
+ * 1. 原始色板: --kb-grey-*, --kb-green-* 等（.dark 整体反转覆盖）
+ * 2. 语义层:   --kb-brand / --kb-text / --kb-border 等（引用原始层，几乎不需要按模式覆写）
+ * 3. 结构层:   radius / transition / z-index / font / layout（与颜色无关，单套）
+ * ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ---------- 1. 原始色板（亮色，源自语雀 :root） ---------- */
+  --kb-white: #ffffff;
+  --kb-black: #000000;
+  --kb-background-base: #ffffff;
+
+  --kb-grey-100: #fafafa;
+  --kb-grey-200: #f4f5f5;
+  --kb-grey-300: #eff0f0;
+  --kb-grey-400: #e7e9e8;
+  --kb-grey-500: #d8dad9;
+  --kb-grey-600: #bec0bf;
+  --kb-grey-700: #8a8f8d;
+  /* 700 与 800 之间的半档：亮色 tertiary 文字需 ≥4.5:1（#8a8f8d 只有 3.2:1） */
+  --kb-grey-750: #6f7472;
+  --kb-grey-800: #585a5a;
+  --kb-grey-900: #262626;
+
+  --kb-green-50: #ecfaf4;
+  --kb-green-100: #daf6ea;
+  --kb-green-200: #c7f0df;
+  --kb-green-300: #82edc0;
+  --kb-green-400: #45de9d;
+  --kb-green-500: #0bd07d;
+  --kb-green-600: #00b96b;
+  --kb-green-700: #009456;
+  --kb-green-800: #00663b;
+  --kb-green-900: #003d23;
+
+  --kb-blue-50: #ecf4fd;
+  --kb-blue-100: #d9eafc;
+  --kb-blue-200: #c0ddfc;
+  --kb-blue-300: #81bbf8;
+  --kb-blue-400: #5fa8f6;
+  --kb-blue-500: #2f8ef4;
+  --kb-blue-600: #117cee;
+  --kb-blue-700: #0c68ca;
+  --kb-blue-800: #074a92;
+  --kb-blue-900: #00346b;
+
+  --kb-red-50: #fdf1f3;
+  --kb-red-100: #fbe4e7;
+  --kb-red-200: #f8ced3;
+  --kb-red-300: #f1a2ab;
+  --kb-red-400: #ea7583;
+  --kb-red-500: #e4495b;
+  --kb-red-600: #df2a3f;
+  --kb-red-700: #ad1a2b;
+  --kb-red-800: #8f0515;
+  --kb-red-900: #70000d;
+
+  --kb-yellow-50: #fcf5e6;
+  --kb-yellow-100: #f9efcd;
+  --kb-yellow-200: #f6e1ac;
+  --kb-yellow-300: #f5d480;
+  --kb-yellow-400: #f5cb61;
+  --kb-yellow-500: #f3bb2f;
+  --kb-yellow-600: #ecaa04;
+  --kb-yellow-700: #c99103;
+  --kb-yellow-800: #8f6600;
+  --kb-yellow-900: #664900;
+
+  --kb-orange-50: #fef2e9;
+  --kb-orange-100: #fde6d3;
+  --kb-orange-200: #f8d6b9;
+  --kb-orange-300: #f8b881;
+  --kb-orange-400: #f6a055;
+  --kb-orange-500: #f38f39;
+  --kb-orange-600: #ed740c;
+  --kb-orange-700: #c75c00;
+  --kb-orange-800: #944400;
+  --kb-orange-900: #663000;
+
+  /* ---------- 2. 语义层：品牌（语雀绿） ---------- */
+  --kb-brand: var(--kb-green-600);
+  --kb-brand-hover: var(--kb-green-700);
+  --kb-brand-active: var(--kb-green-700);
+  --kb-brand-light: var(--kb-green-100);
+  --kb-brand-lighter: var(--kb-green-200);
+  --kb-brand-ultra-light: var(--kb-green-50);
+
+  /* ---------- 2. 语义层：状态色（base=600 / hover=500 / active=700 / light=100 / bg=50） ---------- */
+  --kb-success: var(--kb-green-600);
+  --kb-success-hover: var(--kb-green-500);
+  --kb-success-active: var(--kb-green-700);
+  --kb-success-light: var(--kb-green-100);
+  --kb-success-bg: var(--kb-green-50);
+
+  --kb-warning: var(--kb-yellow-600);
+  --kb-warning-hover: var(--kb-yellow-500);
+  --kb-warning-active: var(--kb-yellow-700);
+  --kb-warning-light: var(--kb-yellow-100);
+  --kb-warning-bg: var(--kb-yellow-50);
+
+  --kb-error: var(--kb-red-600);
+  --kb-error-hover: var(--kb-red-500);
+  --kb-error-active: var(--kb-red-700);
+  --kb-error-light: var(--kb-red-100);
+  --kb-error-bg: var(--kb-red-50);
+
+  --kb-info: var(--kb-blue-600);
+  --kb-info-hover: var(--kb-blue-500);
+  --kb-info-active: var(--kb-blue-700);
+  --kb-info-light: var(--kb-blue-100);
+  --kb-info-bg: var(--kb-blue-50);
+
+  /* 中性实心按钮：亮色为深底浅字，暗色色板反转后需换档，否则前后景会撞色 */
+  --kb-neutral: var(--kb-grey-900);
+  --kb-neutral-hover: var(--kb-grey-700);
+  --kb-neutral-ink: var(--kb-grey-100);
+
+  /* 文件类型标识色：与状态色区分开，避免「视频文件」被误读成告警 */
+  --kb-file-video: #c026d3;
+
+  /* ---------- 2. 语义层：表面 / 边框 / 文字 ---------- */
+  --kb-surface-bg: #ffffff;
+  --kb-surface-soft-bg: var(--kb-grey-100);
+  --kb-muted-bg: var(--kb-grey-100);
+  --kb-border: var(--kb-grey-300);
+  --kb-border-soft: var(--kb-grey-200);
+  --kb-border-input: var(--kb-grey-400);
+
+  --kb-text: var(--kb-grey-900);
+  --kb-text-secondary: var(--kb-grey-800);
+  /* 亮色 tertiary/quaternary 校准过：tertiary ≥4.5:1、quaternary ≥3:1（原 #8a8f8d/#bec0bf 分别只有 3.2/1.75:1）。
+     quaternary 仍偏淡，只用于图标、分隔、禁用与占位；14px 以下的功能性文字请用 tertiary。 */
+  --kb-text-tertiary: var(--kb-grey-750);
+  --kb-text-quaternary: var(--kb-grey-700);
+
+  /* 组件叠加字色三档的亮侧等义（暗侧是白叠加 alpha，见 .dark 段）：亮色本就由灰阶
+     档供给，这里只保证 var() 两套主题都有定义、不悬空 */
+  --kb-text-on-fill-strong: var(--kb-text);
+  --kb-text-on-fill: var(--kb-text-secondary);
+  --kb-text-on-fill-faint: var(--kb-text-quaternary);
+
+  /* 弱填充两档的亮色口径（语雀实测：background-color-base #f5f5f5、-light #fafafa） */
+  --kb-fill-muted: #f5f5f5;
+  --kb-fill-subtle: #fafafa;
+
+  /* ---------- 2. 语义层：背景 / 阴影 ---------- */
+  --kb-shell-bg:
+    radial-gradient(circle at top left, rgba(236, 250, 244, 0.92), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(17, 124, 238, 0.05), transparent 20%),
+    linear-gradient(180deg, #fafafa 0%, #f4f5f5 42%, #eff0f0 100%);
+  --kb-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --kb-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --kb-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --kb-elevated-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  /* 角色档：卡片面（卡内浮起的 bg-surface 卡）与浮层（菜单、气泡、通知面板）。
+     补这两档是因为原阶梯在 elevated 之上没有「弹层」口径，导致组件里长期手写
+     0 10px 24px / 0 12px 28px / 0 12px 30px 等一次性阴影 */
+  --kb-surface-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  --kb-float-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  /* 对话框档三层阴影：值取真实语雀 .ant-modal-content 引用的 --yq-ant-shadow-2 实测
+     （亮 .12/.08/.05 三层，暗 .24/.36/.25 三层）——语雀的 elevation 本就明暗两套，
+     原先对话框在亮暗共用同一串 slate 单层阴影是错的 */
+  --kb-modal-shadow:
+    0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  /* 有色光晕三档：品牌色钮/卡选中面的外发光，色由 color-mix 跟 --kb-brand 走。
+     --kb-brand 亮 #00b96b / 暗 #2ed790，而 .dark 与 :root 同为 html 元素，自定义属性
+     在该元素上求值，所以这三档不需要在 .dark 段另写一份（批 19：此前 7 处把亮色
+     #00b96b 直接写进 shadow-[…] 字面量，暗色主题下光晕仍是亮色绿）。
+     faint=卡片/次级按钮档（吸收原 .08/.1/.18 三种一次性 alpha），cta/cta-hover=登录主
+     CTA 两态——几何差异就是它的悬停反馈，合成一档会让 hover:shadow 变成空声明。 */
+  --kb-glow-brand-faint: 0 12px 24px color-mix(in srgb, var(--kb-brand) 18%, transparent);
+  --kb-glow-brand-cta: 0 4px 14px color-mix(in srgb, var(--kb-brand) 30%, transparent);
+  --kb-glow-brand-cta-hover: 0 6px 20px color-mix(in srgb, var(--kb-brand) 35%, transparent);
+
+  /* 压在品牌实心底上的字色（实心主钮、主 CTA）。两套主题不同向：
+     亮色 #fff（真实语雀 `--yq-ant-btn-primary-color: #fff`，压 green-600 = 2.58 比 1）；
+     暗色走反转灰阶的 grey-100 = #141414（语雀暗色同档写的就是
+     `var(--yq-yuque-grey-100)`，压 #2ed790 = 9.86 比 1，而白字只有 1.87 比 1——
+     我们此前的白字是壳时代 html.dark button 通配的遗产，非原版值，2026-09-20 实测后改档）。
+     深底语义色钮（danger、success）两侧都留白字，不用这一档。
+     编辑器页的调用点要写成 `text-on-brand!`：Lake 的 antd.css 带两条 unlayered
+     `button, input, select, optgroup, textarea { color: inherit }`，unlayered 恒压 layered
+     utilities（坑 6/13 同链路，CDP matched-styles 实测），不带 !important 时这几处的字色
+     一直是继承来的 .88 白而不是本档。 */
+  --kb-text-on-brand: #fff;
+
+  /* ---------- 3. 结构层：圆角（对齐语雀 Ant Design 5 的 4/6/8 阶梯） ---------- */
+  --kb-radius-xs: 4px;
+  --kb-radius-sm: 6px;
+  --kb-radius-md: 8px;
+  --kb-radius-lg: 10px;
+  --kb-radius-xl: 12px;
+  --kb-radius-2xl: 16px;
+  --kb-radius-3xl: 20px;
+  --kb-radius-full: 999px;
+
+  /* ---------- 3. 结构层：排版（对齐语雀正文排版） ---------- */
+  --kb-font-size-xs: 12px;
+  --kb-font-size-sm: 13px;
+  --kb-font-size-base: 14px;
+  --kb-font-size-md: 16px;
+  --kb-font-size-lg: 18px;
+  --kb-font-size-xl: 20px;
+  --kb-font-size-2xl: 24px;
+
+  --kb-leading-tight: 1.4;
+  --kb-leading-normal: 1.6;
+  --kb-leading-relaxed: 1.75;
+
+  /* 间距不设本仓 token：Tailwind 4 的 4px 基准刻度与此前这套并行的 --kb-space-*
+     完全同值，双份只会让组件两边漂移（原 9 个 --kb-space-* 零消费，已删） */
+
+  /* ---------- 3. 结构层：控件与行高 ---------- */
+  /* xs 档由校准层 .el-input--small（EP size="small"）消费——行内改名/紧凑搜索框
+     这类 24px 高的输入控件此前各自手写盒子（圆角 6/8/10/12 四种、边框与底色两样），
+     现统一走 size="small" */
+  --kb-control-height-xs: 24px;
+  --kb-control-height-md: 32px;
+  --kb-row-height-doc: 56px;
+
+  /* ---------- 3. 结构层：布局宽度 ---------- */
+  --kb-content-max-width: 1000px;
+
+  --kb-transition-fast: 120ms ease;
+  --kb-transition-base: 180ms ease;
+  --kb-transition-slow: 280ms ease;
+
+  /* z 契约（与 src/renderer/src/constants/z-index.ts 同一套值，两侧同名档位取值必须一致，
+     由 scripts/check-style-tokens.mjs 机械校验）。消费点：
+     side-panel 与 side-panel-overlay = 编辑器右侧面板及其遮罩；overlay = 划词浮条；
+     dropdown 与 dropdown-backdrop = 自绘弹层（提及选择器、命令面板、树右键菜单、通知面板）；
+     popper 与 toast = 校准层 z 钉段、EP notification、首页收藏浮条；
+     modal 仅作对照登记，对话框真实 z 由 TS 侧 Z_DIALOG 经 elDialogBindings 按栈深下发；
+     sticky 当前未消费，保留作语雀对照表（删除会造成未来对照缺失）。 */
+  --kb-z-side-panel: 50;
+  --kb-z-side-panel-overlay: 40;
+  --kb-z-dropdown-backdrop: 90;
+  --kb-z-dropdown: 100;
+  --kb-z-sticky: 200;
+  --kb-z-overlay: 300;
+  --kb-z-modal: 400;
+  --kb-z-popper: 500;
+  --kb-z-toast: 500;
+
+  --kb-font-body:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC",
+    "Microsoft YaHei", sans-serif;
+  --kb-font-mono: "SFMono-Regular", "JetBrains Mono", "Consolas", "Menlo", monospace;
+
+  /* 窗口形态（唯一消费点见 utils/window-chrome.ts 打上的 kb-window-hidden-titlebar 类）：
+     band = 顶部那条唯一的拖窗空带高度，红绿灯落在这段里；header-top = 侧栏与目录列
+     首行的上边距，语雀实测其首行从窗口顶往下约 32px 开始。带原生标题栏时为 0 与 12px。 */
+  --kb-window-chrome-band: 0px;
+  --kb-column-header-top: 12px;
+}
+
+/* ---------- 暗色：整体反转原始色板（值源自语雀 html[data-kumuhana=pouli]） ---------- */
+.dark {
+  color-scheme: dark;
+
+  --kb-white: #000000;
+  --kb-black: #ffffff;
+  --kb-background-base: #141414;
+
+  --kb-grey-100: #141414;
+  --kb-grey-200: #1f1f1f;
+  --kb-grey-300: #292929;
+  --kb-grey-400: #333333;
+  --kb-grey-500: #424242;
+  --kb-grey-600: #505050;
+  --kb-grey-700: #848484;
+  --kb-grey-800: #b3b3b3;
+  --kb-grey-900: #e2e2e2;
+
+  --kb-green-50: #10211a;
+  --kb-green-100: #0e2f22;
+  --kb-green-200: #255641;
+  --kb-green-300: #18774f;
+  --kb-green-400: #298e64;
+  --kb-green-500: #29ad76;
+  --kb-green-600: #51b88d;
+  --kb-green-700: #6bd1a6;
+  --kb-green-800: #97d8bc;
+  --kb-green-900: #bce6d5;
+
+  --kb-blue-50: #15212d;
+  --kb-blue-100: #193048;
+  --kb-blue-200: #253c56;
+  --kb-blue-300: #1d4672;
+  --kb-blue-400: #245a94;
+  --kb-blue-500: #2b6bb1;
+  --kb-blue-600: #3b82ce;
+  --kb-blue-700: #689fd9;
+  --kb-blue-800: #8db5e2;
+  --kb-blue-900: #b5d0ed;
+
+  /* 红阶暗侧九档 = 真实语雀 pouli 板逐值照抄（2026-09-20 量自
+     yuque-source/build/renderer/app.theme.css 的 html[data-kumuhana=pouli]：
+     red-50 #29191c、red-100 #402125、red-600 #ca3f4f、red-700 #cc7b84）。
+     因此「danger soft 字压浅红底」在暗色只有 2.96:1（#ca3f4f on #402125）**是原版自己的
+     数值**，不是复刻缺陷——批 21 的 WCAG 扫描剩的 3 条就是它。真要过 AA，原版体系里现成的
+     解是用 700 档（#cc7b84 压 #402125 = 4.61、压 #29191c = 5.39），但那是「比原版更严」的
+     产品决策，不在此擅改。 */
+  --kb-red-50: #29191c;
+  --kb-red-100: #402125;
+  --kb-red-200: #5b2027;
+  --kb-red-300: #741b25;
+  --kb-red-400: #981f2d;
+  --kb-red-500: #b62536;
+  --kb-red-600: #ca3f4f;
+  --kb-red-700: #cc7b84;
+  --kb-red-800: #d49199;
+  --kb-red-900: #e6bcc1;
+
+  --kb-yellow-50: #241f15;
+  --kb-yellow-100: #352d17;
+  --kb-yellow-200: #564825;
+  --kb-yellow-300: #775c18;
+  --kb-yellow-400: #9c781c;
+  --kb-yellow-500: #c29219;
+  --kb-yellow-600: #d2a638;
+  --kb-yellow-700: #e8be54;
+  --kb-yellow-800: #efcf81;
+  --kb-yellow-900: #eedeb4;
+
+  --kb-orange-50: #251e18;
+  --kb-orange-100: #382a1e;
+  --kb-orange-200: #5e3b1d;
+  --kb-orange-300: #774418;
+  --kb-orange-400: #9d571b;
+  --kb-orange-500: #bc6820;
+  --kb-orange-600: #d37f36;
+  --kb-orange-700: #de9f68;
+  --kb-orange-800: #e0af85;
+  --kb-orange-900: #e9cfb9;
+
+  /* 暗色色板的亮度方向与亮色相反（500 比 600 更深，700 比 600 更亮），
+     若沿用亮色的 base=600 / hover=500 / active=700，交互反馈会整体反向
+     （悬停变暗、按下变亮）。这里改为 hover 取 700（更亮）、active 取 500（更暗），
+     保持「悬停提亮、按下加深」在两种模式下手感一致。 */
+  --kb-brand: #2ed790;
+  --kb-brand-hover: var(--kb-green-700);
+  --kb-brand-active: var(--kb-green-500);
+
+  --kb-success-hover: var(--kb-green-700);
+  --kb-success-active: var(--kb-green-500);
+
+  --kb-warning-hover: var(--kb-yellow-700);
+  --kb-warning-active: var(--kb-yellow-500);
+
+  --kb-error-hover: var(--kb-red-700);
+  --kb-error-active: var(--kb-red-500);
+
+  --kb-info-hover: var(--kb-blue-700);
+  --kb-info-active: var(--kb-blue-500);
+
+  /* 暗色下 grey-900 是最亮的一档，实心中性按钮换用 grey-800 打底才有提亮空间 */
+  --kb-neutral: var(--kb-grey-800);
+  --kb-neutral-hover: var(--kb-grey-900);
+  --kb-neutral-ink: var(--kb-grey-100);
+
+  /* 暗底上的紫需要提亮才能维持对比度 */
+  --kb-file-video: #e879f9;
+
+  /* 暗色文字四档——真实语雀暗色实测值（2026-09-19，html[data-kumuhana=pouli]）：
+     text-primary #e2e2e2 / text-body #b3b3b3 / text-caption #848484 / text-disable #505050。
+     本仓沿用亮侧既有的「比语雀上提一档」可用性口径（见 :root 段 grey-750 注释）：
+     quaternary 落在语雀 caption 档 grey-700（而非 #505050，深底上会消失），
+     tertiary 再上提半档到 grey-700/800 之间。这两档即暗色文字唯一事实源：
+     组件类经 style.css 的 html.dark .text-ink* 段（只给优先级、不带色值）与 EP 经
+     element-plus-bridge.css 的 --el-text-color-* 都指到这里，不再各算一套。 */
+  --kb-text: var(--kb-grey-900);
+  --kb-text-secondary: var(--kb-grey-800);
+  --kb-text-tertiary: #a5a5a5;
+  --kb-text-quaternary: var(--kb-grey-700);
+
+  /* 组件叠加字色三档（antd 系组件内部文字的真实机制：白叠加、跟底色走，不是灰阶实色）。
+     值取 2026-09-20 真实语雀 pouli 板实测：--yq-ant-text-color rgba(255,255,255,.85)、
+     -secondary .65、disabled .45。此前校准层里 9 处 .88/.75/.6/.45 是壳时代各写各的
+     字面量（与灰阶档并行成第二事实源），批 18 一律改指这三档。
+     折算到标准暗底 #141414 上：.85≈#dcdcdc（贴 --kb-text）、.65≈#adbdbd（贴
+     --kb-text-secondary）、.45≈#7e7e7e（贴 --kb-text-quaternary），即语义不跳档。
+     亮侧给等义实色档，避免 var() 悬空（亮色规则不引用本组，纯占位对齐）。 */
+  --kb-text-on-fill-strong: rgba(255, 255, 255, 0.85);
+  --kb-text-on-fill: rgba(255, 255, 255, 0.65);
+  --kb-text-on-fill-faint: rgba(255, 255, 255, 0.45);
+
+  /* 弱填充两档（头像底、chip、行 hover、选中项）——语雀暗色不用灰阶实色，
+     而是白叠加：background-color-base rgba(255,255,255,.08)、-light .04。
+     此前组件里手写的 dark:bg-grey-700（#848484）比正确值亮约 3 倍，故收成这两档。 */
+  --kb-fill-muted: rgba(255, 255, 255, 0.08);
+  --kb-fill-subtle: rgba(255, 255, 255, 0.04);
+
+  --kb-surface-bg: var(--kb-grey-200);
+  --kb-surface-soft-bg: var(--kb-grey-200);
+  --kb-shell-bg:
+    radial-gradient(circle at top left, rgba(46, 215, 144, 0.06), transparent 22%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 206, 0.05), transparent 20%),
+    linear-gradient(180deg, #141414 0%, #101010 42%, #0d0d0d 100%);
+  --kb-panel-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --kb-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --kb-hover-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --kb-elevated-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --kb-surface-shadow: 0 10px 24px rgba(0, 0, 0, 0.34);
+  --kb-float-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --kb-modal-shadow:
+    0 1px 4px -2px rgba(0, 0, 0, 0.24), 0 2px 8px 0 rgba(0, 0, 0, 0.36), 0 8px 16px 4px rgba(0, 0, 0, 0.25);
+  /* 中性阴影六档在此换黑 alpha；--kb-glow-brand-* 三档不在这里——它们的色是 color-mix
+     出来的 --kb-brand，随本段的 --kb-brand 一起换档，重复写反而会造出第二事实源。 */
+  /* 这一档两套主题不同向（亮白暗墨），必须在 .dark 里显式覆写，见 :root 段实测记档 */
+  --kb-text-on-brand: var(--kb-grey-100);
+
+  /* ========== Lake 编辑器（yuque-editor-core）暗色模式变量覆盖 ========== */
+  /* doc.css 中大量使用 --lakex-editor-* 变量控制文字/背景/边框，
+     这些变量默认是亮色主题值，暗色模式下必须覆盖，否则文字图标全是暗色看不清。 */
+  --lakex-editor-text-color: rgba(255, 255, 255, 0.88);
+  --lakex-editor-text-body: rgba(255, 255, 255, 0.82);
+  --lakex-editor-text-caption: rgba(255, 255, 255, 0.55);
+  --lakex-editor-text-disable: rgba(255, 255, 255, 0.3);
+  --lakex-editor-text-link: #60a5fa;
+  --lakex-editor-text-link-hover: #93c5fd;
+  --lakex-editor-text-danger: #f87171;
+  --lakex-editor-text-danger-light: rgba(248, 113, 113, 0.15);
+
+  --lakex-editor-background: #1a1a1a;
+  --lakex-editor-background-primary: #1f1f1f;
+  --lakex-editor-background-secondary: #252525;
+  --lakex-editor-background-tertiary: #2c2c2c;
+  --lakex-editor-background-foreground: #333333;
+  --lakex-editor-background-primary-hover: #2c2c2c;
+  --lakex-editor-background-primary-hover-light: rgba(255, 255, 255, 0.06);
+  --lakex-editor-background-focus: rgba(46, 215, 144, 0.12);
+
+  --lakex-editor-border-primary: rgba(255, 255, 255, 0.12);
+  --lakex-editor-border-secondary: rgba(255, 255, 255, 0.08);
+  --lakex-editor-border-light: rgba(255, 255, 255, 0.06);
+
+  --lakex-editor-color-white: #1a1a1a;
+  --lakex-editor-color-white-f90: rgba(26, 26, 26, 0.9);
+  --lakex-editor-color-white-f60: rgba(26, 26, 26, 0.6);
+  --lakex-editor-color-black: #ffffff;
+  --lakex-editor-color-black-f30: rgba(0, 0, 0, 0.3);
+  --lakex-editor-color-black-f12: rgba(0, 0, 0, 0.12);
+  --lakex-editor-color-black-f08: rgba(0, 0, 0, 0.08);
+  --lakex-editor-color-black-f05: rgba(0, 0, 0, 0.05);
+
+  --lakex-editor-color-theme: #2ed790;
+  --lakex-editor-color-theme-light: rgba(46, 215, 144, 0.15);
+
+  --lakex-editor-selection: rgba(46, 215, 144, 0.25);
+
+  --lakex-editor-card-border-selected: rgba(46, 215, 144, 0.4);
+  --lakex-editor-card-border-hover: rgba(255, 255, 255, 0.15);
+  --lakex-editor-card-background-hover: rgba(255, 255, 255, 0.04);
+
+  --lakex-editor-overlay-background-tertiary: #252525;
+
+  --lakex-editor-table-bar-active: rgba(46, 215, 144, 0.3);
+  --lakex-editor-table-bar-danger: rgba(248, 113, 113, 0.3);
+}
+
+/* ---------- 窗口形态：macOS 隐藏原生标题栏（判定见 src/main HIDDEN_TITLE_BAR） ---------- */
+.kb-window-hidden-titlebar {
+  --kb-window-chrome-band: 24px;
+  --kb-column-header-top: 24px;
+}

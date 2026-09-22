@@ -1,0 +1,21 @@
+# 知识库桌面端打包配置（electron-builder）
+# 产物输出到 release/（见 .gitignore）；渲染层与主进程全部由 electron-vite 打包到 out/，
+# 主进程零第三方依赖，故无需携带 node_modules。
+appId: com.xiaoye.desktop
+productName: 知识库
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+asar: true
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - arm64
+    - target: dir
+      arch:
+        - arm64

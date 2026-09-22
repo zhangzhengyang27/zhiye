@@ -1,0 +1,790 @@
+@import "tailwindcss";
+@import "./assets/styles/enhanced-rich-blocks.css";
+@import "./assets/styles/tokens.css";
+
+/* Tailwind 暗色变体（类式，挂 <html>）。与 @nuxt/ui 内置定义一致；
+   显式声明使未来移除 @nuxt/ui 后 dark: 前缀继续可用 */
+@custom-variant dark (&:is(.dark, .dark *));
+
+/* Tailwind v4 preflight 不再给 button 兜底手型光标（跟随浏览器 default），
+   全站原生 <button> 悬停均为箭头。放 base 层：cursor-grab/pointer 等
+   utility 仍可按需覆盖 */
+@layer base {
+  button:not(:disabled):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  /* 尊重系统「减弱动态效果」：弹窗缩放、toast 位移、按钮 active:scale 等全部即时完成 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* 隐藏原生标题栏后，窗口顶部这条空带是唯一的拖窗区（红绿灯也落在这里）。
+   高度取 --kb-window-chrome-band，非 macOS 与 Web 端为 0 即不占位；父容器需自带定位。 */
+.kb-window-drag-band {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--kb-window-chrome-band);
+  -webkit-app-region: drag;
+}
+
+/* 拖拽带按矩形生效、与层叠顺序无关，压在它下面的可点控件会被吞掉，所以交互件统一让位。
+   no-drag 落在非拖拽区里是空操作，故整份文档一次性挂上即可覆盖所有页面：正文列顶带下的
+   编辑器标题输入框与工具按钮、贯穿全高的两条列宽拖拽条、面包屑链接都在内。
+   逐路由量过：顶部 24px 内除这些真控件外没有自定义 div 点击件，故不再单独列白名单。 */
+.kb-window-hidden-titlebar button,
+.kb-window-hidden-titlebar a,
+.kb-window-hidden-titlebar input,
+.kb-window-hidden-titlebar textarea,
+.kb-window-hidden-titlebar select,
+.kb-window-hidden-titlebar label,
+.kb-window-hidden-titlebar summary,
+.kb-window-hidden-titlebar [role="button"],
+.kb-window-hidden-titlebar [role="link"],
+.kb-window-hidden-titlebar [role="menuitem"],
+.kb-window-hidden-titlebar [role="tab"],
+.kb-window-hidden-titlebar [role="combobox"],
+.kb-window-hidden-titlebar [role="textbox"],
+.kb-window-hidden-titlebar [contenteditable="true"] {
+  -webkit-app-region: no-drag;
+}
+
+/* StatusToast 底部倒计时进度条：scaleX 收缩（transform 动画，不触发布局） */
+@keyframes kb-toast-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Tailwind 4 utility 映射：让模板里能写 bg-brand / text-ink-secondary / border-line 等。
+   inline 模式使 utility 引用 var(--kb-*) 本体，暗色切换时自动跟随 */
+@theme inline {
+  /* 品牌 */
+  --color-brand: var(--kb-brand);
+  /* 品牌实心底上的字色档（实心主钮）：亮白暗墨，见 tokens.css --kb-text-on-brand */
+  --color-on-brand: var(--kb-text-on-brand);
+  --color-brand-hover: var(--kb-brand-hover);
+  --color-brand-active: var(--kb-brand-active);
+  --color-brand-light: var(--kb-brand-light);
+  --color-brand-lighter: var(--kb-brand-lighter);
+  --color-brand-faint: var(--kb-brand-ultra-light);
+
+  /* primary 别名（接管原 @nuxt/ui @theme 提供的 bg-primary-* / text-primary-* 类） */
+  --color-primary: var(--kb-brand);
+  --color-primary-hover: var(--kb-brand-hover);
+  --color-primary-active: var(--kb-brand-active);
+  --color-primary-light: var(--kb-brand-light);
+  --color-primary-faint: var(--kb-brand-ultra-light);
+
+  /* 灰阶 */
+  --color-grey-100: var(--kb-grey-100);
+  --color-grey-200: var(--kb-grey-200);
+  --color-grey-300: var(--kb-grey-300);
+  --color-grey-400: var(--kb-grey-400);
+  --color-grey-500: var(--kb-grey-500);
+  --color-grey-600: var(--kb-grey-600);
+  --color-grey-700: var(--kb-grey-700);
+  --color-grey-800: var(--kb-grey-800);
+  --color-grey-900: var(--kb-grey-900);
+
+  /* 状态色（success/warning/error/info × base/hover/active/light/bg） */
+  --color-success: var(--kb-success);
+  --color-success-hover: var(--kb-success-hover);
+  --color-success-active: var(--kb-success-active);
+  --color-success-light: var(--kb-success-light);
+  --color-success-bg: var(--kb-success-bg);
+  --color-warning: var(--kb-warning);
+  --color-warning-hover: var(--kb-warning-hover);
+  --color-warning-active: var(--kb-warning-active);
+  --color-warning-light: var(--kb-warning-light);
+  --color-warning-bg: var(--kb-warning-bg);
+  --color-error: var(--kb-error);
+  --color-error-hover: var(--kb-error-hover);
+  --color-error-active: var(--kb-error-active);
+  --color-error-light: var(--kb-error-light);
+  --color-error-bg: var(--kb-error-bg);
+  --color-info: var(--kb-info);
+  --color-info-hover: var(--kb-info-hover);
+  --color-info-active: var(--kb-info-active);
+  --color-info-light: var(--kb-info-light);
+  --color-info-bg: var(--kb-info-bg);
+
+  /* 表面 / 边框 / 文字别名 */
+  --color-surface: var(--kb-surface-bg);
+  --color-surface-soft: var(--kb-surface-soft-bg);
+  --color-muted: var(--kb-muted-bg);
+  /* 弱填充两档（头像底 / chip / 行 hover）：亮色灰阶实色、暗色白叠加，
+     由 token 换档，组件不要再写 dark:bg-grey-* */
+  --color-fill-muted: var(--kb-fill-muted);
+  --color-fill-subtle: var(--kb-fill-subtle);
+  --color-line: var(--kb-border);
+  --color-line-soft: var(--kb-border-soft);
+  --color-line-input: var(--kb-border-input);
+  --color-ink: var(--kb-text);
+  --color-ink-secondary: var(--kb-text-secondary);
+  --color-ink-tertiary: var(--kb-text-tertiary);
+  --color-ink-quaternary: var(--kb-text-quaternary);
+
+  /* 中性实心按钮（亮色深底 / 暗色浅底由 tokens 的 .dark 块换档，组件无需写 dark: 变体） */
+  --color-neutral: var(--kb-neutral);
+  --color-neutral-hover: var(--kb-neutral-hover);
+  --color-neutral-ink: var(--kb-neutral-ink);
+
+  /* 文件类型标识色 */
+  --color-file-video: var(--kb-file-video);
+
+  /* 结构层 token 的 utility 映射（语雀排版 / 圆角）。
+     用 kb- 前缀避免覆盖 Tailwind 默认的 text-sm / rounded-md，
+     现有页面的硬编码值不受影响，新代码统一走这套 */
+  --text-kb-xs: var(--kb-font-size-xs);
+  --text-kb-sm: var(--kb-font-size-sm);
+  --text-kb-base: var(--kb-font-size-base);
+  --text-kb-md: var(--kb-font-size-md);
+  --text-kb-lg: var(--kb-font-size-lg);
+  --text-kb-xl: var(--kb-font-size-xl);
+  --text-kb-2xl: var(--kb-font-size-2xl);
+
+  --leading-kb-tight: var(--kb-leading-tight);
+  --leading-kb-normal: var(--kb-leading-normal);
+  --leading-kb-relaxed: var(--kb-leading-relaxed);
+
+  --radius-kb-xs: var(--kb-radius-xs);
+  --radius-kb-sm: var(--kb-radius-sm);
+  --radius-kb-md: var(--kb-radius-md);
+  --radius-kb-lg: var(--kb-radius-lg);
+  --radius-kb-xl: var(--kb-radius-xl);
+  --radius-kb-2xl: var(--kb-radius-2xl);
+  --radius-kb-3xl: var(--kb-radius-3xl);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--kb-muted-bg);
+  color: var(--kb-text);
+  font-family: var(--kb-font-body);
+  font-size: var(--kb-font-size-base);
+  line-height: var(--kb-leading-normal);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+::selection {
+  background: rgba(0, 185, 107, 0.2);
+  color: var(--kb-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--kb-brand);
+  outline-offset: 2px;
+  border-radius: var(--kb-radius-xs);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: rgba(0, 0, 0, 0.12);
+  transition: background-color var(--kb-transition-base);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.22);
+}
+
+@media (max-width: 768px) {
+  *::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+}
+
+@layer components {
+  .kb-page-scroll {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.5rem 2rem 2rem;
+  }
+
+  .kb-content-wrap {
+    margin: 0 auto;
+    max-width: 1380px;
+  }
+
+  .kb-surface {
+    border: 1px solid var(--kb-border);
+    border-radius: var(--kb-radius-2xl);
+    background: var(--kb-surface-bg);
+    box-shadow: var(--kb-card-shadow);
+    backdrop-filter: blur(8px);
+  }
+
+  .kb-surface-soft {
+    border: 1px solid var(--kb-border-soft);
+    border-radius: var(--kb-radius-xl);
+    background: var(--kb-surface-soft-bg);
+  }
+
+  .kb-card-elevated {
+    border: 1px solid var(--kb-border);
+    border-radius: var(--kb-radius-2xl);
+    background: var(--kb-surface-bg);
+    box-shadow: var(--kb-card-shadow);
+    transition:
+      transform var(--kb-transition-base),
+      box-shadow var(--kb-transition-base);
+  }
+
+  .kb-card-elevated:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--kb-hover-shadow);
+  }
+
+  .kb-panel-shell {
+    border: 1px solid var(--kb-border);
+    border-radius: var(--kb-radius-3xl);
+    background: var(--kb-surface-bg);
+    box-shadow: var(--kb-panel-shadow);
+    backdrop-filter: blur(20px);
+  }
+
+  .kb-toolbar-strip {
+    border: 1px solid var(--kb-border);
+    border-radius: var(--kb-radius-lg);
+    background: var(--kb-muted-bg);
+  }
+
+  .kb-empty-state {
+    border: 1px dashed var(--kb-border);
+    border-radius: var(--kb-radius-xl);
+    background: var(--kb-surface-bg);
+    transition:
+      border-color var(--kb-transition-base),
+      background-color var(--kb-transition-base);
+  }
+
+  .kb-empty-state:hover {
+    border-color: var(--kb-brand-lighter);
+    background: var(--kb-surface-soft-bg);
+  }
+
+  .kb-list-row {
+    border: 1px solid transparent;
+    border-radius: var(--kb-radius-xl);
+    background: var(--kb-surface-soft-bg);
+    cursor: pointer;
+    transition:
+      transform var(--kb-transition-base),
+      border-color var(--kb-transition-base),
+      box-shadow var(--kb-transition-base),
+      background-color var(--kb-transition-base);
+  }
+
+  .kb-list-row:hover {
+    transform: translateY(-2px);
+    border-color: var(--kb-brand-lighter);
+    background: var(--kb-surface-bg);
+    box-shadow: var(--kb-hover-shadow);
+  }
+
+  .kb-list-row:active {
+    transform: translateY(0);
+  }
+
+  .kb-section-shell {
+    border-radius: var(--kb-radius-2xl);
+    background: var(--kb-muted-bg);
+    padding: 1rem;
+  }
+
+  .kb-section-card {
+    border-radius: var(--kb-radius-xl);
+    background: var(--kb-surface-bg);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+    transition:
+      transform var(--kb-transition-base),
+      box-shadow var(--kb-transition-base);
+  }
+
+  .kb-section-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+  }
+
+  /* 静态标签 chip：底色走弱填充档（暗色为白叠加），不用 muted-bg——后者在暗色
+     等于面板底色，chip 会整体隐形（2026-09-19 信息面板交互态实测） */
+  .kb-soft-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: var(--kb-radius-full);
+    background: var(--kb-fill-muted);
+    padding: 0.32rem 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--kb-text-tertiary);
+  }
+
+  .kb-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--kb-border);
+    border-radius: var(--kb-radius-full);
+    background: var(--kb-surface-bg);
+    padding: 0.34rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--kb-text-tertiary);
+    transition:
+      border-color var(--kb-transition-fast),
+      background-color var(--kb-transition-fast),
+      color var(--kb-transition-fast);
+  }
+
+  .kb-meta-chip:hover {
+    border-color: var(--kb-brand-lighter);
+    background: var(--kb-surface-bg);
+    color: var(--kb-text-secondary);
+  }
+}
+
+@layer utilities {
+  .kb-fade-in {
+    animation: kbFadeIn var(--kb-transition-slow) ease forwards;
+  }
+
+  @keyframes kbFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .kb-page-scroll {
+    padding: 1rem 1rem 1.5rem;
+  }
+
+  .kb-content-wrap {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 1440px) {
+  .kb-content-wrap {
+    max-width: 1480px;
+  }
+}
+
+.kb-code-block {
+  margin: 1.25rem 0;
+}
+
+.kb-code-block {
+  overflow: hidden;
+  border: 1px solid var(--kb-grey-500);
+  border-radius: 14px;
+  box-shadow: var(--kb-surface-shadow);
+}
+
+.kb-code-block__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.kb-code-block__toolbar-left,
+.kb-code-block__toolbar-right {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.kb-code-block__caret {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.kb-code-block__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.kb-code-block__title.is-placeholder {
+  opacity: 0.62;
+}
+
+.kb-code-block__badge {
+  white-space: nowrap;
+}
+
+.kb-code-block__divider {
+  display: inline-block;
+  width: 1px;
+  height: 12px;
+  opacity: 0.28;
+}
+
+.kb-code-block__body {
+  display: flex;
+  align-items: stretch;
+}
+
+.kb-code-block__body.is-collapsed {
+  display: none;
+}
+
+.kb-code-block__line-numbers {
+  display: flex;
+  min-width: 48px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  padding: 14px 10px 14px 0;
+  font: 13px/1.7 var(--kb-font-mono);
+  user-select: none;
+}
+
+.kb-code-block__line-numbers span {
+  height: 1.7em;
+}
+
+.kb-code-block__pre {
+  margin: 0;
+  flex: 1;
+  padding: 14px 16px 14px 0;
+}
+
+.kb-code-block__pre code {
+  font: 13px/1.7 var(--kb-font-mono);
+}
+
+.kb-code-block[data-wrap="true"] .kb-code-block__pre code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.kb-code-block[data-wrap="false"] .kb-code-block__pre code {
+  white-space: pre;
+}
+
+.kb-code-block--one-dark-pro {
+  background: #282c34;
+}
+
+.kb-code-block--one-dark-pro .kb-code-block__toolbar {
+  color: rgb(255 255 255 / 88%);
+  background: #1f2329;
+}
+
+.kb-code-block--one-dark-pro .kb-code-block__line-numbers {
+  color: rgb(171 178 191 / 72%);
+  background: #282c34;
+}
+
+.kb-code-block--one-dark-pro .kb-code-block__pre code {
+  color: #abb2bf;
+}
+
+.kb-code-block--slate {
+  background: #1f2937;
+}
+
+.kb-code-block--slate .kb-code-block__toolbar {
+  color: rgb(255 255 255 / 90%);
+  background: #0f172a;
+}
+
+.kb-code-block--slate .kb-code-block__line-numbers {
+  color: rgb(148 163 184 / 76%);
+  background: #1f2937;
+}
+
+.kb-code-block--slate .kb-code-block__pre code {
+  color: #dbe4f0;
+}
+
+.kb-code-block--github-light {
+  background: #f8fafc;
+}
+
+.kb-code-block--github-light .kb-code-block__toolbar {
+  color: rgb(0 0 0 / 72%);
+  background: #f3f4f6;
+}
+
+.kb-code-block--github-light .kb-code-block__line-numbers {
+  color: rgb(0 0 0 / 38%);
+  background: #f8fafc;
+}
+
+.kb-code-block--github-light .kb-code-block__pre code {
+  color: #1f2328;
+}
+
+.kb-code-block .hljs-comment,
+.kb-code-block .hljs-quote {
+  color: #7f848e;
+}
+
+.kb-code-block .hljs-keyword,
+.kb-code-block .hljs-selector-tag,
+.kb-code-block .hljs-literal,
+.kb-code-block .hljs-section,
+.kb-code-block .hljs-link {
+  color: #c678dd;
+}
+
+.kb-code-block .hljs-string,
+.kb-code-block .hljs-title,
+.kb-code-block .hljs-name,
+.kb-code-block .hljs-attribute {
+  color: #98c379;
+}
+
+.kb-code-block .hljs-number,
+.kb-code-block .hljs-symbol,
+.kb-code-block .hljs-bullet,
+.kb-code-block .hljs-variable,
+.kb-code-block .hljs-template-variable {
+  color: #d19a66;
+}
+
+.kb-code-block .hljs-type,
+.kb-code-block .hljs-built_in,
+.kb-code-block .hljs-builtin-name {
+  color: #56b6c2;
+}
+
+.kb-code-block .hljs-function,
+.kb-code-block .hljs-title.function_ {
+  color: #61afef;
+}
+
+.kb-code-block .hljs-emphasis {
+  font-style: italic;
+}
+
+.kb-code-block .hljs-strong {
+  font-weight: 700;
+}
+
+.kb-code-block--github-light .hljs-comment,
+.kb-code-block--github-light .hljs-quote {
+  color: #6a737d;
+}
+
+.kb-code-block--github-light .hljs-keyword,
+.kb-code-block--github-light .hljs-selector-tag,
+.kb-code-block--github-light .hljs-literal,
+.kb-code-block--github-light .hljs-section,
+.kb-code-block--github-light .hljs-link {
+  color: #cf222e;
+}
+
+.kb-code-block--github-light .hljs-string,
+.kb-code-block--github-light .hljs-title,
+.kb-code-block--github-light .hljs-name,
+.kb-code-block--github-light .hljs-attribute {
+  color: #116329;
+}
+
+.kb-code-block--github-light .hljs-number,
+.kb-code-block--github-light .hljs-symbol,
+.kb-code-block--github-light .hljs-bullet,
+.kb-code-block--github-light .hljs-variable,
+.kb-code-block--github-light .hljs-template-variable {
+  color: #953800;
+}
+
+.kb-code-block--github-light .hljs-type,
+.kb-code-block--github-light .hljs-built_in,
+.kb-code-block--github-light .hljs-builtin-name {
+  color: #0550ae;
+}
+
+.kb-code-block--github-light .hljs-function,
+.kb-code-block--github-light .hljs-title.function_ {
+  color: #8250df;
+}
+
+/* ========== 暗色：仅保留 html.dark 段没有对应声明的三条 ========== */
+/* antd.css 是 Lake 编辑器内部注入的全局 reset，含 body/h1-h6/button/input 的固定亮色，
+   且为 unlayered，会压过 Tailwind @layer 工具类。对抗规则统一住在下方 html.dark 段
+   （同 unlayered、特异性更高，恒赢 .dark 单类）。本段原先还有 7 组与 html.dark 同值的
+   重复兜底，已合并删除；其中 `.dark body` 的 #1a1a1a 与 --kb-background-base(#141414)
+   冲突且恒被 html.dark body 压过，属死规则。 */
+
+/* 编辑器正文区域 */
+.dark .ne-editor,
+.dark .ne-viewer,
+.dark .ne-editor .ne-title,
+.dark .ne-viewer .ne-title {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* 暗色下滚动条提亮 */
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 暗色下选中文字 */
+.dark ::selection {
+  background: rgba(46, 215, 144, 0.25);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* ========== 最终兜底：html.dark 全局覆盖 antd.css / doc.css 固定亮色 ========== */
+/* 用 html.dark 双选择器提高优先级，确保压过 antd.css 的 body/button/input 等元素选择器。
+   antd.css 是 Lake 编辑器动态注入的 unlayered 样式，会压过 Tailwind @layer 工具类，
+   导致 text-ink-* 等类失效，必须在这里用同层级 unlayered + !important 兜底。
+   批 17 收口：原先还有一条 `html.dark button/input/textarea/select` { color: .88 白 }
+   的通配已删除——承重审计实测（output/probe-dark-blanket-audit.mjs，12 表面 867 采样）
+   删掉它之后各元素回退到自己的档（el-input inner 走 --kb-text、带 text-ink-secondary 的
+   走 secondary、Lake 工具栏走 .85），没有出现 antd.css 夺色；此后新组件不再需要为这条
+   通配补写 text-ink-* 类。 */
+
+html.dark body {
+  color: rgba(255, 255, 255, 0.88) !important;
+  background-color: #141414 !important;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+html.dark p,
+html.dark span,
+html.dark label,
+html.dark li {
+  color: inherit;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+html.dark a {
+  color: rgb(96, 165, 250) !important;
+}
+
+html.dark a:hover {
+  color: rgb(147, 197, 253) !important;
+}
+
+/* 覆盖我们自己组件中使用的 text-ink-* 类（这些类在 @layer utilities 中，会被 antd.css 压过）。
+   色值一律取 --kb-text* token，本段只提供「压过 antd.css」所需的优先级，不再自带第二套色值 */
+html.dark .text-ink {
+  color: var(--kb-text) !important;
+}
+
+html.dark .text-ink-secondary {
+  color: var(--kb-text-secondary) !important;
+}
+
+html.dark .text-ink-tertiary {
+  color: var(--kb-text-tertiary) !important;
+}
+
+html.dark .text-ink-quaternary {
+  color: var(--kb-text-quaternary) !important;
+}
+
+/* Lake 编辑器工具栏：覆盖 doc.css 中 --lakex-editor-text-disable 等变量 */
+html.dark .ne-toolbar,
+html.dark .ne-toolbar button,
+html.dark .ne-ui-toolbar-button,
+html.dark .ne-ui-toolbar-button button {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+html.dark .ne-toolbar button:hover,
+html.dark .ne-ui-toolbar-button:hover {
+  color: rgba(255, 255, 255, 0.95) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .ne-toolbar button:disabled {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Lake 编辑器下拉菜单文字 */
+html.dark .ant-dropdown-menu,
+html.dark .ant-dropdown-menu-item {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* Lake 编辑器弹出层背景 */
+html.dark .ant-popover-inner,
+html.dark .ant-dropdown-menu {
+  background-color: #1f1f1f !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* 图标颜色兜底：确保所有 SVG 图标在暗色下可见 */
+html.dark svg {
+  color: inherit;
+}
+
+html.dark [class*="icon"],
+html.dark [class*="Icon"] {
+  color: inherit;
+}

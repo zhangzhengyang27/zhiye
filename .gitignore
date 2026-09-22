@@ -1,0 +1,21 @@
+node_modules
+dist
+.DS_Store
+*.local
+*.log*
+.vscode/*
+!.vscode/extensions.json
+.idea
+.playwright-cli/*
+.claude
+.workbuddy
+auto-imports.d.ts
+note
+output
+_compiled-from-cache
+_quarantine-2026-09-22
+_recovered-usable
+
+# electron 桌面端
+out
+release

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 与页面底色一致，避免移动端/桌面端外框出现白边 -->
+    <meta name="theme-color" content="#f8faf8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)" />
+    <title>知识库</title>
+    <script>
+      /**
+       * 首屏主题预设：useThemeMode 要等 Vue 应用挂载后才生效，暗色用户会先闪一帧亮色。
+       * 这里在样式计算前同步补上 .dark，storageKey 与值域都和 useThemeMode 一致；
+       * 未设置过主题时的兜底取 light，与该 composable 的 initialValue 同值
+       * （取 auto 会让首屏跟随系统、随后又被写回浅色，闪一次配色）。
+       */
+      (function () {
+        try {
+          var mode = localStorage.getItem("vueuse-color-scheme") || "light"
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+          if (mode === "dark" || (mode === "auto" && prefersDark)) {
+            document.documentElement.classList.add("dark")
+          }
+        } catch (error) {
+          /* localStorage 不可用时回落到亮色，不影响启动 */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app" class="isolate"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

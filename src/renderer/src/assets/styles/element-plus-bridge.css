@@ -1,0 +1,312 @@
+/* --el-* 桥接到 --kb-*（语雀 token 唯一视觉源）。
+   选择器用 html:root（特异性 0,1,1）而不是 :root：
+   - EP 组件样式按需懒加载，其 base 样式里的 :root 默认值（0,1,0）永远输给 html:root，与加载顺序无关；
+   - EP 暗色文件 dark/css-vars.css 用 html.dark 声明同名变量，与 html:root 同特异性，
+     本文件在 main.ts 里排在它之后 import，靠顺序取胜。
+   custom property 在 html 元素上按级联取值，.dark 换档后 var() 自动解析为暗色值，
+   因此明暗两套共用这一份声明。 */
+html:root {
+  /* 品牌与状态色（base 档） */
+  --el-color-primary: var(--kb-brand);
+  --el-color-success: var(--kb-success);
+  --el-color-warning: var(--kb-warning);
+  --el-color-danger: var(--kb-error);
+  --el-color-error: var(--kb-error);
+  --el-color-info: var(--kb-info);
+
+  /* 派生色阶往 surface-bg 混而不是往白混：暗色下 EP 的 light-N 本应往深底混。
+     暗色下 EP 惯例是派生档随底色变深、悬停向主色靠拢；kb 自建层暗色是「悬停提亮」，
+     两套语义并存是有意的，勿当 bug 改。
+     dark-2 不用 color-mix：kb 语义层已有 active 档（亮色即 700 档），直接映射更可维护 */
+  --el-color-primary-light-3: color-mix(in srgb, var(--kb-brand) 70%, var(--kb-surface-bg));
+  --el-color-primary-light-5: color-mix(in srgb, var(--kb-brand) 50%, var(--kb-surface-bg));
+  --el-color-primary-light-7: color-mix(in srgb, var(--kb-brand) 30%, var(--kb-surface-bg));
+  --el-color-primary-light-8: color-mix(in srgb, var(--kb-brand) 20%, var(--kb-surface-bg));
+  --el-color-primary-light-9: color-mix(in srgb, var(--kb-brand) 10%, var(--kb-surface-bg));
+  --el-color-primary-dark-2: var(--kb-brand-active);
+
+  /* success 派生档：EP 出厂绿 #67c23a 是黄绿，与 kb 青绿 #00b96b 色相不同，不桥会串色 */
+  --el-color-success-light-3: color-mix(in srgb, var(--kb-success) 70%, var(--kb-surface-bg));
+  --el-color-success-light-5: color-mix(in srgb, var(--kb-success) 50%, var(--kb-surface-bg));
+  --el-color-success-light-7: color-mix(in srgb, var(--kb-success) 30%, var(--kb-surface-bg));
+  --el-color-success-light-8: color-mix(in srgb, var(--kb-success) 20%, var(--kb-surface-bg));
+  --el-color-success-light-9: color-mix(in srgb, var(--kb-success) 10%, var(--kb-surface-bg));
+  --el-color-success-dark-2: var(--kb-success-active);
+
+  /* warning 派生档 */
+  --el-color-warning-light-3: color-mix(in srgb, var(--kb-warning) 70%, var(--kb-surface-bg));
+  --el-color-warning-light-5: color-mix(in srgb, var(--kb-warning) 50%, var(--kb-surface-bg));
+  --el-color-warning-light-7: color-mix(in srgb, var(--kb-warning) 30%, var(--kb-surface-bg));
+  --el-color-warning-light-8: color-mix(in srgb, var(--kb-warning) 20%, var(--kb-surface-bg));
+  --el-color-warning-light-9: color-mix(in srgb, var(--kb-warning) 10%, var(--kb-surface-bg));
+  --el-color-warning-dark-2: var(--kb-warning-active);
+
+  /* danger / error 派生档（error 是 danger 的别名档，EP 组件两套引用都有） */
+  --el-color-danger-light-3: color-mix(in srgb, var(--kb-error) 70%, var(--kb-surface-bg));
+  --el-color-danger-light-5: color-mix(in srgb, var(--kb-error) 50%, var(--kb-surface-bg));
+  --el-color-danger-light-7: color-mix(in srgb, var(--kb-error) 30%, var(--kb-surface-bg));
+  --el-color-danger-light-8: color-mix(in srgb, var(--kb-error) 20%, var(--kb-surface-bg));
+  --el-color-danger-light-9: color-mix(in srgb, var(--kb-error) 10%, var(--kb-surface-bg));
+  --el-color-danger-dark-2: var(--kb-error-active);
+  --el-color-error-light-3: var(--el-color-danger-light-3);
+  --el-color-error-light-5: var(--el-color-danger-light-5);
+  --el-color-error-light-7: var(--el-color-danger-light-7);
+  --el-color-error-light-8: var(--el-color-danger-light-8);
+  --el-color-error-light-9: var(--el-color-danger-light-9);
+  --el-color-error-dark-2: var(--el-color-danger-dark-2);
+
+  /* info 派生档 */
+  --el-color-info-light-3: color-mix(in srgb, var(--kb-info) 70%, var(--kb-surface-bg));
+  --el-color-info-light-5: color-mix(in srgb, var(--kb-info) 50%, var(--kb-surface-bg));
+  --el-color-info-light-7: color-mix(in srgb, var(--kb-info) 30%, var(--kb-surface-bg));
+  --el-color-info-light-8: color-mix(in srgb, var(--kb-info) 20%, var(--kb-surface-bg));
+  --el-color-info-light-9: color-mix(in srgb, var(--kb-info) 10%, var(--kb-surface-bg));
+  --el-color-info-dark-2: var(--kb-info-active);
+
+  /* 文字 */
+  --el-text-color-primary: var(--kb-text);
+  --el-text-color-regular: var(--kb-text-secondary);
+  --el-text-color-secondary: var(--kb-text-tertiary);
+  --el-text-color-placeholder: var(--kb-text-quaternary);
+  --el-text-color-disabled: var(--kb-text-quaternary);
+  /* 边框 / 填充 / 背景 */
+  --el-border-color: var(--kb-border-input);
+  --el-border-color-light: var(--kb-border);
+  --el-border-color-lighter: var(--kb-border-soft);
+  --el-border-color-extra-light: var(--kb-border-soft);
+  /* fill 四档用灰阶梯度：kb 原始色板 grey-100~400 明暗各有一套，正好对应
+     EP 的 lighter/light/base/darker；暗色下禁用填充（grey-200=#1f1f1f）
+     不再与页面底色（background-base=#141414）塌成同色，禁用态可见 */
+  --el-fill-color-darker: var(--kb-grey-400);
+  --el-fill-color: var(--kb-grey-300);
+  --el-fill-color-light: var(--kb-grey-200);
+  --el-fill-color-lighter: var(--kb-grey-100);
+  --el-fill-color-blank: var(--kb-surface-bg);
+  --el-bg-color: var(--kb-surface-bg);
+  --el-bg-color-page: var(--kb-background-base);
+  --el-bg-color-overlay: var(--kb-surface-bg);
+  /* 来源：AppDialog 遮罩 bg-[rgba(15,23,42,0.24)] */
+  --el-mask-color: rgba(15, 23, 42, 0.24);
+  /* .el-overlay 实际引用的是 overlay-color-lighter 而非 mask-color（Task 1.3 发现的
+     桥接缺口：出厂 #00000080，亮暗都恒为 0.5 黑）。.el-overlay 自身不声明该变量，
+     html:root 声明可正常继承生效；经 var() 引到 mask-color 上保持单一来源，
+     暗色换档由下方 html.dark 的 mask-color 覆盖自动带出 */
+  --el-overlay-color-lighter: var(--el-mask-color);
+  /* 阴影：EP 弹层四档对齐 tokens.css 阴影阶梯。
+     -dark 在 EP 里是全阶梯最强（48px 大模糊）且当前仅 .el-drawer 引用，kb 阶梯没有比
+     elevated 更强的合适档，先映射 panel-shadow 保持克制；首批组件用 base/light 即可，
+     drawer 实际迁移时按视觉实测再调 */
+  --el-box-shadow: var(--kb-elevated-shadow);
+  --el-box-shadow-light: var(--kb-hover-shadow);
+  --el-box-shadow-lighter: var(--kb-card-shadow);
+  --el-box-shadow-dark: var(--kb-panel-shadow);
+  /* 结构（对齐 tokens.css 三层） */
+  --el-border-radius-base: 8px; /* --kb-radius-md */
+  --el-border-radius-small: 6px; /* --kb-radius-sm */
+  --el-border-radius-round: var(--kb-radius-full);
+  --el-component-size: var(--kb-control-height-md);
+  --el-font-family: var(--kb-font-body);
+  --el-font-size-base: var(--kb-font-size-base);
+  /* 过渡（保持字面量：--kb-transition-base 是「180ms ease」含缓动函数，不能当 duration 用） */
+  --el-transition-duration: 0.18s;
+}
+
+/* ------------------------------------------------------------------
+   T10 记档：暗色实心主钮墨字防御规则已删除（本注释替代原规则占位）。
+   原规则：.dark .el-button--primary:not(.is-plain):not(.is-text):not(.is-link)
+   :not(.is-dashed) { color: var(--kb-neutral-ink) !important }——壳时代 AppButton
+   刻意不传 type、无 --primary 修饰类，该规则从未命中，纯防御性保留。
+   T10 解散 AppButton 后全仓直写 el-button 且 primary 钮普遍带 el-button--primary
+   修饰类，该规则若保留会真实命中并把暗色实心钮文字从白改成墨字——与基线像素
+   冲突（壳时代的暗色实心钮白字正来自 style.css 的 html.dark button !important
+   通配，Task 2.7 拍板「像素以基线为准」），故删除。
+   与 style.css 暗色通配的关系（T10 定夺 → 批 6 更新 → 批 17 收口 → 批 21 定档）：
+   亮色按钮配色由 element-plus-calibration.css 的 components 段按修饰类提供；暗色下按钮
+   文字色此前由 style.css 的 `html.dark button`（!important）通配整体接管，neutral
+   outline/ghost/soft 的次级白靠 `html.dark .text-ink-secondary` 更具体压回来。**批 17
+   删掉了那条通配**（承重审计：删后各元素回退到自己的档，无 antd.css 夺色、无 UA 近黑），
+   因此明暗两套现在同由 components 段按修饰类提供、色值走 token 自动换档：primary 实心走
+   --kb-text-on-brand（亮 #fff、暗 #141414），neutral outline/ghost/soft 走
+   --kb-text-on-fill 系（批 18 收的白叠加三档）。
+   **批 21 按真语雀实测把暗色实心主钮定为墨字**（pouli 板
+   `--yq-ant-btn-primary-color: var(--yq-yuque-grey-100)`，暗侧灰阶反转后 grey-100 即
+   #141414；对比度 9.86 比 1，而当年基线的白字只有 1.87 比 1）——上面那条被删的「防御规则」
+   其实一直是正确答案，只是当年拿「像素以基线为准」压过了实测。改动已按产品决策单独拍板，
+   全量 pixdiff 重拍仍欠（与批 17/18/19/20 合并一次做）。 */
+
+/* 暗色蒙层加深（近似 EP dark #000c 档，稍淡）：html.dark 与 html:root 同特异性 (0,1,1)，
+   本块在文件尾靠顺序取胜 */
+html.dark {
+  --el-mask-color: rgba(0, 0, 0, 0.6);
+}
+
+/* ------------------------------------------------------------------ */
+/* 全局状态提示（Task 3.4）：ElNotification 重刻 StatusToast 基线视觉。
+   调用方在 composables/use-transient-toast.ts，EP notification 根元素
+   teleport 到 body（非 #app 内），故放这份非 scoped 全局文件。
+
+   覆盖技法（同 R3/R7 原则）：EP 的 el-notification.css 是 unlayered 静态 CSS
+   且经组件 style/css 入口在 main.ts 的 bridge import 之后注入，顺序不可靠——
+   一律用更高特异性而非加载顺序取胜：
+   - .el-notification.kb-toast (0,2,0) > .el-notification (0,1,0)；
+   - right 必须写到 .el-notification.kb-toast.right (0,3,0)，压 EP 的
+     .el-notification.right { right:16px } (0,2,0)；
+   - 进出场的 transform/right 覆写钉 .el-notification-fade-enter-from 等修饰类
+     组合出 (0,3,0)，压 EP 的 .el-notification-fade-enter-from.right (0,2,0)。
+   配色全走 --kb-*（bridge 的 html.dark 变量自动换档），透明度 95% 用 oklab
+   color-mix 对齐 Tailwind v4 的 /95 输出口径。 */
+.el-notification.kb-toast {
+  /* 盒：基线 min-w-[240px] max-w-[380px] 内容自适应 + px-4 py-3.5 */
+  width: auto;
+  min-width: 240px;
+  max-width: 380px;
+  padding: 14px 16px;
+  border-radius: 22px;
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(8px);
+  /* 结构：基线只有一块内容（图标 + 文案 + 进度条），EP 的 icon/closeBtn/原生
+     progress 均未启用，标题 h2 恒空渲染、隐藏之 */
+}
+.el-notification.kb-toast.right {
+  right: 24px; /* 基线 right-6（EP 出厂 16px） */
+}
+.el-notification.kb-toast .el-notification__group {
+  margin: 0;
+}
+.el-notification.kb-toast .el-notification__title {
+  display: none;
+}
+.el-notification.kb-toast .el-notification__content {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* 类型配色（对齐 StatusToast.vue toastMeta） */
+.el-notification.kb-toast--success {
+  border-color: var(--kb-success-light);
+  background-color: color-mix(in oklab, var(--kb-success-bg) 95%, transparent);
+  color: var(--kb-success-active);
+}
+.el-notification.kb-toast--error {
+  border-color: var(--kb-error-light);
+  background-color: color-mix(in oklab, var(--kb-error-bg) 95%, transparent);
+  color: var(--kb-error-hover);
+}
+.el-notification.kb-toast--info {
+  border-color: var(--kb-border);
+  background-color: color-mix(in oklab, var(--kb-surface-bg) 95%, transparent);
+  color: var(--kb-text-secondary);
+}
+
+/* 内容结构：图标盒 + 文案列 + 倒计时条（值与 StatusToast.vue 模板逐类对齐） */
+.kb-toast__panel {
+  min-width: 0;
+}
+.kb-toast__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.kb-toast__icon {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  border-radius: 12px;
+}
+.kb-toast__icon svg {
+  width: 18px;
+  height: 18px;
+}
+.kb-toast--success .kb-toast__icon {
+  background-color: var(--kb-surface-bg);
+  color: var(--kb-brand);
+}
+.kb-toast--error .kb-toast__icon {
+  background-color: var(--kb-error-bg);
+  color: var(--kb-error);
+}
+.kb-toast--info .kb-toast__icon {
+  background-color: var(--kb-muted-bg);
+  color: var(--kb-text-tertiary);
+}
+.kb-toast__text {
+  min-width: 0;
+  flex: 1;
+}
+.kb-toast__label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--kb-text-quaternary);
+}
+.kb-toast__message {
+  min-width: 0;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+}
+/* EP 的 .el-notification__content 自带 color: --el-text-color-regular（桥接后 =
+   text-secondary），会盖掉根元素上的类型文字色——success/error 文案必须显式还原
+   （实测踩坑：不写则文案渲染成灰色，仅 info 恰好同色掩盖了问题） */
+.kb-toast--success .kb-toast__message {
+  color: var(--kb-success-active);
+}
+.kb-toast--error .kb-toast__message {
+  color: var(--kb-error-hover);
+}
+.kb-toast--info .kb-toast__message {
+  color: var(--kb-text-secondary);
+}
+.kb-toast__bar-track {
+  margin-top: 12px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+.kb-toast__bar {
+  height: 100%;
+  width: 100%;
+  border-radius: 9999px;
+  transform-origin: left;
+}
+.kb-toast--success .kb-toast__bar {
+  background-color: var(--kb-success-hover);
+}
+.kb-toast--error .kb-toast__bar {
+  background-color: var(--kb-error-hover);
+}
+.kb-toast--info .kb-toast__bar {
+  background-color: var(--kb-grey-500);
+}
+
+/* 进出场：基线 enter = translateY(8px)+淡入 200ms ease-out，leave = 同位移淡出
+   150ms ease-in（EP 出厂是 translate(100%) 右侧滑入）。enter-from 需把 EP 的
+   right:0 对冲回 24px，避免进出场瞬间横跳；top 堆叠回挪保留 EP 的 .4s 过渡 */
+.el-notification.kb-toast {
+  transition:
+    opacity 0.2s ease-out,
+    transform 0.2s ease-out,
+    top 0.4s;
+}
+.el-notification.kb-toast.el-notification-fade-enter-from {
+  right: 24px;
+  transform: translateY(8px);
+  opacity: 0;
+}
+.el-notification.kb-toast.el-notification-fade-leave-active {
+  transition:
+    opacity 0.15s ease-in,
+    transform 0.15s ease-in;
+}
+.el-notification.kb-toast.el-notification-fade-leave-to {
+  transform: translateY(8px);
+  opacity: 0;
+}

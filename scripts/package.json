@@ -1,0 +1,14 @@
+package.json:18:    "typecheck": "vue-tsc -b",
+package.json:37:    "perf:budget": "PROFILE_MODE=both node scripts/knowledge-workbench-profile.mjs && node scripts/perf-budget-check.mjs",
+package.json:38:    "perf:budget:check": "node scripts/perf-budget-check.mjs",
+---
+     221 src/renderer/src/components/common/AppInput.vue
+     250 src/renderer/src/components/common/AppTextarea.vue
+     435 src/renderer/src/components/common/AppSelect.vue
+     207 src/renderer/src/components/common/AppCheckbox.vue
+     270 src/renderer/src/components/common/AppSwitch.vue
+     422 src/renderer/src/components/common/AppRadioGroup.vue
+     321 src/renderer/src/components/common/AppButton.vue
+     407 src/renderer/src/components/common/AppDialog.vue
+     445 src/renderer/src/components/common/AppDropdownMenu.vue
+    2978 total
