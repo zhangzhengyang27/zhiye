@@ -34,10 +34,19 @@ const fileToDataUrl = (file: File) =>
 /** 内联进文档正文（dataURL）的大小上限：超过后不再降级，避免把自动保存的请求体撑爆 */
 const DATA_URL_FALLBACK_MAX_BYTES = 2 * 1024 * 1024
 
+/** 上传前置校验：对齐后端 OSS_MAX_UPLOAD_BYTES（50MB），免得用户传了几十秒才被 413 打回 */
+const UPLOAD_MAX_BYTES = 50 * 1024 * 1024
+
 const uploadAsset = async (
   payload: KnowledgeUploadPayload,
   token?: string | null,
 ): Promise<KnowledgeUploadResult> => {
+  if (payload.file.size > UPLOAD_MAX_BYTES) {
+    throw new Error(
+      `文件超过 ${Math.floor(UPLOAD_MAX_BYTES / 1024 / 1024)}MB 上限，请压缩后再上传。`,
+    )
+  }
+
   const form = new FormData()
 
   form.append("file", payload.file)

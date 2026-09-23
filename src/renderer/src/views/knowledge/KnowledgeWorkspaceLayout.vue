@@ -974,13 +974,22 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
           class="m-4 flex flex-wrap items-center justify-between gap-3 rounded-kb-xl border border-error-light bg-error-bg px-4 py-3 text-sm text-error shadow-sm"
         >
           <span>{{ errorMessage }}</span>
-          <button
-            type="button"
-            class="inline-flex shrink-0 items-center gap-1.5 rounded-kb-md border border-error-light bg-surface px-3 py-1.5 text-xs font-medium text-error transition hover:border-error hover:bg-error-bg"
-            @click="router.push({ name: 'knowledge' })"
-          >
-            返回知识库列表
-          </button>
+          <div class="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-kb-md border border-error-light bg-surface px-3 py-1.5 text-xs font-medium text-error transition hover:border-error hover:bg-error-bg"
+              @click="refreshWorkspace"
+            >
+              重试
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-kb-md border border-error-light bg-surface px-3 py-1.5 text-xs font-medium text-error transition hover:border-error hover:bg-error-bg"
+              @click="router.push({ name: 'knowledge' })"
+            >
+              返回知识库列表
+            </button>
+          </div>
         </div>
         <RouterView />
       </main>

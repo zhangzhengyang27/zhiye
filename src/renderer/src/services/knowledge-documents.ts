@@ -381,7 +381,7 @@ export const restoreKnowledgeDocument = (id: string, token?: string | null) =>
  * 批量恢复文档。
  */
 export const restoreKnowledgeDocuments = (ids: string[], token?: string | null) =>
-  requestKbDriveApi<{ ok: boolean }>(
+  requestKbDriveApi<{ restored: string[]; skipped: string[] }>(
     "/knowledge/documents/bulk/restore",
     {
       method: "POST",
@@ -406,7 +406,7 @@ export const hardDeleteKnowledgeDocument = (id: string, token?: string | null) =
  * 批量彻底删除文档。
  */
 export const hardDeleteKnowledgeDocuments = (ids: string[], token?: string | null) =>
-  requestKbDriveApi<{ ok: boolean }>(
+  requestKbDriveApi<{ deleted: string[]; skipped: string[] }>(
     "/knowledge/documents/bulk/hard-delete",
     {
       method: "POST",

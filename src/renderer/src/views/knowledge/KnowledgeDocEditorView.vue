@@ -3199,6 +3199,7 @@ onBeforeUnmount(() => {
                 v-if="canEdit"
                 v-model="title"
                 type="text"
+                maxlength="200"
                 placeholder="无标题文档"
                 class="doc-hero-title"
               />

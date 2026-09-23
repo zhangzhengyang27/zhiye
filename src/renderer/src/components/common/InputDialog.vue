@@ -17,7 +17,7 @@
  * - 头部 markup（标题/描述 + 关闭钮）T9 起抽入 KbDialogHeader 共享片段；footer 按钮
  *   T10 起直写 el-button（色彩矩阵走全局校准层 el-button 段）。
  */
-import { ref, watch } from "vue"
+import { getCurrentInstance, ref, watch } from "vue"
 import { useDialogBehavior } from "@/composables/use-dialog-behavior"
 import KbDialogHeader from "./KbDialogHeader.vue"
 import { isImeComposing } from "@/utils/keyboard"
@@ -46,9 +46,38 @@ watch(
   { immediate: true },
 )
 
+/** 非受控模式的在途反馈：onConfirm 返回 Promise 则按钮 loading 且弹窗保持打开，
+ * 拒绝不关窗（错误由调用方 toast）——异步创建失败时用户输入不再随关窗蒸发
+ * （与 ConfirmDialog 同款模式） */
+const confirming = ref(false)
+const instance = getCurrentInstance()
+
 const handleConfirm = () => {
   const v = inputValue.value.trim()
-  if (!v) return
+  if (!v || confirming.value) return
+
+  const handler = instance?.vnode.props?.onConfirm
+  if (typeof handler !== "function") {
+    emit("confirm", v)
+    emit("update:open", false)
+    return
+  }
+
+  const result = handler(v)
+  if (result instanceof Promise) {
+    confirming.value = true
+    result
+      .then(() => {
+        confirming.value = false
+        emit("update:open", false)
+      })
+      .catch((error) => {
+        confirming.value = false
+        console.error("[InputDialog] 确认操作失败", error)
+      })
+    return
+  }
+
   emit("confirm", v)
   emit("update:open", false)
 }
@@ -104,6 +133,7 @@ const dialog = useDialogBehavior({
           type="primary"
           class="h-8 rounded-kb-md px-4 py-0 gap-1.5 text-[13px] [line-height:inherit] font-semibold"
           :disabled="!inputValue.trim()"
+          :loading="confirming"
           @click="handleConfirm"
           ><span class="truncate">确定</span></el-button
         >

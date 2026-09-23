@@ -70,6 +70,7 @@ onBeforeUnmount(() => settle(true))
     v-model="draft"
     class="kb-input-inplace min-w-0 flex-1"
     :aria-label="ariaLabel"
+    maxlength="200"
     @keydown="handleKeyDown"
     @blur="settle(true)"
   />

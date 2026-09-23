@@ -544,6 +544,12 @@ const confirmRemoveMember = async () => {
   }
 }
 
+const confirmDialog = ref<{
+  open: boolean
+  message: string
+  onConfirm: () => void
+}>({ open: false, message: "", onConfirm: () => {} })
+
 const handleUpdateVisibility = async (newVisibility: "public" | "private") => {
   if (!canChangeVisibility.value) {
     showToastMessage("只有所有者可以修改可见性", "error")
@@ -554,6 +560,22 @@ const handleUpdateVisibility = async (newVisibility: "public" | "private") => {
     return
   }
 
+  // 整库公开 = 所有人可见，高危动作需要显式确认（删除有确认、公开反而没有的失衡）
+  if (newVisibility === "public") {
+    confirmDialog.value = {
+      open: true,
+      message: "确认将此知识库设为公开吗？公开后所有登录用户都可以浏览其中的内容。",
+      onConfirm: () => {
+        void applyVisibilityChange("public")
+      },
+    }
+    return
+  }
+
+  void applyVisibilityChange(newVisibility)
+}
+
+const applyVisibilityChange = async (newVisibility: "public" | "private") => {
   updatingVisibility.value = true
 
   try {
@@ -1036,6 +1058,18 @@ onMounted(() => {
         }
       "
       @confirm="confirmRestoreSnapshot"
+    />
+
+    <ConfirmDialog
+      :open="confirmDialog.open"
+      :message="confirmDialog.message"
+      confirm-text="设为公开"
+      @update:open="
+        (value) => {
+          if (!value) confirmDialog.open = false
+        }
+      "
+      @confirm="confirmDialog.onConfirm"
     />
 
     <ConfirmDialog

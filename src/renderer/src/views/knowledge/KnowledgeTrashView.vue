@@ -337,9 +337,22 @@ const restoreSelectedDocs = async () => {
   submitting.value = true
 
   try {
-    await restoreKnowledgeDocuments(selectedDocIds.value)
-    selectedDocIds.value = []
-    await loadDocTrash()
+    const { restored, skipped } = await restoreKnowledgeDocuments(selectedDocIds.value)
+    // 无权限等被跳过的条目保留勾选，让用户看清哪些没动（此前 skipped 被吞，
+    // 用户以为全恢复实际残留）
+    selectedDocIds.value = skipped
+    if (skipped.length > 0) {
+      showToastMessage(
+        `已恢复 ${restored.length} 篇，${skipped.length} 篇无权限被跳过（已保留勾选）。`,
+        skipped.length === restored.length + skipped.length ? "error" : "info",
+      )
+    }
+    try {
+      await loadDocTrash()
+    } catch {
+      // 恢复已生效，仅刷新列表失败：单独提示，不冒充恢复失败
+      showToastMessage("恢复成功，但回收站列表刷新失败，请手动刷新。", "info")
+    }
   } catch (error) {
     showToastMessage(getApiErrorMessage(error, "批量恢复文档失败。"), "error")
   } finally {
@@ -354,13 +367,23 @@ const hardDeleteSelectedDocs = () => {
 
   confirmDialog.value = {
     open: true,
-    message: "确认彻底删除选中文档吗？该操作不可恢复。",
+    message: "确认彻底删除选中文档吗？该操作不可恢复。无权限的条目将被跳过并保留。",
     onConfirm: async () => {
       submitting.value = true
       try {
-        await hardDeleteKnowledgeDocuments(selectedDocIds.value)
-        selectedDocIds.value = []
-        await loadDocTrash()
+        const { deleted, skipped } = await hardDeleteKnowledgeDocuments(selectedDocIds.value)
+        selectedDocIds.value = skipped
+        if (skipped.length > 0) {
+          showToastMessage(
+            `已彻底删除 ${deleted.length} 篇，${skipped.length} 篇无权限被跳过（已保留勾选）。`,
+            "error",
+          )
+        }
+        try {
+          await loadDocTrash()
+        } catch {
+          showToastMessage("删除成功，但回收站列表刷新失败，请手动刷新。", "info")
+        }
       } catch (error) {
         showToastMessage(getApiErrorMessage(error, "批量彻底删除文档失败。"), "error")
       } finally {

@@ -10,7 +10,7 @@
 import { computed, onBeforeUnmount, ref } from "vue"
 import AppIcon from "@/components/common/AppIcon.vue"
 import { sendEmailCode, type EmailCodePurpose } from "@/services/auth"
-import { getApiErrorMessage } from "@/services/http-client"
+import { getApiErrorMessage, getApiErrorStatus } from "@/services/http-client"
 
 const props = defineProps<{
   /** 收件邮箱（取调用方表单的账号/邮箱字段；为空或格式不对时不可发送） */
@@ -87,6 +87,10 @@ const handleSend = async () => {
     }
   } catch (error) {
     errorMessage.value = getApiErrorMessage(error, "验证码发送失败，请稍后再试。")
+    // 服务端 429（IP 限流/60s 重发冷却）时启动同长度的本地倒计时，防连点连败
+    if (getApiErrorStatus(error) === 429) {
+      startCooldown()
+    }
   } finally {
     sending.value = false
   }

@@ -335,6 +335,9 @@ export const useTreeNodeActions = (options: {
    * 根级菜单即时创建（D1 对齐语雀）：点类型即以默认标题创建并直接进入编辑器，
    * 不弹命名窗（folder 仍走对话框）。创建后 toast + 刷新树 + openDoc。
    */
+  /** 创建防重入：弱网下连点「+」会产生多篇重复文档 */
+  let creatingNode = false
+
   const createNodeInstantly = async (
     type: KnowledgeWorkspaceCreateNodeType,
     parentId: string | null = null,
@@ -345,9 +348,15 @@ export const useTreeNodeActions = (options: {
       return
     }
 
+    if (creatingNode) {
+      return
+    }
+
     if (!ensureEditPermission()) {
       return
     }
+
+    creatingNode = true
 
     const isDoc = type === "doc"
     const specializedMeta = isSpecializedCreateType(type) ? SPECIALIZED_CREATE_META[type] : null
@@ -374,6 +383,8 @@ export const useTreeNodeActions = (options: {
       options.openDoc(created.id, created.editorType)
     } catch (error) {
       options.showToastMessage(getApiErrorMessage(error, "创建失败，请稍后重试。"), "error")
+    } finally {
+      creatingNode = false
     }
   }
 
@@ -754,8 +765,11 @@ export const useTreeNodeActions = (options: {
     await createCopy(root, root.parentId)
   }
 
+  /** 复制防重入：整树复制可能数十秒，重复触发会造出两份副本 */
+  let duplicatingNode = false
+
   const handleNodeMenuDuplicate = async (targetNode?: KnowledgeDocumentTreeNode) => {
-    if (!ensureEditPermission()) {
+    if (!ensureEditPermission() || duplicatingNode) {
       options.closeNodeMenu()
       return
     }
@@ -765,6 +779,8 @@ export const useTreeNodeActions = (options: {
     if (!actionNode) {
       return
     }
+
+    duplicatingNode = true
 
     options.closeNodeMenu()
     options.focusTreeNode(actionNode)
@@ -793,6 +809,7 @@ export const useTreeNodeActions = (options: {
       // 递归复制可能半途失败：部分副本已落库，刷新让它们可见并如实提示
       options.showToastMessage(getApiErrorMessage(error, "复制失败。"), "error")
     } finally {
+      duplicatingNode = false
       await options.refreshTree()
     }
   }
@@ -822,6 +839,8 @@ export const useTreeNodeActions = (options: {
       const exportValue = sourceDocument.content.value
       const exportContentType = sourceDocument.content.scheme === "text/html" ? "html" : "markdown"
       const exportTools = await import("@/utils/document-export")
+      const formatLabel = format === "markdown" ? "Markdown" : format.toUpperCase()
+      options.showToastMessage(`正在生成 ${formatLabel}，请稍候…`, "info")
 
       if (format === "markdown") {
         // HTML scheme 文档（TipTap 存量）需转换为 Markdown，避免把 HTML 源码导出成 .md
@@ -856,10 +875,12 @@ export const useTreeNodeActions = (options: {
     try {
       const favoriteState = await checkKnowledgeFavorite(actionNode.id)
 
-      if (!favoriteState.favorited) {
-        await addKnowledgeFavorite(actionNode.id)
+      if (favoriteState.favorited) {
+        options.showToastMessage("文档已在收藏中。", "info")
+        return
       }
 
+      await addKnowledgeFavorite(actionNode.id)
       options.showToastMessage("文档已置顶。", "success")
     } catch (error) {
       options.showToastMessage(getApiErrorMessage(error, "置顶失败。"), "error")

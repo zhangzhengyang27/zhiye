@@ -118,7 +118,7 @@ const handleSave = async () => {
         <div class="space-y-4">
           <label class="block">
             <span class="mb-1.5 block text-[13px] font-medium text-ink-secondary">名称</span>
-            <el-input v-model="name" type="text" :disabled="!canManage" />
+            <el-input v-model="name" type="text" :disabled="!canManage" maxlength="50" />
           </label>
 
           <label class="block">
@@ -149,7 +149,17 @@ const handleSave = async () => {
               v-model="slug"
               type="text"
               :disabled="!canManage"
+              maxlength="64"
               placeholder="如 product-handbook"
+              @input="
+                (value: string) => {
+                  // 后端仅接受字母/数字/连字符：输入侧直接过滤，免得保存才 400
+                  const filtered = value.replace(/[^a-zA-Z0-9-]/g, '')
+                  if (filtered !== value) {
+                    slug = filtered
+                  }
+                }
+              "
             />
             <span class="mt-1 block text-[12px] leading-4 text-ink-quaternary">
               URL 中的独特小标记，仅限字母、数字与连字符；留空表示未设置。

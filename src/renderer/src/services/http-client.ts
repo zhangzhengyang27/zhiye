@@ -59,9 +59,14 @@ const normalizeUnknownMessage = (input: unknown): string | null => {
   return null
 }
 
-const resolveApiBodyMessage = (bodyText: string): string | null => {
+const resolveApiBodyMessage = (bodyText: string, status?: number): string | null => {
   if (!bodyText.trim()) {
     return null
+  }
+
+  // 429 限流给可行动文案（用户最常撞：登录/验证码/创建类）
+  if (status === 429) {
+    return "操作太频繁了，请等一分钟再试。"
   }
 
   try {
@@ -72,7 +77,9 @@ const resolveApiBodyMessage = (bodyText: string): string | null => {
       return parsedMessage
     }
   } catch {
-    return bodyText
+    // 非 JSON body（网关/代理错误页）：不给用户看 HTML 源码
+    const head = bodyText.replace(/\s+/g, " ").trim().slice(0, 60)
+    return head || null
   }
 
   return bodyText
@@ -94,9 +101,14 @@ export const getApiErrorStatus = (error: unknown): number | null => {
  */
 export const getApiErrorMessage = (error: unknown, fallbackMessage: string): string => {
   if (error instanceof ApiHttpError) {
-    const bodyMessage = resolveApiBodyMessage(error.bodyText)
+    const bodyMessage = resolveApiBodyMessage(error.bodyText, error.status)
     if (bodyMessage) {
-      return bodyMessage
+      // 非 JSON 的 body 摘要只在没有更好文案时展示，仍截断防长 HTML 刷屏
+      return bodyMessage.length > 120 ? `${bodyMessage.slice(0, 120)}…` : bodyMessage
+    }
+
+    if (error.status === 429) {
+      return "操作太频繁了，请等一分钟再试。"
     }
 
     return error.message || fallbackMessage

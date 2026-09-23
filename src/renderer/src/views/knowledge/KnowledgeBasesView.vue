@@ -80,7 +80,16 @@ onMounted(() => {
           </button>
         </div>
 
-        <p v-if="errorMessage" class="mt-4 text-kb-sm text-error">{{ errorMessage }}</p>
+        <div v-if="errorMessage" class="mt-4 flex items-center gap-3">
+          <p class="text-kb-sm text-error">{{ errorMessage }}</p>
+          <button
+            type="button"
+            class="rounded-kb-md border border-line px-2.5 py-1 text-kb-xs text-ink-secondary transition hover:border-brand-lighter hover:text-brand"
+            @click="load"
+          >
+            重试
+          </button>
+        </div>
 
         <div
           v-if="loading && !sectionCollapsed"
