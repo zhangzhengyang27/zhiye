@@ -227,6 +227,13 @@ const handleAvatarCropConfirm = async (file: File) => {
 }
 
 const changePassword = async () => {
+  // 资料保存进行中禁止改密：两个写操作并发时，改密 bump tokenVersion 会让
+  // 在途的资料 PATCH 吃 401 被静默丢弃（改名丢失、重登后显示旧昵称）
+  if (profileSubmitting.value) {
+    showToastMessage("资料保存中，请稍后再修改密码。", "info")
+    return
+  }
+
   if (!passwordForm.current) {
     showToastMessage("请输入当前密码。", "error")
     return
@@ -411,7 +418,11 @@ const handleLogout = async () => {
         </div>
 
         <div class="mt-4 flex justify-end">
-          <el-button type="primary" :loading="passwordSubmitting" @click="changePassword"
+          <el-button
+            type="primary"
+            :loading="passwordSubmitting"
+            :disabled="profileSubmitting"
+            @click="changePassword"
             >更新密码</el-button
           >
         </div>
