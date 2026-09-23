@@ -35,6 +35,8 @@ const props = withDefaults(
     defaultFontSize?: number
     /** 段间距宽松档（构造期配置，运行期不可改） */
     paragraphSpacing?: boolean
+    /** 可编辑空态占位文案（缺省「输入 / 唤起更多」；小记等轻量场景自定义） */
+    emptyPlaceholder?: string
     /** 图片上传：业务层消费 File，返回可访问 URL */
     onImageUpload?: (file: File) => Promise<string>
     /** 视频上传：业务层消费 File，返回可访问 URL */
@@ -54,6 +56,7 @@ const props = withDefaults(
     toolbarItems: undefined,
     defaultFontSize: undefined,
     paragraphSpacing: false,
+    emptyPlaceholder: undefined,
     onImageUpload: undefined,
     onVideoUpload: undefined,
     onFileUpload: undefined,
@@ -288,7 +291,7 @@ const uploadAudio = bridgeUpload(() => props.onAudioUpload)
         :toolbar-items="toolbarItems"
         :default-font-size="defaultFontSize"
         :paragraph-spacing="paragraphSpacing"
-        :empty-placeholder="editable ? '输入 / 唤起更多' : undefined"
+        :empty-placeholder="editable ? (emptyPlaceholder ?? '输入 / 唤起更多') : undefined"
         :auto-height="autoHeight"
         :dark-mode="isDark"
         :upload-image="uploadImage"

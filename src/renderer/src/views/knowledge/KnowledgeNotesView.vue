@@ -8,11 +8,12 @@
  * 记事卡工具栏提供 图片/待办/附件 三钮（语雀小记工具栏子集，附件/图片经 OSS 上传后
  * 在光标处插入 markdown-lite 语法）。
  */
-import { computed, nextTick, onMounted, ref } from "vue"
+import { computed, defineAsyncComponent, onMounted, ref } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue"
 import KnowledgePageShell from "@/components/knowledge/KnowledgePageShell.vue"
 import NoteContentBody from "@/components/knowledge/NoteContentBody.vue"
+import type { YuqueEditorRef } from "yuque-editor-core/editor"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import { createNote, deleteNote, listNotes, updateNote, type Note } from "@/services/notes"
 import { uploadKnowledgeAsset } from "@/services/knowledge-oss"
@@ -35,8 +36,15 @@ const draftTags = ref<string[]>([])
 const tagInputVisible = ref(false)
 const tagInputValue = ref("")
 
-/** 记事卡 textarea 引用：工具栏插入语法需定位光标 */
-const draftTextareaRef = ref<HTMLTextAreaElement | null>(null)
+/**
+ * 记事卡编辑区 = 语雀编辑器（Lake，markdown 方案，autoHeight 无工具栏）：
+ * 工具栏插入经编辑器命令面在光标处插入；⌘Enter 由卡片容器捕获。
+ */
+const YuqueDocEditor = defineAsyncComponent(() => import("@/components/editor/YuqueDocEditor.vue"))
+const draftEditorApi = ref<YuqueEditorRef | null>(null)
+const handleEditorReady = (api: YuqueEditorRef) => {
+  draftEditorApi.value = api
+}
 
 /** 卡片待办勾选回写（#17）：翻转对应行后整条 updateNote 持久化 */
 const handleToggleTodo = async (note: Note, lineIndex: number) => {
@@ -62,29 +70,36 @@ const handleToggleTodo = async (note: Note, lineIndex: number) => {
   }
 }
 
-/** 在光标处插入文本并归还焦点（选区整体替换，未聚焦时追加到末尾） */
+/** 在编辑器光标处插入待办/附件语法（markdown 文本，Lake 输入规则自动转待办卡） */
 const insertAtCursor = (snippet: string) => {
-  const textarea = draftTextareaRef.value
-  const current = draftContent.value
-
-  if (!textarea) {
-    draftContent.value = `${current}${current && !current.endsWith("\n") ? "\n" : ""}${snippet}`
+  const api = draftEditorApi.value
+  if (!api) {
+    // 编辑器未就绪：退化为内容末尾追加
+    const current = draftContent.value
+    const prefix = snippet.startsWith("- [ ] ") || !current || current.endsWith("\n") ? "" : "\n"
+    draftContent.value = `${current}${prefix}${snippet}`
     return
   }
 
-  const start = textarea.selectionStart ?? current.length
-  const end = textarea.selectionEnd ?? current.length
-  // 待办片段行内直接续写；图片/附件语法独占一行（markdown-lite 按行解析）
-  const lineStart = start === 0 || current[start - 1] === "\n"
-  const prefix = snippet.startsWith("- [ ] ") ? "" : lineStart ? "" : "\n"
-  const next = `${current.slice(0, start)}${prefix}${snippet}${current.slice(end)}`
-  draftContent.value = next
+  // 进入编辑态后焦点可能不在编辑器（如刚点「编辑」按钮）：先聚焦让光标落位。
+  // 插入走浏览器原生 execCommand（真实编辑命令路径，Lake 的 markdown 输入规则
+  // 能吃到并转待办卡）；合成 beforeinput 的 api.insertText 在无既有选区时静默无效
+  const engine = document.querySelector<HTMLElement>(".kb-notes-editor .ne-engine")
+  if (!engine) {
+    return
+  }
+  if (document.activeElement !== engine) {
+    engine.focus()
+  }
+  const inserted = document.execCommand("insertText", false, snippet)
+  if (!inserted) {
+    api.insertText?.(snippet)
+  }
+}
 
-  void nextTick(() => {
-    const caret = start + prefix.length + snippet.length
-    textarea.focus()
-    textarea.setSelectionRange(caret, caret)
-  })
+/** 图片所见即所得：经 Lake insertAtSelection 插 html img 卡（v-model 回写 markdown 图语法） */
+const insertImageAtCursor = (url: string) => {
+  draftEditorApi.value?.execCommand?.("insertAtSelection", "text/html", `<img src="${url}" />`)
 }
 
 /** 记事卡工具栏：待办插入未勾语法；图片/附件先上传 OSS 再在光标处插语法 */
@@ -101,7 +116,11 @@ const uploadAndInsert = async (file: File, kind: "image" | "attachment") => {
     if (typeof url !== "string" || !url) {
       throw new Error("上传结果为空")
     }
-    insertAtCursor(kind === "image" ? `![](${url})` : `[${file.name}](${url})`)
+    if (kind === "image") {
+      insertImageAtCursor(url)
+    } else {
+      insertAtCursor(`[${file.name}](${url})`)
+    }
   } catch (error) {
     showToastMessage(error instanceof Error ? error.message : "上传失败，请稍后重试。", "error")
   }
@@ -126,6 +145,10 @@ const handleNoteFileChange = async (event: Event) => {
 
   await uploadAndInsert(file, noteUploadKind.value)
 }
+
+/** Lake 原生媒体通道（工具栏/粘贴图片/拖附件）统一走 OSS 小记上传 */
+const handleEditorImageUpload = (file: File) => uploadKnowledgeAsset(file)
+const handleEditorFileUpload = (file: File) => uploadKnowledgeAsset(file)
 
 /** 标签 chips：全部 / 各标签（带计数）/ 无标签 */
 const tagChips = computed(() => {
@@ -310,6 +333,7 @@ onMounted(() => {
                 type="button"
                 class="inline-flex h-7 w-7 items-center justify-center rounded-kb-sm text-ink-tertiary transition hover:bg-grey-200 hover:text-ink"
                 title="插入图片"
+                @mousedown.prevent
                 @click="pickNoteFile('image')"
               >
                 <Icon icon="ph:image" :width="15" :height="15" />
@@ -318,6 +342,7 @@ onMounted(() => {
                 type="button"
                 class="inline-flex h-7 w-7 items-center justify-center rounded-kb-sm text-ink-tertiary transition hover:bg-grey-200 hover:text-ink"
                 title="插入待办"
+                @mousedown.prevent
                 @click="handleInsertTodo"
               >
                 <Icon icon="ph:check-square" :width="15" :height="15" />
@@ -326,6 +351,7 @@ onMounted(() => {
                 type="button"
                 class="inline-flex h-7 w-7 items-center justify-center rounded-kb-sm text-ink-tertiary transition hover:bg-grey-200 hover:text-ink"
                 title="插入附件"
+                @mousedown.prevent
                 @click="pickNoteFile('attachment')"
               >
                 <Icon icon="ph:paperclip" :width="15" :height="15" />
@@ -339,14 +365,19 @@ onMounted(() => {
               />
             </div>
 
-            <textarea
-              ref="draftTextareaRef"
-              v-model="draftContent"
-              rows="10"
-              class="w-full flex-1 resize-none bg-transparent text-[14px] leading-6 text-ink outline-none placeholder:text-ink-quaternary"
-              placeholder="记你想记…"
-              @keydown="handleDraftKeydown"
-            />
+            <div class="kb-notes-editor min-h-[220px] flex-1" @keydown="handleDraftKeydown">
+              <YuqueDocEditor
+                :key="editingId ?? 'draft-new'"
+                v-model="draftContent"
+                content-type="markdown"
+                :show-toolbar="false"
+                auto-height
+                empty-placeholder="记你想记…"
+                :on-image-upload="handleEditorImageUpload"
+                :on-file-upload="handleEditorFileUpload"
+                @editor-ready="handleEditorReady"
+              />
+            </div>
 
             <!-- 标签：已加标签 chips + 添加标签入口 -->
             <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -618,3 +649,17 @@ onMounted(() => {
     />
   </KnowledgePageShell>
 </template>
+
+<style>
+/* 小记卡内 Lake 表面铺满卡片宽：内核限宽段（ne-editor > ne-engine 标准页宽）
+   是 unlayered，@layer 工具类压不过（坑 6/13 同源），走非 scoped 同级对抗；
+   字号取正文 14px 档（原 textarea 档），工具栏已关（自绘小记工具栏） */
+.kb-notes-editor .yuque-doc-editor .yuque-doc-editor__surface .ne-editor .ne-engine,
+.kb-notes-editor .yuque-doc-editor .yuque-doc-editor__surface .ne-editor .ne-engine > * {
+  max-width: none;
+}
+
+.kb-notes-editor .ne-engine {
+  font-size: 14px;
+}
+</style>
