@@ -38,7 +38,9 @@ const filtered = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return props.members
   return props.members.filter(
-    (m) => m.user.displayName.toLowerCase().includes(kw) || m.user.email.toLowerCase().includes(kw),
+    (m) =>
+      m.user.displayName.toLowerCase().includes(kw) ||
+      (m.user.email ?? "").toLowerCase().includes(kw),
   )
 })
 

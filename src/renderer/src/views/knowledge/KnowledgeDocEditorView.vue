@@ -3012,7 +3012,7 @@ onBeforeUnmount(() => {
                         <img
                           v-if="member.user.avatar"
                           :src="member.user.avatar"
-                          :alt="member.user.displayName || member.user.email"
+                          :alt="member.user.displayName || member.user.email || '协作者'"
                           class="h-full w-full object-cover"
                         />
                         <span v-else>{{ getCollaboratorInitial(member) }}</span>

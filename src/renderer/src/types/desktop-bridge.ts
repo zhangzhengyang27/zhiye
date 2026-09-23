@@ -107,6 +107,8 @@ export interface XiaoyeDesktopApi {
   onToast: (callback: (message: string) => void) => () => void
   /** 打开（或聚焦）偏好设置独立窗口。 */
   openSettingsWindow: () => Promise<{ opened: boolean }>
+  /** 订阅 knowledge:// 深链解析结果（站内路由路径），App.vue 订阅并跳转 */
+  onDeepLink: (callback: (targetPath: string) => void) => void
   /** 开机自启真值在操作系统侧（系统设置里也可能被改），需向主进程读取。 */
   getOpenAtLogin: () => Promise<boolean>
   setOpenAtLogin: (enabled: boolean) => Promise<boolean>

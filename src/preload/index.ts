@@ -98,6 +98,17 @@ const desktopApi = {
   /** 打开（或聚焦）偏好设置独立窗口——侧栏入口用，与菜单/托盘走同一个入口函数。 */
   openSettingsWindow: () => ipcRenderer.invoke("xiaoye:open-settings-window"),
   /**
+   * 订阅 knowledge:// 深链（主进程解析为站内路径后推送，App.vue 订阅并 router.push）。
+   * 冷启动场景主窗 did-finish-load 后冲刷，本监听在渲染层 setup 注册，时序早于冲刷。
+   */
+  onDeepLink: (callback: (targetPath: string) => void) => {
+    ipcRenderer.on("xiaoye:deep-link", (_event, targetPath: unknown) => {
+      if (typeof targetPath === "string") {
+        callback(targetPath)
+      }
+    })
+  },
+  /**
    * 偏好设置的桌面能力通道。每条都是具名方法 + 固定 channel，
    * 不做通用 invoke 透传（否则渲染层可借它向任意 channel 发消息）。
    */

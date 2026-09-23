@@ -54,6 +54,7 @@ import {
 } from "./login-window"
 import { registerSecureStoreIpc } from "./secure-store"
 import { attachNavigationGuard } from "./window-navigation"
+import { DEEP_LINK_PROTOCOL, parseKnowledgeDeepLink } from "./deep-link"
 
 /** `app://` 协议主机名（standard 协议要求显式 host）。 */
 const APP_PROTOCOL_HOST = "bundle"
@@ -537,6 +538,15 @@ const createWindow = (options: CreateWindowOptions = {}) => {
   const targetPath = options?.targetPath ?? ""
   loadWindowRoute(win, targetPath)
 
+  if (isMainWindow) {
+    win.webContents.once("did-finish-load", () => {
+      if (pendingDeepLinkPath && !win.isDestroyed()) {
+        win.webContents.send("xiaoye:deep-link", pendingDeepLinkPath)
+        pendingDeepLinkPath = null
+      }
+    })
+  }
+
   return win
 }
 
@@ -793,6 +803,46 @@ const shouldDeferMainWindow = (): boolean => {
 /**
  * 应用启动引导：协议注册、IPC、菜单与窗口。
  */
+// ==================== knowledge:// 深链（#31 接线） ====================
+/** 冷启动时深链先到、主窗后建：暂存路径，主窗 did-finish-load 后冲刷给渲染层。 */
+let pendingDeepLinkPath: string | null = null
+
+/** 把已解析的站内路径推给主窗渲染层（由 App.vue 订阅并 router.push）。 */
+const dispatchDeepLinkPath = (targetPath: string) => {
+  focusMainWindow()
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("xiaoye:deep-link", targetPath)
+  } else {
+    pendingDeepLinkPath = targetPath
+  }
+}
+
+/** 解析原始深链 URL：合法才派发，非法静默忽略（防把任意串拼进路由）。 */
+const handleDeepLinkUrl = (rawUrl: string) => {
+  const targetPath = parseKnowledgeDeepLink(rawUrl)
+  if (!targetPath) {
+    console.warn(`[xiaoye] 忽略非法深链：${rawUrl}`)
+    return
+  }
+  dispatchDeepLinkPath(targetPath)
+}
+
+// macOS：运行中/冷启动的深链都经 open-url 到达
+app.on("open-url", (event, url) => {
+  event.preventDefault()
+  handleDeepLinkUrl(url)
+})
+
+// 协议注册：dev 态（process.defaultApp）绑定 electron 可执行文件 + 入口脚本，
+// 打包态直接绑应用自身（Windows 生效；macOS 由 Info.plist/注册表指向本调用）
+if (process.defaultApp) {
+  app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL, process.execPath, [
+    path.resolve(process.argv[1] ?? "."),
+  ])
+} else {
+  app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL)
+}
+
 const bootstrap = () => {
   // 应用名用于菜单与关于面板显示。注意：userData 目录名取的是 package.json 的
   // name（2026-09-23 起 name=zhiye → ~/Library/Application Support/zhiye，
@@ -877,7 +927,12 @@ const bootstrap = () => {
   // preload 的 secureStoreGet/Set/Delete 恒 reject，UI 误报「系统级加密存储」
   registerSecureStoreIpc()
 
-  app.on("second-instance", () => {
+  app.on("second-instance", (_event, argv) => {
+    // Windows：深链经 second-instance argv 到达（macOS 走 open-url）
+    const deepLinkUrl = argv.find((arg) => arg.startsWith(`${DEEP_LINK_PROTOCOL}://`))
+    if (deepLinkUrl) {
+      handleDeepLinkUrl(deepLinkUrl)
+    }
     // 重复启动唤起主窗（--hideWindow 暂缓期同样在此时补建窗口）
     focusMainWindow()
   })

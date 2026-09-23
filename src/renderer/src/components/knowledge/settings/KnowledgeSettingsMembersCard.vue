@@ -92,7 +92,11 @@ const getRoleLabel = (role: string) => {
             <div class="truncate text-sm font-semibold text-ink" :title="member.user.displayName">
               {{ member.user.displayName }}
             </div>
-            <div class="truncate text-sm text-ink-tertiary" :title="member.user.email">
+            <div
+              v-if="member.user.email"
+              class="truncate text-sm text-ink-tertiary"
+              :title="member.user.email"
+            >
               {{ member.user.email }}
             </div>
           </div>

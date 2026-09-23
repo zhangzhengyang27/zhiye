@@ -1,10 +1,11 @@
 /**
  * knowledge:// 深链解析（#31）——纯函数层，不 import electron。
  *
- * ⚠️ 现状：本模块「未接线」——主进程没有 setAsDefaultProtocolClient /
- * open-url / second-instance argv 解析（2026-09-23 决策暂缓：编辑器刚需追平
- * 优先于分发能力）。接线前 OS 不会把 knowledge:// 链接路由到应用，单测通过
- * 不代表功能可用；接线时以本模块为解析层 + index.ts bootstrap 注册。
+ * 已接线（2026-09-23）：index.ts 顶部注册协议（setAsDefaultProtocolClient，
+ * dev 态经 process.defaultApp 绑 electron 可执行文件）、open-url（macOS）与
+ * second-instance argv（Windows）共同入口 handleDeepLinkUrl → 解析为站内路径
+ * → focusMainWindow + IPC 推给渲染层（App.vue onDeepLink 订阅 router.push）；
+ * 冷启动深链先于主窗到达时暂存 pendingDeepLinkPath，did-finish-load 后冲刷。
  *
  * 只承接自家唤起形态 `knowledge://kb/:kbId/doc/:docId`（对齐站内文档路由
  * /knowledge/:kbId/doc/:docId）；分享复制链接保持 http(s)，不走本协议。

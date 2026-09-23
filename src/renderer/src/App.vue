@@ -119,6 +119,16 @@ onMounted(() => {
   window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized)
   void bootstrapLoginWindow()
 
+  // knowledge:// 深链：主进程解析为站内路径后经 IPC 推送，这里跳转
+  // （锁定窗/设置窗不接受导航指令——与托盘命令同口径，仅主窗内容窗响应）
+  window.xiaoyeDesktop?.onDeepLink?.((targetPath) => {
+    const routeName = router.currentRoute.value.name
+    if (routeName === "settings" || routeName === "desktop-lock") {
+      return
+    }
+    void router.push(targetPath).catch(() => {})
+  })
+
   if (!window.xiaoyeDesktop) {
     window.addEventListener("keydown", handlePreferencesKeydown)
     return

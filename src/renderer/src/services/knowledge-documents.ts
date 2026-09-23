@@ -187,7 +187,6 @@ export interface KnowledgeDocumentVersionItem {
   status?: string
   author: {
     id: string
-    email: string
     name: string | null
   }
 }

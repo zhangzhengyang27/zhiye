@@ -13,7 +13,7 @@ export interface KnowledgeBaseMember {
   joinedAt: string
   user: {
     id: string
-    email: string
+    email?: string | null
     displayName: string
     avatar?: string
   }
@@ -49,7 +49,7 @@ export const getKnowledgeBaseMembers = (
 export const addKnowledgeBaseMember = (
   kbId: string,
   data: {
-    email: string
+    email?: string | null
     role: "admin" | "editor" | "reader"
   },
   token?: string | null,
