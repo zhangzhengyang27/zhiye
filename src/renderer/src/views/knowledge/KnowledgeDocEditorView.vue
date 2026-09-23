@@ -225,19 +225,16 @@ const openMentionPicker = async (e: MouseEvent) => {
 }
 const handleMentionSelect = (member: KnowledgeBaseMember) => {
   mentionPickerOpen.value = false
-  const editor = editorInstance.value as { focusToStart?: (offset?: number) => void } | null
-  if (!editor?.focusToStart) {
-    showToastMessage("编辑器尚未就绪，请稍后再试。", "error")
-    return
-  }
-  // Lake 输入通道为 beforeinput（execCommand/insertText 在 markdown 方案下均不生效）：
-  // 先聚焦编辑器，再合成与真实键盘输入同路径的 insertText 事件
-  editor.focusToStart()
   const editable = document.querySelector<HTMLElement>('.ne-engine[contenteditable="true"]')
   if (!editable) {
     showToastMessage("编辑器尚未就绪，请稍后再试。", "error")
     return
   }
+  // Lake 输入通道为 beforeinput（execCommand/insertText 在 markdown 方案下均不生效）：
+  // 先聚焦编辑器再合成与真实键盘输入同路径的 insertText 事件。
+  // 不能用 focusToStart()——它把选区移到文首，提及永远插进第一行；
+  // Chromium 对失焦的 contenteditable 保留其内部选区，focus() 即恢复到输入 @ 的位置
+  editable.focus()
   editable.dispatchEvent(
     new InputEvent("beforeinput", {
       inputType: "insertText",
@@ -1794,6 +1791,13 @@ const saveDocument = async (options?: { silent?: boolean; auto?: boolean }) => {
 
     return true
   } catch (error) {
+    if (docId.value !== savedDocId) {
+      // await 期间已切到另一篇文档：失败状态与重试队列只对旧文档有意义，
+      // 回写会把旧文档的保存失败标进新文档、把新文档拖进无意义的重试循环
+      //（watch(docId) 已清空旧文档的重试队列并复位标志）
+      return false
+    }
+
     saveError.value = error instanceof Error ? error.message : "保存失败，请稍后重试。"
     const errorStatus = getApiErrorStatus(error)
     const retryable =
@@ -1820,21 +1824,25 @@ const saveDocument = async (options?: { silent?: boolean; auto?: boolean }) => {
 
     return false
   } finally {
-    if (options?.auto) {
-      autoSaving.value = false
-    } else {
-      saving.value = false
-    }
+    // 切走文档后不再触碰共享标志：saving/autoSaving 可能已被新文档的保存
+    // 占用，旧保存的 finally 若无条件复位会打断它（残留复位交给 watch(docId)）
+    if (docId.value === savedDocId) {
+      if (options?.auto) {
+        autoSaving.value = false
+      } else {
+        saving.value = false
+      }
 
-    if (pendingSaveRequest.value && isOnline.value && !saving.value && !autoSaving.value) {
-      const delay =
-        pendingSaveRequest.value.reason === "retry"
-          ? Math.min(12000, 1500 * 2 ** retryAttempt.value)
-          : 160
-      retrySaveTimer.value = window.setTimeout(() => {
-        retrySaveTimer.value = null
-        void flushPendingSave()
-      }, delay)
+      if (pendingSaveRequest.value && isOnline.value && !saving.value && !autoSaving.value) {
+        const delay =
+          pendingSaveRequest.value.reason === "retry"
+            ? Math.min(12000, 1500 * 2 ** retryAttempt.value)
+            : 160
+        retrySaveTimer.value = window.setTimeout(() => {
+          retrySaveTimer.value = null
+          void flushPendingSave()
+        }, delay)
+      }
     }
   }
 }
@@ -2536,6 +2544,11 @@ watch(
     deletingVersionId.value = null
     pendingSaveRequest.value = null
     retryAttempt.value = 0
+    // 旧文档在途保存的 finally 带 savedDocId 守卫不会复位标志，这里兜底接住，
+    // 避免切换后 saving/autoSaving 卡在 true；saveError 同理不留旧文档的失败态
+    saving.value = false
+    autoSaving.value = false
+    saveError.value = ""
     remoteConflict.value = null
     // 点赞/阅读数/本地快照跟随文档切换重置（快照列表由打开面板或进入阅读态时刷新）
     likeInfo.value = { liked: false, count: 0, likers: [] }
@@ -2581,9 +2594,13 @@ const waitUntilSaveIdle = async (timeoutMs = 8000) => {
   }
 }
 
-/** 切换文档/离开页面前落盘未保存修改：等待在途保存结束后补一次真实保存。 */
-const flushBeforeDocSwitch = async () => {
-  if (!canEdit.value || !isDirty.value) return
+/**
+ * 切换文档/离开页面前落盘未保存修改：等待在途保存结束后补一次真实保存。
+ * 返回是否已安全落盘——保存失败（离线/5xx）时改动只剩本地快照，false 交由
+ * 路由守卫弹确认，不再静默放行丢弃改动。
+ */
+const flushBeforeDocSwitch = async (): Promise<boolean> => {
+  if (!canEdit.value || !isDirty.value) return true
 
   // 若保存正在途中，原逻辑会走 queue 分支提前放行，路由切换后组件卸载时
   // onBeforeUnmount 又清掉 pending，导致最后一次修改丢失。这里先等途中保存
@@ -2594,18 +2611,62 @@ const flushBeforeDocSwitch = async () => {
     await saveDocument({ silent: true, auto: true })
     await waitUntilSaveIdle()
   }
+
+  return !isDirty.value
 }
 
+/**
+ * 保存失败的离站门禁：全站 ConfirmDialog 询问是否丢弃修改。
+ * 确认 → 放行导航；取消/遮罩/Esc 关闭 → 留在本页（改动仍在）。
+ */
+let pendingLeaveGate: { resolve: (allowed: boolean) => void; confirmed: boolean } | null = null
+
+const confirmLeaveWithUnsavedChanges = () =>
+  new Promise<boolean>((resolve) => {
+    pendingLeaveGate = { resolve, confirmed: false }
+    confirmDialog.value = {
+      open: true,
+      message: "当前文档有未保存的修改，且自动保存未成功（可能已离线）。离开将丢失这些修改。",
+      confirmText: "丢弃修改并离开",
+      danger: true,
+      onConfirm: () => {
+        const gate = pendingLeaveGate
+        if (gate) {
+          gate.confirmed = true
+          pendingLeaveGate = null
+          confirmDialog.value.open = false
+          gate.resolve(true)
+        }
+      },
+    }
+  })
+
+watch(
+  () => confirmDialog.value.open,
+  (open) => {
+    // 非确认路径的关闭（取消按钮/遮罩/Esc）视为留在本页
+    if (!open && pendingLeaveGate && !pendingLeaveGate.confirmed) {
+      const gate = pendingLeaveGate
+      pendingLeaveGate = null
+      gate.resolve(false)
+    }
+  },
+)
+
 onBeforeRouteLeave(async () => {
-  await flushBeforeDocSwitch()
-  return true
+  if (await flushBeforeDocSwitch()) {
+    return true
+  }
+  return await confirmLeaveWithUnsavedChanges()
 })
 
 // 目录树点另一篇文档时路由组件被复用（仅 params.docId 变化），onBeforeRouteLeave
 // 不会触发；若不在此落盘，自动保存窗口内（1200ms）的最后修改会被静默丢弃
 onBeforeRouteUpdate(async () => {
-  await flushBeforeDocSwitch()
-  return true
+  if (await flushBeforeDocSwitch()) {
+    return true
+  }
+  return await confirmLeaveWithUnsavedChanges()
 })
 
 const handleBeforeUnload = (event: BeforeUnloadEvent) => {

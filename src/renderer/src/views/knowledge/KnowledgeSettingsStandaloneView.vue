@@ -34,6 +34,11 @@ const {
   expandedFolderIds,
   hasStoredExpandedFolderIds,
   focusedNodeId,
+  // 独立设置壳没有目录树 UI，展开初始化走哪个分支都无感；直接回退全展开兜底
+  getDefaultExpandLevel: () => knowledgeBase.value?.settings?.defaultExpandLevel,
+  applyProgrammaticExpandedFolderIds: (folderIds) => {
+    expandedFolderIds.value = folderIds
+  },
   ensureNodeAncestorsExpanded: () => {},
   ensureFocusedNode: () => {},
   showToastMessage: () => {},

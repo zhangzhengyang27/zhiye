@@ -1,5 +1,8 @@
-# Vue 3 + TypeScript + Vite
+# 知叶（Zhiye）
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+> 2026-09-22 定名，取「一叶知秋」与「叶 = 页」双关。支持桌面端（Electron）与 Web 双端的 AI 知识库。
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## 命名释义
+
+1. **叶 = 页 同音。**文档产品的每一篇就是一“页”,“知叶”读出来就是“知页”——让每一页被知晓。这个双关是为文档/知识库量身定做的。
+2. **“一叶知秋”的压缩。**“知”和“叶”两个字都在，AI 差异化的故事直接就有了：见一叶而知全貌，从一片碎片推得整片森林——这正是 AI 知识库该讲的话。

@@ -19,6 +19,12 @@ const isMainWindowFlag = process.argv
   ?.split("=")[1]
   ?.trim()
 
+/** 独立登录窗标记（login-window.ts 经 additionalArguments 注入，仅登录窗为 1）。 */
+const isLoginWindowFlag = process.argv
+  .find((arg) => arg.startsWith("--xiaoye-is-login-window="))
+  ?.split("=")[1]
+  ?.trim()
+
 /** 订阅主进程广播的通用壳：只透传字符串/白名单形状，返回取消订阅函数。 */
 const subscribeBroadcast = (channel: string, callback: (payload: unknown) => void) => {
   const listener = (_event: IpcRendererEvent, payload: unknown) => {
@@ -45,6 +51,8 @@ const desktopApi = {
   hiddenTitleBar: process.env.XIAOYE_HIDDEN_TITLE_BAR === "1",
   /** 本窗口是否主窗口（偏好设置的启动同步只由主窗执行，避免多窗口重复 IPC）。 */
   isMainWindow: isMainWindowFlag !== "0",
+  /** 本窗口是否独立登录窗（登录/跳转行为据此分叉；Web 端恒 false）。 */
+  isLoginWindow: isLoginWindowFlag === "1",
   /** 兜底异步通道：返回主进程解析后的完整配置。 */
   getConfig: () => ipcRenderer.invoke("xiaoye:get-config"),
   /**
@@ -56,7 +64,7 @@ const desktopApi = {
   /** 发送系统通知（macOS 通知中心）。 */
   notify: (title: string, body: string) => ipcRenderer.invoke("xiaoye:notify", { title, body }),
   /**
-   * 订阅托盘菜单广播（`navigate-start` / `navigate-recent`）。
+   * 订阅托盘菜单广播（`navigate-start` / `navigate-notes`）。
    * 返回取消订阅函数。
    */
   onTrayCommand: (callback: (command: string) => void) => {
@@ -130,6 +138,20 @@ const desktopApi = {
   secureStoreGet: (storageKey: string) => ipcRenderer.invoke("xiaoye:secure-store:get", storageKey),
   secureStoreDelete: (storageKey: string) =>
     ipcRenderer.invoke("xiaoye:secure-store:delete", storageKey),
+  /**
+   * 独立登录窗（窗口化登录）流程。通道语义见 src/main/login-window.ts：
+   * - loginWindowReady：登录窗 hydration 后确认未登录，请主进程亮窗；
+   * - notifyAuthSessionEstablished：登录/注册成功或自动登录，主进程关登录窗
+   *   开主窗（redirectPath 为回跳目标）；
+   * - openLoginWindow：内容窗会话失效，唤起登录窗；
+   * - logoutDesktop：退出登录，销毁内容窗回到登录窗。
+   */
+  loginWindowReady: () => ipcRenderer.invoke("xiaoye:login-window:ready"),
+  notifyAuthSessionEstablished: (redirectPath?: string) =>
+    ipcRenderer.invoke("xiaoye:auth:session-established", { redirectPath }),
+  openLoginWindow: (redirectPath?: string) =>
+    ipcRenderer.invoke("xiaoye:auth:open-login-window", { redirectPath }),
+  logoutDesktop: () => ipcRenderer.invoke("xiaoye:auth:logout-desktop"),
 }
 
 contextBridge.exposeInMainWorld("xiaoyeDesktop", desktopApi)

@@ -21,10 +21,12 @@ import {
 } from "@/services/knowledge-documents"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import { useDialogBehavior } from "@/composables/use-dialog-behavior"
+import { canDropTreeNode, findTreeNode } from "@/components/knowledge/tree-utils"
 import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
 
 type FolderNodeInfo = {
   id: string
+  type: string
   title: string
   path: string
   children: FolderNodeInfo[]
@@ -32,6 +34,7 @@ type FolderNodeInfo = {
 
 type FolderRow = {
   id: string
+  type: string
   title: string
   depth: number
   hasChildren: boolean
@@ -75,23 +78,50 @@ const excludedIds = computed(() => {
   return node ? new Set(collectDescendantIds(node)) : new Set<string>()
 })
 
-/** 排除移动节点自身子树后的文件夹树（path 用于搜索与展示） */
+/**
+ * 排除移动节点自身子树后的可选目标树（path 用于搜索与展示）。
+ * 目标口径与拖拽完全一致（canDropTreeNode 单一事实源）：分组任意层级；
+ * 「文档挂文档」规则内允许把文档挂到文档下（最多两级），与拖拽能力对齐——
+ * 此前只列分组，同一移动操作两个入口两种能力。
+ */
 const allowedFolderTree = computed<FolderNodeInfo[]>(() => {
   const excluded = excludedIds.value
+  const source = movingNode.value
+
+  const isAllowedTarget = (item: KnowledgeDocumentTreeNode): boolean => {
+    if (excluded.has(item.id) || (item.type !== "folder" && item.type !== "doc")) {
+      return false
+    }
+    // 二级文档（父级也是文档）不能再作父级——后端 parentRuleViolation 会 403，
+    // canDropTreeNode 不查这一层，这里显式对齐
+    if (item.type === "doc" && item.parentId) {
+      const parent = findTreeNode(props.treeNodes, item.parentId)
+      if (parent?.type === "doc") {
+        return false
+      }
+    }
+    if (!source) {
+      return item.type === "folder"
+    }
+    return canDropTreeNode(props.treeNodes, source, {
+      nodeId: item.id,
+      parentId: item.parentId,
+      position: "inside",
+    })
+  }
 
   const walk = (nodes: KnowledgeDocumentTreeNode[], prefix: string): FolderNodeInfo[] =>
-    nodes
-      .filter((item) => item.type === "folder" && !excluded.has(item.id))
-      .map((item) => {
-        const path = prefix ? `${prefix} / ${item.title}` : item.title
+    nodes.filter(isAllowedTarget).map((item) => {
+      const path = prefix ? `${prefix} / ${item.title}` : item.title
 
-        return {
-          id: item.id,
-          title: item.title,
-          path,
-          children: walk(item.children, path),
-        }
-      })
+      return {
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        path,
+        children: walk(item.children, path),
+      }
+    })
 
   return walk(props.treeNodes, "")
 })
@@ -112,6 +142,7 @@ const visibleRows = computed<FolderRow[]>(() => {
 
       rows.push({
         id: node.id,
+        type: node.type,
         title: node.title,
         depth,
         hasChildren: node.children.length > 0,
@@ -244,7 +275,7 @@ const dialog = useDialogBehavior({
           v-model="keyword"
           type="text"
           data-autofocus
-          placeholder="输入目录名或目录路径搜索"
+          placeholder="输入名称或路径搜索"
           class="py-2 pl-9"
         />
         <Icon
@@ -302,7 +333,12 @@ const dialog = useDialogBehavior({
             />
           </button>
           <span v-else class="w-5 shrink-0" />
-          <Icon icon="ph:folder" :width="14" :height="14" class="shrink-0 text-ink-tertiary" />
+          <Icon
+            :icon="row.type === 'folder' ? 'ph:folder' : 'ph:file-text'"
+            :width="14"
+            :height="14"
+            class="shrink-0 text-ink-tertiary"
+          />
           <span class="truncate">{{ row.title }}</span>
         </div>
 
@@ -310,7 +346,7 @@ const dialog = useDialogBehavior({
           v-if="visibleRows.length === 0"
           class="px-3 py-8 text-center text-[13px] text-ink-quaternary"
         >
-          没有匹配的目录
+          没有匹配的目标
         </div>
       </div>
     </div>

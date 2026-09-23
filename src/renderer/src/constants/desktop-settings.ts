@@ -3,11 +3,11 @@
  *
  * 逐表对齐语雀桌面端 `app/main/isomorphic/constants/{color-theme,shortcut,proxy,storage}.js`
  * 与 `build/renderer/76858.js`（设置页组件本体）——枚举值、默认值、localStorage key 名
- * 都照抄，只有文案里的产品名换成本项目的「知识库」。
+ * 都照抄，只有文案里的产品名换成本项目的「知叶」。
  */
 
 /** 产品名称：语雀原文案里硬编码「语雀」的几处（自启、主窗口、状态栏）统一由此替换。 */
-export const PRODUCT_NAME = "知识库"
+export const PRODUCT_NAME = "知叶"
 
 /** 设置页 localStorage key（一个 key 一项，与语雀「一个 key 一个 json 文件」同粒度）。 */
 export const SETTINGS_STORAGE_KEYS = {

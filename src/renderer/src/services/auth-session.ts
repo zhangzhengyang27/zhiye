@@ -173,19 +173,22 @@ export const refreshSessionSingleFlight = (): Promise<AuthSuccessResponse> => {
 }
 
 /**
- * 供 401 处理链调用的刷新入口。服务端明确拒绝（401 等）时清空会话并派发
- * 登出事件；网络抖动（无状态码）则保留会话状态、仅返回 false，由调用方的
- * 原 401 走统一登出语义。
+ * 供 401 处理链调用的刷新入口。服务端明确拒绝（refresh cookie 失效的 401）时
+ * 清空会话并派发登出事件；网络抖动（无状态码）与后端瞬时故障（5xx 等）则保留
+ * 会话状态、仅返回 false，等待下次刷新重试——否则一次发布重启就会把 30 天
+ * 信任设备的静默续期能力一并抹掉。
  */
 export const tryRefreshSession = async (): Promise<boolean> => {
   try {
     await refreshSessionSingleFlight()
     return true
   } catch (error) {
-    if (getApiErrorStatus(error) !== null) {
+    if (getApiErrorStatus(error) === 401) {
+      // 先派发再清理：消费方（App.vue）的去重标志不再依赖 token 判空，
+      // 但保持「事件到达时会话尚未清空」的时序，便于监听方读取当前档案
+      dispatchUnauthorizedEvent()
       setMemoryAccessToken(null)
       clearPersistedAuthSession()
-      dispatchUnauthorizedEvent()
     }
     return false
   }

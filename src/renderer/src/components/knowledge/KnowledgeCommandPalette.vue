@@ -161,12 +161,6 @@ const commandItems = computed<PaletteCommandItem[]>(() => {
       action: () => router.push({ name: "knowledge-notes" }),
     },
     {
-      key: "cmd-recent",
-      label: "最近访问",
-      icon: "ph:clock-counter-clockwise",
-      action: () => router.push({ name: "knowledge-recent" }),
-    },
-    {
       key: "cmd-boards",
       label: "画板",
       icon: "ph:palette",

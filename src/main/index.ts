@@ -25,6 +25,8 @@ import {
 import path from "node:path"
 import fs from "node:fs"
 import { pathToFileURL } from "node:url"
+import dockIconPath from "./assets/dock-icon.png?asset"
+import trayIconPath from "./assets/tray-icon.png?asset"
 import {
   getSavedWindowBounds,
   isTrayVisibleRequested,
@@ -41,6 +43,17 @@ import {
   registerDesktopLockIpc,
   teardownDesktopLock,
 } from "./desktop-lock"
+import {
+  destroyLoginWindow,
+  ensureLoginWindow,
+  focusLoginWindow,
+  hasLoginWindow,
+  isLoginWindow,
+  registerLoginWindowIpc,
+  teardownLoginWindow,
+} from "./login-window"
+import { registerSecureStoreIpc } from "./secure-store"
+import { attachNavigationGuard } from "./window-navigation"
 
 /** `app://` 协议主机名（standard 协议要求显式 host）。 */
 const APP_PROTOCOL_HOST = "bundle"
@@ -217,20 +230,30 @@ const attachDownloadHandler = () => {
  * 只放行本地资源与已配置的后端地址，禁掉 object / base / frame，降低渲染远端
  * 文档内容（v-html、Lake 富文本）时的注入影响面。script-src 保留 'unsafe-inline'
  * 是因为 index.html 里有一段同步应用主题的内联脚本（防首屏闪白）。
+ *
+ * connect-src 刻意不放行裸 `https:`（2026-09-23 收敛）：渲染层的出网只有
+ * 后端 API（serverBaseUrl）、协作 WS（由它派生的 ws(s):// 同源）与画板库的
+ * data:/blob: 读回——裸 https:/ws: 等于对注入脚本的数据外送不设防。
+ * img-src/media-src 保留 https: 是文档正文图片/音视频来自用户自配的
+ * OSS/CDN（宿主无法枚举），图片非执行面，保持可用性。
  */
-const buildContentSecurityPolicy = (serverBaseUrl: string): string =>
-  [
+const buildContentSecurityPolicy = (serverBaseUrl: string): string => {
+  // 协作 WS 与 API 同宿主：http→ws、https→wss
+  const wsOrigin = serverBaseUrl.replace(/^http/, "ws")
+
+  return [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${serverBaseUrl} https: ws: wss:`,
+    `connect-src 'self' ${serverBaseUrl} ${wsOrigin} blob: data:`,
     "media-src 'self' data: blob: https:",
     "object-src 'none'",
     "base-uri 'none'",
     "frame-src 'none'",
   ].join("; ")
+}
 
 /**
  * 注册 `app://` 协议处理器：优先返回静态文件，非资源路径回落到 index.html
@@ -415,6 +438,12 @@ const resolveInitialWindowBounds = (): WindowBounds => {
 interface CreateWindowOptions {
   /** SPA 内部路由；空串为主窗口。 */
   targetPath?: string
+  /**
+   * 显式指定主窗口身份。缺省按「无 targetPath 即主窗」推断，但登录成功后的
+   * 主窗带着回跳路由（如 /knowledge）创建，必须显式传 true 才能拿到几何
+   * 持久化与失焦自动锁定。
+   */
+  asMain?: boolean
   /** 覆盖默认尺寸（辅助窗口用，不参与几何持久化）。 */
   size?: { width: number; height: number }
   minWidth?: number
@@ -422,8 +451,20 @@ interface CreateWindowOptions {
   title?: string
 }
 
+/**
+ * 让窗口加载 SPA 内部路由（dev 走 electron-vite dev server，生产走 app:// 协议）。
+ * createWindow 与登录成功后主窗回跳共用，避免两份 dev/prod 分叉。
+ */
+const loadWindowRoute = (win: BrowserWindow, targetPath: string) => {
+  if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
+    void win.loadURL(`${process.env.ELECTRON_RENDERER_URL}${targetPath}`)
+  } else {
+    void win.loadURL(`app://${APP_PROTOCOL_HOST}${targetPath}`)
+  }
+}
+
 const createWindow = (options: CreateWindowOptions = {}) => {
-  const isMainWindow = !options.targetPath
+  const isMainWindow = options.asMain ?? !options.targetPath
   const initialBounds = resolveInitialWindowBounds()
   const win = new BrowserWindow({
     x: isMainWindow ? initialBounds.x : undefined,
@@ -432,7 +473,7 @@ const createWindow = (options: CreateWindowOptions = {}) => {
     height: options.size?.height ?? initialBounds.height,
     minWidth: options.minWidth ?? WINDOW_MIN_WIDTH,
     minHeight: options.minHeight ?? WINDOW_MIN_HEIGHT,
-    title: options.title ?? "知识库",
+    title: options.title ?? "知叶",
     show: false,
     backgroundColor: "#f8faf8",
     ...(HIDDEN_TITLE_BAR ? { titleBarStyle: "hidden" as const } : {}),
@@ -487,15 +528,14 @@ const createWindow = (options: CreateWindowOptions = {}) => {
 
   win.on("ready-to-show", () => win.show())
   win.webContents.setWindowOpenHandler(createWindowOpenHandler(win))
+  // 整窗导航防护：只放行应用自身页面；window.open 放行的 about:blank 子窗也一并挂上
+  attachNavigationGuard(win.webContents)
+  win.webContents.on("did-create-window", (child) => {
+    attachNavigationGuard(child.webContents)
+  })
 
   const targetPath = options?.targetPath ?? ""
-  if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
-    // 开发模式：加载 electron-vite 渲染层开发服务器
-    void win.loadURL(`${process.env.ELECTRON_RENDERER_URL}${targetPath}`)
-  } else {
-    // 生产模式：加载本地 app:// 协议
-    void win.loadURL(`app://${APP_PROTOCOL_HOST}${targetPath}`)
-  }
+  loadWindowRoute(win, targetPath)
 
   return win
 }
@@ -523,17 +563,28 @@ const sanitizeInternalPath = (value: unknown): string | null => {
 }
 
 /**
- * 聚焦主窗口（不存在则重建）。
+ * 唤起应用主入口（未登录期间主入口 = 登录窗，登录后 = 主窗）。
  *
  * 必须先 show 再 focus：应用被 ⌘H 隐藏时窗口仍在但不可见，只调 focus() 唤不出来
  * （全局快捷键「打开知识库主窗口」与托盘点击都走这条路）——语雀同写法是
  * `e.isVisible() || e.show()`。
+ *
+ * 窗口自举的登录门禁：登录窗在场时一律唤登录窗（未登录期间托盘/Dock/快捷键
+ * 都不该绕过登录）；一个窗口都不在时也不再直接建主窗——是否已登录只有渲染层
+ * hydration 能回答，交给登录窗隐藏自举（refresh cookie 有效会自动跳过登录）。
  */
 const focusMainWindow = () => {
+  if (hasLoginWindow()) {
+    focusLoginWindow()
+    return
+  }
+
   const win =
     mainWindow && !mainWindow.isDestroyed()
       ? mainWindow
-      : BrowserWindow.getAllWindows().find((item) => !item.isDestroyed() && item !== settingsWindow)
+      : BrowserWindow.getAllWindows().find(
+          (item) => !item.isDestroyed() && item !== settingsWindow && !isLoginWindow(item),
+        )
 
   if (win) {
     if (win.isMinimized()) {
@@ -546,7 +597,7 @@ const focusMainWindow = () => {
     return
   }
 
-  createWindow()
+  ensureLoginWindow()
 }
 
 /**
@@ -564,6 +615,13 @@ const SETTINGS_WINDOW_SIZE = { width: 830, height: 768 }
  * 单例：重复打开只把它唤到前台，不再开第二个。
  */
 const openSettingsWindow = () => {
+  // 未登录期间（登录窗在场）：设置入口要求已登录，把用户带回登录窗，
+  // 避免设置窗的路由守卫在 830 宽的子窗里整页跳成登录页
+  if (hasLoginWindow()) {
+    focusLoginWindow()
+    return
+  }
+
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     if (!settingsWindow.isVisible()) {
       settingsWindow.show()
@@ -586,6 +644,67 @@ const openSettingsWindow = () => {
 }
 
 /**
+ * 登录/注册成功（登录窗渲染层回报，含 refresh cookie 自动登录）：关登录窗后
+ * 开主窗或唤回主窗。
+ *
+ * - 主窗不在（正常启动路径）：新开主窗，登录前请求的回跳目标一并移交；
+ * - 主窗还在（会话失效场景）：它此前被藏到登录窗后面，统一刷新——失效期间
+ *   所有内容窗的请求都已 401，原渲染树不可信；主窗回跳目标加载，其余内容窗
+ *   （文档子窗/设置窗）原地 reload，最后把主窗唤回前台。
+ */
+const handleAuthSessionEstablished = (redirectPath?: string) => {
+  const target = sanitizeInternalPath(redirectPath ?? "") ?? ""
+  const existingMain = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null
+
+  if (!existingMain) {
+    createWindow(target ? { targetPath: target, asMain: true } : { asMain: true })
+    return
+  }
+
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed() || isLoginWindow(win)) {
+      continue
+    }
+    if (win === existingMain) {
+      loadWindowRoute(win, target || "/knowledge")
+    } else {
+      win.webContents.reload()
+    }
+  }
+  if (!existingMain.isVisible()) {
+    existingMain.show()
+  }
+  existingMain.focus()
+}
+
+/**
+ * 内容窗会话失效：主窗先藏起来（登录是应用级门禁，失效会话的页面不再露在
+ * 登录窗后面），再唤起登录窗并把失效页面带回跳目标。
+ */
+const handleOpenLoginRequested = (redirectPath?: string) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.hide()
+  }
+  ensureLoginWindow(redirectPath)
+}
+
+/**
+ * 内容窗请求退出登录：销毁全部内容窗（主窗/设置窗/文档子窗，对齐语雀
+ * logout 的轻量 relaunch 语义），回到独立登录窗重新登录。锁定窗不在场——
+ * 锁屏页的「退出登录」走 desktop-lock 的 unlockAfterLogout 链先行关窗。
+ */
+const handleLogoutRequested = () => {
+  destroyLoginWindow()
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed()) {
+      continue
+    }
+    win.destroy()
+  }
+  ensureLoginWindow()
+}
+
+/**
  * 向全部渲染层窗口广播事件（托盘菜单等主进程动作）。
  *
  * 锁定窗不接收命令广播：锁定期间托盘导航/全局快捷键（navigate-start 等）
@@ -594,6 +713,10 @@ const openSettingsWindow = () => {
 const broadcastToRenderer = (channel: string, payload?: unknown) => {
   for (const win of BrowserWindow.getAllWindows()) {
     if (isLockWindow(win)) {
+      continue
+    }
+    // 登录窗不接收导航/命令广播：未登录期间托盘导航不能把登录表单带去内容页
+    if (isLoginWindow(win)) {
       continue
     }
     win.webContents.send(channel, payload)
@@ -608,28 +731,26 @@ const broadcastToRenderer = (channel: string, payload?: unknown) => {
  */
 const createTray = () => {
   try {
-    const iconPath = path.join(app.getAppPath(), "build", "icon.icns")
-    const sourceIcon = nativeImage.createFromPath(iconPath)
-    // icns 体积大，缩小到托盘尺寸；加载失败时退化为空图（macOS 仍会显示占位点）
-    const icon = sourceIcon.isEmpty() ? sourceIcon : sourceIcon.resize({ width: 18, height: 18 })
+    // 托盘用预缩好的 PNG（18pt + @2x 由 nativeImage 自动配对）：实测 nativeImage 解码
+    // icns 得到的是空图（isEmpty: true），旧实现因此整条托盘隐形
+    const icon = nativeImage.createFromPath(trayIconPath)
+    if (icon.isEmpty()) {
+      console.warn("[xiaoye] 托盘图标加载失败，状态栏将无可见图标")
+    }
 
     tray = new Tray(icon)
-    tray.setToolTip("知识库")
+    tray.setToolTip("知叶")
 
     const menu = Menu.buildFromTemplate([
-      { label: "打开知识库", click: () => focusMainWindow() },
+      { label: "打开知叶", click: () => focusMainWindow() },
       {
         label: "开始页",
         click: () => broadcastToRenderer("xiaoye:tray-command", "navigate-start"),
       },
-      {
-        label: "最近访问",
-        click: () => broadcastToRenderer("xiaoye:tray-command", "navigate-recent"),
-      },
       { type: "separator" },
       preferencesMenuItem(),
       lockMenuItem(),
-      { label: "退出知识库", click: () => app.quit() },
+      { label: "退出知叶", click: () => app.quit() },
     ])
     tray.setContextMenu(menu)
 
@@ -674,9 +795,10 @@ const shouldDeferMainWindow = (): boolean => {
  */
 const bootstrap = () => {
   // 应用名用于菜单与关于面板显示。注意：userData 目录名取的是 package.json 的
-  // name（实测 ~/Library/Application Support/xiaoye），setName 改不了它——
-  // 排查 config.json / desktop-settings.json 落点时别按「知识库」去找。
-  app.setName("知识库")
+  // name（2026-09-23 起 name=zhiye → ~/Library/Application Support/zhiye，
+  // 由旧 xiaoye 目录整体迁移而来），setName 改不了它——
+  // 排查 config.json / desktop-settings.json 落点时别按「知叶」去找。
+  app.setName("知叶")
 
   const serverBaseUrl = resolveServerBaseUrl()
   const webBaseUrl = resolveWebBaseUrl(serverBaseUrl)
@@ -719,7 +841,7 @@ const bootstrap = () => {
     }
 
     const title =
-      typeof payload?.title === "string" && payload.title.trim() ? payload.title.trim() : "知识库"
+      typeof payload?.title === "string" && payload.title.trim() ? payload.title.trim() : "知叶"
     const body = typeof payload?.body === "string" ? payload.body : ""
     console.log(`[xiaoye] 系统通知 -> ${title} | ${body}`)
     new Notification({ title, body }).show()
@@ -743,6 +865,18 @@ const bootstrap = () => {
   // 桌面端锁定（#27）的 IPC 通道：锁定窗校验、设置页读写、失焦自动锁定
   registerDesktopLockIpc()
 
+  // 独立登录窗（窗口化登录）的 IPC 通道：ready 亮窗、登录成功开主窗、
+  // 会话失效/退出登录回到登录窗
+  registerLoginWindowIpc({
+    onSessionEstablished: handleAuthSessionEstablished,
+    onOpenLoginRequested: handleOpenLoginRequested,
+    onLogoutRequested: handleLogoutRequested,
+  })
+
+  // 安全存储（safeStorage 加密的本地敏感值，如画板 AI Key）：此前漏注册导致
+  // preload 的 secureStoreGet/Set/Delete 恒 reject，UI 误报「系统级加密存储」
+  registerSecureStoreIpc()
+
   app.on("second-instance", () => {
     // 重复启动唤起主窗（--hideWindow 暂缓期同样在此时补建窗口）
     focusMainWindow()
@@ -750,6 +884,11 @@ const bootstrap = () => {
 
   // protocol.handle 与 session 均要求在 app ready 之后调用
   app.whenReady().then(() => {
+    // 开发态补 dock 图标：打包态由 build/icon.icns 提供（见 electron-builder.yml），dev 下 Electron
+    // 用的是 node_modules 里的默认图标，故仅在未打包时用同一张源图手动设置
+    if (process.platform === "darwin" && !app.isPackaged) {
+      app.dock?.setIcon(dockIconPath)
+    }
     registerAppProtocol(serverBaseUrl)
     attachDownloadHandler()
     // 先回放偏好设置快照：状态栏图标开关决定要不要建托盘
@@ -764,13 +903,15 @@ const bootstrap = () => {
       // 自启静默（--hideWindow）：托盘与菜单已就绪，主窗等首次唤起再建
       console.log("[xiaoye] 自启静默启动（--hideWindow），主窗口暂缓创建")
     } else {
-      createWindow()
+      // 启动自举走 focusMainWindow：未登录期间它创建的是隐藏登录窗（渲染层
+      // hydration 决定亮出登录表单或凭 refresh cookie 直接进主窗）
+      focusMainWindow()
     }
 
     app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow()
-      }
+      // 有窗口（可能整组隐藏）也走唤起：会话失效后主窗被藏起，点 Dock 必须
+      // 能唤回登录窗，而不是什么都不发生
+      focusMainWindow()
     })
   })
 }
@@ -779,6 +920,7 @@ const bootstrap = () => {
 app.on("will-quit", () => {
   teardownDesktopSettings()
   teardownDesktopLock()
+  teardownLoginWindow()
 })
 
 // macOS：关窗不退出，点击 Dock 图标重建窗口

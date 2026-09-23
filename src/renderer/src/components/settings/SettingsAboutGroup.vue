@@ -6,7 +6,7 @@
  * 全部由升级器（updator）驱动；本仓无更新通道，故只保留版本行与四条链接（与语雀非
  * 升级态下的呈现一致）。四条链接的取址在 constants 里留空——不拿语雀地址凑数，空即置灰。
  */
-import logoUrl from "@/assets/yuque-logo.png"
+import logoUrl from "@/assets/zhiye-logo.png"
 import { ABOUT_LINKS, PRODUCT_NAME } from "@/constants/desktop-settings"
 import { useDesktopSettings } from "@/composables/useDesktopSettings"
 

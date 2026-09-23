@@ -32,6 +32,8 @@ export interface UpdateUserProfileInput {
   email?: string
   phone?: string
   avatar?: string
+  /** 更换绑定邮箱时必填：先经 sendEmailCode(email, "change_email") 获取 */
+  emailCode?: string
 }
 
 /**

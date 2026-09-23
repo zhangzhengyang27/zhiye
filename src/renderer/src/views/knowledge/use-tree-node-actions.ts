@@ -703,6 +703,57 @@ export const useTreeNodeActions = (options: {
     }
   }
 
+  /**
+   * 复制时编辑器类型的透传规则：已知枚举原样保留（数据表/表格/思维导图的内容
+   * 带专属 scheme，降级会让副本渲染不出来），未知/缺省回退富文本。
+   */
+  const resolveDuplicateEditorType = (
+    editorType?: KnowledgeDocumentEditorType | string,
+  ): KnowledgeDocumentEditorType => {
+    const knownEditorTypes: readonly string[] = Object.values(KNOWLEDGE_DOCUMENT_EDITOR_TYPES)
+    return editorType && knownEditorTypes.includes(editorType)
+      ? (editorType as KnowledgeDocumentEditorType)
+      : KNOWLEDGE_DOCUMENT_EDITOR_TYPES.richText
+  }
+
+  /**
+   * 递归复制分组整棵子树（对齐语雀「复制」语义）：按树形先父后子创建，文档
+   * 逐个取全文（含专类内容）再建副本；半途失败时已建副本保留并向上抛错。
+   */
+  const duplicateFolderSubtree = async (root: KnowledgeDocumentTreeNode) => {
+    const createCopy = async (
+      node: KnowledgeDocumentTreeNode,
+      mappedParentId: string | null,
+    ): Promise<void> => {
+      if (node.type === "folder") {
+        const created = await createKnowledgeDocument({
+          kbId: kbId.value,
+          title: buildDuplicateTitle(node.title),
+          type: "folder",
+          parentId: mappedParentId,
+        })
+        for (const child of node.children ?? []) {
+          await createCopy(child, created.id)
+        }
+        return
+      }
+
+      const sourceDocument = await getKnowledgeDocument(node.id)
+      await createKnowledgeDocument({
+        kbId: kbId.value,
+        title: buildDuplicateTitle(sourceDocument.title),
+        type: sourceDocument.type,
+        parentId: mappedParentId,
+        status: sourceDocument.status,
+        editorType: resolveDuplicateEditorType(sourceDocument.editorType),
+        content: sourceDocument.content,
+      })
+    }
+
+    options.showToastMessage("正在复制分组…", "info")
+    await createCopy(root, root.parentId)
+  }
+
   const handleNodeMenuDuplicate = async (targetNode?: KnowledgeDocumentTreeNode) => {
     if (!ensureEditPermission()) {
       options.closeNodeMenu()
@@ -720,12 +771,7 @@ export const useTreeNodeActions = (options: {
 
     try {
       if (actionNode.type === "folder") {
-        await createKnowledgeDocument({
-          kbId: kbId.value,
-          title: buildDuplicateTitle(actionNode.title),
-          type: "folder",
-          parentId: actionNode.parentId,
-        })
+        await duplicateFolderSubtree(actionNode)
       } else {
         const sourceDocument = await getKnowledgeDocument(actionNode.id)
 
@@ -735,18 +781,19 @@ export const useTreeNodeActions = (options: {
           type: sourceDocument.type,
           parentId: sourceDocument.parentId ?? null,
           status: sourceDocument.status,
-          editorType:
-            sourceDocument.editorType === KNOWLEDGE_DOCUMENT_EDITOR_TYPES.board
-              ? KNOWLEDGE_DOCUMENT_EDITOR_TYPES.board
-              : KNOWLEDGE_DOCUMENT_EDITOR_TYPES.richText,
+          // 透传源文档的编辑器类型：数据表/表格/思维导图的内容带专属 scheme，
+          // 降级成富文本会让副本在通用编辑器里渲染不出来（此前只保留了 board）
+          editorType: resolveDuplicateEditorType(sourceDocument.editorType),
           content: sourceDocument.content,
         })
       }
 
       options.showToastMessage("已复制。", "success")
-      await options.refreshTree()
     } catch (error) {
+      // 递归复制可能半途失败：部分副本已落库，刷新让它们可见并如实提示
       options.showToastMessage(getApiErrorMessage(error, "复制失败。"), "error")
+    } finally {
+      await options.refreshTree()
     }
   }
 

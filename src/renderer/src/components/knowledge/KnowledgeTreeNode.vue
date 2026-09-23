@@ -64,6 +64,20 @@ const emit = defineEmits<{
 const rowRef = ref<HTMLElement | null>(null)
 
 const isFolder = computed(() => props.node.type === "folder")
+
+/**
+ * 👁 阅读模式只对有预览路由的文档显示：富文本（editorType 缺省）走
+ * doc-editor?preview=1；board/datatable/sheet/mindmap 的编辑器不支持预览参数，
+ * 此前 datatable 等会被路由进通用 doc-editor 加载不出内容，先隐藏
+ * （等各专类编辑器支持预览再放开）。
+ */
+const PREVIEW_UNSUPPORTED_EDITOR_TYPES = new Set(["board", "datatable", "sheet", "mindmap"])
+const supportsPreview = computed(
+  () =>
+    !isFolder.value &&
+    !isLink.value &&
+    !PREVIEW_UNSUPPORTED_EDITOR_TYPES.has(props.node.editorType ?? ""),
+)
 // 可展开行：分组，或挂了子级的文档（批次 B 文档嵌套文档；箭头才承担展开/收起）
 const canExpand = computed(() => props.node.type === "folder" || props.node.children.length > 0)
 const isLink = computed(() => props.node.type === "link")
@@ -360,7 +374,7 @@ onBeforeUnmount(() => {
           <Icon icon="ph:dots-three-vertical" :width="12" :height="12" />
         </button>
         <button
-          v-if="!isFolder && node.editorType !== 'board' && !isLink"
+          v-if="supportsPreview"
           type="button"
           class="pointer-events-auto rounded-kb-sm border border-transparent p-1 text-ink-quaternary transition duration-150 hover:bg-grey-300 hover:text-ink-secondary focus-visible:bg-grey-300 focus-visible:text-ink-secondary focus-visible:outline-none"
           title="阅读模式"

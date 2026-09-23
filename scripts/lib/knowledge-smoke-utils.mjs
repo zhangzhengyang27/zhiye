@@ -235,15 +235,6 @@ export async function ensureFavoriteDocument(kbId, token, options = {}) {
   return document
 }
 
-/** 确保文档产生近期浏览记录（POST view）。 */
-export async function ensureRecentDocument(kbId, token, options = {}) {
-  const document = await ensureDocument(kbId, token, options)
-  await apiRequest(`/knowledge/documents/${document.id}/view`, { method: "POST", token }).catch(
-    () => {},
-  )
-  return document
-}
-
 /** 确保文档在回收站（先 trash）。 */
 export async function ensureTrashedDocument(kbId, token, options = {}) {
   const document = await ensureDocument(kbId, token, options)

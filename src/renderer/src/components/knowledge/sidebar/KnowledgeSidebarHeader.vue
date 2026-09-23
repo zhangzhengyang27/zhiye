@@ -2,7 +2,7 @@
 /** 头部组件，负责知识库侧栏标题、搜索入口与用户头像展示（对齐语雀桌面端布局）。 */
 import { ref } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
-import yuqueLogo from "@/assets/yuque-logo.png"
+import zhiyeLogo from "@/assets/zhiye-logo.png"
 
 defineProps<{
   /** 当前用户头像 URL；为空时展示首字母兜底 */
@@ -79,8 +79,8 @@ const fallbackInitial = (label?: string) => {
         class="flex min-w-0 items-center gap-2 rounded-kb-md py-1 pr-2 text-left transition duration-150 hover:bg-grey-200"
         @click="emit('open-account')"
       >
-        <img :src="yuqueLogo" alt="语雀" class="h-6.5 w-6.5 shrink-0 rounded-kb-sm" />
-        <span class="truncate text-[15px] font-semibold tracking-tight text-ink">语雀</span>
+        <img :src="zhiyeLogo" alt="知叶" class="h-6.5 w-6.5 shrink-0 rounded-kb-sm" />
+        <span class="truncate text-[15px] font-semibold tracking-tight text-ink">知叶</span>
         <Icon icon="ph:caret-down" :width="12" :height="12" class="shrink-0 text-ink-tertiary" />
       </button>
 

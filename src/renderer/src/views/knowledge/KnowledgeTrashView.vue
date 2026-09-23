@@ -43,12 +43,10 @@ const docTrash = ref<{
     title: string
     editorType?: string
     kbId: string
-    updatedAt: string
+    /** 后端 listTrash 返回扁平 kbName（无嵌套 kb 对象） */
+    kbName: string
+    creatorName?: string | null
     deletedAt: string
-    kb: {
-      id: string
-      name: string
-    }
   }>
   total: number
   page: number
@@ -83,7 +81,7 @@ const filteredDocItems = computed(() => {
       return true
     }
 
-    return [item.title, item.kb.name].some((field) =>
+    return [item.title, item.kbName].some((field) =>
       field.toLowerCase().includes(normalizedKeyword),
     )
   })

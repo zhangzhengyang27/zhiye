@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** 应用根组件：初始化主题模式、渲染路由出口，并兜底处理认证失效。 */
-import { onBeforeUnmount, onMounted } from "vue"
+import { onBeforeUnmount, onMounted, watch } from "vue"
 import { RouterView, useRouter } from "vue-router"
 import zhCn from "element-plus/es/locale/lang/zh-cn"
 import { Z_EP_PROVIDER_BASE } from "./constants/z-index"
@@ -20,15 +20,32 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 /**
+ * 登出去重标志：事件到达时会话往往已被刷新链路清空（token 判空去重在
+ * auth-session「先派发后清理」时序下永远命中），因此用独立标志去重，
+ * 并在新会话建立（登录/刷新成功写入新 token）时复位。
+ */
+let unauthorizedHandled = false
+
+/**
  * 请求层 401 → 清会话并跳登录页。
- * 并发请求可能触发多次事件：清空后 accessToken 为 null，直接跳过即完成去重。
+ * 并发请求可能触发多次事件，由 unauthorizedHandled 保证只处理一次。
+ *
+ * 桌面端分叉：登录走独立小窗（窗口化登录），不再在内容窗里整页跳登录页——
+ * 唤起登录窗并把当前页面带回跳目标，登录成功后主进程统一刷新各内容窗。
  */
 const handleUnauthorized = () => {
-  if (!authStore.accessToken) {
+  if (unauthorizedHandled) {
     return
   }
+  unauthorizedHandled = true
 
   authStore.clearSession()
+
+  const desktop = window.xiaoyeDesktop
+  if (desktop?.openLoginWindow) {
+    void desktop.openLoginWindow(router.currentRoute.value.fullPath)
+    return
+  }
 
   const current = router.currentRoute.value
   if (current.name !== "login") {
@@ -41,10 +58,46 @@ const handleUnauthorized = () => {
   }
 }
 
+// 新会话建立（登录/静默刷新写入新 token）后复位去重标志，允许下一轮失效再次触发
+watch(
+  () => authStore.accessToken,
+  (token) => {
+    if (token) {
+      unauthorizedHandled = false
+    }
+  },
+)
+
+/**
+ * 登录窗自举：hydration 后若 refresh cookie 仍有效（自动登录），通知主进程
+ * 关登录窗、开主窗。requiresGuest 守卫此时已拦下工作台路由（返回 false），
+ * 「跳过登录」的信号由这里统一发——登录窗里只可能挂空路由或登录/重置表单。
+ */
+const bootstrapLoginWindow = async () => {
+  const desktop = window.xiaoyeDesktop
+  if (!desktop?.isLoginWindow || !desktop.notifyAuthSessionEstablished) {
+    return
+  }
+
+  await authStore.ensureHydrated()
+  if (!authStore.isLoggedIn) {
+    return
+  }
+
+  const redirect = router.currentRoute.value.query.redirect
+  void desktop.notifyAuthSessionEstablished(typeof redirect === "string" ? redirect : undefined)
+}
+
+/** 登录窗（hiddenInset 无边框）顶部拖拽带：没有它无边框窗拖不动。 */
+const isLoginWindow = Boolean(window.xiaoyeDesktop?.isLoginWindow)
+// 语雀同款：登录窗标题就是「登录」（渲染层 document.title 会盖掉 BrowserWindow title）
+if (isLoginWindow) {
+  document.title = "登录"
+}
+
 /**
  * 托盘/全局快捷键广播 → 路由跳转（桌面端）。
  * - navigate-start：开始页
- * - navigate-recent：最近访问
  * - navigate-notes：小记（全局快捷键「唤起小记」的落点）
  *
  * 广播发给所有窗口，但有两类窗口不该被导航指令带走：偏好设置是独立窗口
@@ -64,6 +117,7 @@ const handlePreferencesKeydown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized)
+  void bootstrapLoginWindow()
 
   if (!window.xiaoyeDesktop) {
     window.addEventListener("keydown", handlePreferencesKeydown)
@@ -79,8 +133,6 @@ onMounted(() => {
 
     if (command === "navigate-start") {
       void router.push("/knowledge/start")
-    } else if (command === "navigate-recent") {
-      void router.push("/knowledge/recent")
     } else if (command === "navigate-notes") {
       void router.push("/knowledge/notes")
     }
@@ -98,6 +150,12 @@ onBeforeUnmount(() => {
 <template>
   <!-- 380 对齐 kb 层级：overlay 300 < 对话框（Z_DIALOG）400 < popper/toast 500（popper 经样式表 !important 与 toast 同层，靠 DOM 序决胜）；唯一事实源见 constants/z-index.ts -->
   <el-config-provider :z-index="Z_EP_PROVIDER_BASE" :locale="zhCn">
+    <!-- 登录窗顶部拖拽带（hiddenInset 红绿灯浮在 6,6，卡片从 py-10 起，互不遮挡） -->
+    <div
+      v-if="isLoginWindow"
+      aria-hidden="true"
+      class="fixed inset-x-0 top-0 z-50 h-8 [-webkit-app-region:drag]"
+    />
     <RouterView />
   </el-config-provider>
 </template>

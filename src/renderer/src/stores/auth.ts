@@ -25,6 +25,8 @@ interface AuthActionInput {
   displayName?: string
   captchaId?: string
   captchaCode?: string
+  /** 邮箱验证码（注册邮箱账号时必填，先经 sendEmailCode 取码） */
+  emailCode?: string
   /** 信任当前设备：勾选后 refresh cookie 以 30 天持久化，否则为会话 cookie */
   trustedDevice?: boolean
 }
@@ -156,6 +158,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   /**
    * 使用账号信息完成注册，并在成功后建立本地会话。
+   * 邮箱账号带 emailCode（邮箱验证码），手机号账号带图形验证码。
    */
   const register = async ({
     account,
@@ -163,9 +166,10 @@ export const useAuthStore = defineStore("auth", () => {
     displayName,
     captchaId,
     captchaCode,
+    emailCode,
   }: AuthActionInput) => {
-    if (!captchaId || !captchaCode) {
-      throw new Error("注册缺少图形验证码")
+    if (!emailCode && (!captchaId || !captchaCode)) {
+      throw new Error("注册缺少人机验证凭证")
     }
 
     const result = await registerByAccount({
@@ -174,6 +178,7 @@ export const useAuthStore = defineStore("auth", () => {
       displayName,
       captchaId,
       captchaCode,
+      emailCode,
     })
     setSession(result.accessToken, result.user)
   }

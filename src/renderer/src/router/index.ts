@@ -101,14 +101,6 @@ const router = createRouter({
       },
     },
     {
-      path: "/knowledge/recent",
-      name: "knowledge-recent",
-      component: () => import("@/views/knowledge/KnowledgeRecentView.vue"),
-      meta: {
-        requiresAuth: true,
-      },
-    },
-    {
       path: "/knowledge/boards",
       name: "knowledge-boards",
       component: () => import("@/views/knowledge/KnowledgeBoardsView.vue"),
@@ -225,6 +217,13 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.requiresGuest && authStore.isLoggedIn) {
+    // 独立登录窗（桌面端窗口化登录）：refresh cookie 仍有效即「自动登录」——
+    // 停在原地（返回 false，RouterView 留空即可，窗口随即被主进程销毁），
+    // 绝不能把 400 宽的登录窗导航成工作台；「跳过登录」的 IPC 信号由 App.vue
+    // 的自举钩子统一发，守卫只负责拦导航。
+    if (window.xiaoyeDesktop?.isLoginWindow) {
+      return false
+    }
     return resolveSafeRedirect(to.query.redirect)
   }
 

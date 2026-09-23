@@ -9,8 +9,8 @@
  * 复用 documents CRUD，data_change 防抖 1200ms 自动保存（与富文本编辑页一致）。
  * 暗色主题适配登记偏差（v1 固定浅色画布，跟随后续批次）。
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
-import { useRoute } from "vue-router"
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue"
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from "vue-router"
 import AppIcon from "@/components/common/AppIcon.vue"
 import UiIcon from "@/components/common/UiIcon.vue"
 import MindMap from "simple-mind-map"
@@ -205,13 +205,60 @@ watch(
   { immediate: true },
 )
 
-onMounted(() => {
-  void loadDocument()
+/** 路由守卫已按旧 docId 落盘的标记：卸载兜底据此避免以切换后的新 docId 再提交旧画布。 */
+let leaveFlushed = false
+
+// 目录树点另一张思维导图时路由组件被复用（仅 params.docId 变化）：必须先取消
+// 挂起的自动保存并销毁重建画布——否则防抖定时器晚于切换触发，会把旧画布数据
+// + 旧标题以新 docId 提交（跨文档数据污染）；正常切换由路由守卫按旧 docId 落盘
+watch(
+  () => docId.value,
+  (next, prev) => {
+    if (next === prev) {
+      return
+    }
+    clearSaveTimer()
+    loadSeq++
+    loading.value = true
+    loadError.value = ""
+    title.value = ""
+    savedAtLabel.value = ""
+    saveError.value = ""
+    pendingTree.value = null
+    snapshotRef.value = ""
+    // mountMindMap 检测到已有实例会跳过挂载，切换文档必须先销毁
+    mindMapInstance?.destroy()
+    mindMapInstance = null
+    leaveFlushed = false
+    void loadDocument()
+  },
+  { immediate: true },
+)
+
+const flushBeforeLeave = async () => {
+  if (canEdit.value && isDirtyNow()) {
+    await saveNow()
+  }
+}
+
+onBeforeRouteUpdate(async () => {
+  leaveFlushed = true
+  await flushBeforeLeave()
+  return true
+})
+
+onBeforeRouteLeave(async () => {
+  leaveFlushed = true
+  await flushBeforeLeave()
+  return true
 })
 
 onBeforeUnmount(() => {
   clearSaveTimer()
-  if (canEdit.value && isDirtyNow()) {
+  // 兜底「不经路由切换的卸载」（如整树刷新）；此时 route.params 可能已指向
+  // 别的文档，routeFlushed=false 意味着旧画布尚未落盘，但 docId 已不可信——
+  // 仅在仍指向本文档时提交
+  if (!leaveFlushed && canEdit.value && isDirtyNow() && docId.value) {
     void saveNow()
   }
   mindMapInstance?.destroy()

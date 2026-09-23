@@ -7,12 +7,9 @@ type TrashDocItem = {
   title: string
   editorType?: string
   kbId: string
-  updatedAt: string
+  /** 后端 listTrash 返回扁平 kbName（无嵌套 kb 对象） */
+  kbName: string
   deletedAt: string
-  kb: {
-    id: string
-    name: string
-  }
 }
 
 const props = defineProps<{
@@ -52,7 +49,7 @@ const emit = defineEmits<{
     </span>
 
     <span class="hidden shrink-0 text-kb-xs text-ink-quaternary lg:inline">{{
-      props.item.kb.name
+      props.item.kbName
     }}</span>
     <span class="w-24 shrink-0 text-right text-kb-xs text-ink-quaternary">{{
       props.deletedAtText

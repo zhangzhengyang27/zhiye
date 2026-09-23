@@ -139,6 +139,42 @@ export const useTreeDrag = (options: {
       }
     }
 
+    // 行间空隙（space-y 的 2-4px 带内无行命中）：取中心距离最近的一行按上下半区
+    // 决定 before/after——否则缝隙松手会静默落到兜底的「根级末尾」，与视觉相邻
+    // 位置相去甚远。只对首末行之间的缝隙带生效：树底部空白区保留「追加到根级末尾」
+    const firstRow = rows[0]
+    const lastRow = rows[rows.length - 1]
+
+    if (firstRow && lastRow) {
+      const bandTop = firstRow.element.getBoundingClientRect().top
+      const bandBottom = lastRow.element.getBoundingClientRect().bottom
+
+      if (clientY > bandTop && clientY < bandBottom) {
+        let nearestRow = firstRow
+        let nearestDistance = Number.POSITIVE_INFINITY
+
+        for (const row of rows) {
+          const rect = row.element.getBoundingClientRect()
+          const distance = Math.abs(clientY - (rect.top + rect.height / 2))
+          if (distance < nearestDistance) {
+            nearestRow = row
+            nearestDistance = distance
+          }
+        }
+
+        const nearestRect = nearestRow.element.getBoundingClientRect()
+        const position = clientY <= nearestRect.top + nearestRect.height / 2 ? "before" : "after"
+
+        return {
+          nodeId: nearestRow.nodeId,
+          parentId: nearestRow.parentId,
+          index: nearestRow.index + (position === "after" ? 1 : 0),
+          position,
+          inputMode,
+        }
+      }
+    }
+
     const rootRows = rows.filter((item) => item.parentId === null)
 
     if (rootRows.length === 0) {

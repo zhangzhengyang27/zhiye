@@ -11,7 +11,7 @@
  * Web 端直接访问 /lock 没有桌面主进程，降级为「仅桌面端可用」提示。
  */
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
-import logoUrl from "@/assets/yuque-logo.png"
+import logoUrl from "@/assets/zhiye-logo.png"
 import { PRODUCT_NAME } from "@/constants/desktop-settings"
 import { useDesktopLock } from "@/composables/use-desktop-lock"
 import { useAuthStore } from "@/stores/auth"

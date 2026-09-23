@@ -89,14 +89,6 @@ const router = createRouter({
       },
     },
     {
-      path: "/knowledge/recent",
-      name: "knowledge-recent",
-      component: () => import("@/views/knowledge/KnowledgeRecentView.vue"),
-      meta: {
-        requiresAuth: true,
-      },
-    },
-    {
       path: "/knowledge/favorites",
       name: "knowledge-favorites",
       component: () => import("@/views/knowledge/KnowledgeFavoritesView.vue"),

@@ -6,7 +6,6 @@ import {
   createDiagnostics,
   ensureFavoriteDocument,
   ensureKnowledgeBase,
-  ensureRecentDocument,
   ensureTrashedDocument,
   logStep,
   loginThroughUi,
@@ -58,10 +57,6 @@ async function main() {
     })()
 
     const knowledgeBase = await ensureKnowledgeBase(token, STEP_PREFIX)
-    const recentDocument = await ensureRecentDocument(knowledgeBase.id, token, {
-      title: "Smoke 最近更新文档",
-      content: "# 最近更新\n\n用于最近更新页 smoke 验证。",
-    })
     const favoriteDocument = await ensureFavoriteDocument(knowledgeBase.id, token, {
       title: "Smoke 收藏文档",
       content: "# 收藏\n\n用于收藏页 smoke 验证。",
@@ -71,16 +66,10 @@ async function main() {
       content: "# 回收站\n\n用于回收站页 smoke 验证。",
     })
 
-    assert.ok(recentDocument?.id, "未准备好最近更新文档")
     assert.ok(favoriteDocument?.id, "未准备好收藏文档")
     assert.ok(trashedDocument?.id, "未准备好回收站文档")
 
-    // 页面已对齐语雀式布局：标题收敛为「最近」「收藏」，回收站移入「更多」菜单，这里直接导航验证页面内容
-    await openPageDirect(page, "/knowledge/recent", [
-      page.getByRole("heading", { name: "最近", exact: true }),
-      page.getByText("Smoke 最近更新文档", { exact: true }),
-    ])
-
+    // 页面已对齐语雀式布局：标题收敛为「收藏」，回收站移入「更多」菜单，这里直接导航验证页面内容
     await openSidebarPage(page, "收藏", "/knowledge/favorites", [
       page.getByRole("heading", { name: "收藏", exact: true }),
       page.getByText("Smoke 收藏文档", { exact: true }),

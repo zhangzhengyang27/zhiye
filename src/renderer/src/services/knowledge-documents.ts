@@ -201,12 +201,10 @@ export interface KnowledgeDocumentTrashResult {
     title: string
     editorType?: KnowledgeDocumentEditorType | string
     kbId: string
-    updatedAt: string
+    /** 后端返回扁平 kbName（documents-trash.service listTrash 的映射形状） */
+    kbName: string
+    creatorName?: string | null
     deletedAt: string
-    kb: {
-      id: string
-      name: string
-    }
   }>
   total: number
   page: number

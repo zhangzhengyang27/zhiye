@@ -15,6 +15,7 @@ import { BrowserWindow, app, ipcMain } from "electron"
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto"
 import path from "node:path"
 import { getLockSettings, saveLockSettings, type LockSettingsSnapshot } from "./desktop-settings"
+import { attachNavigationGuard } from "./window-navigation"
 
 /** 密码长度边界（语雀规格：4-32 位）。 */
 export const LOCK_PASSWORD_MIN_LENGTH = 4
@@ -108,8 +109,6 @@ const closeLockWindow = () => {
 
 /** 创建全屏置顶无边框锁定窗，加载应用内 /lock 路由（复用渲染层 token 与图标，成本低于独立 lock.html）。 */
 const createLockWindow = () => {
-  // 非主窗口身份（与 index.ts 的 createWindow 同口径）：锁定窗不承担偏好设置的启动同步
-  process.env.XIAOYE_MAIN_WINDOW = "0"
   const win = new BrowserWindow({
     show: false,
     frame: false,
@@ -127,6 +126,9 @@ const createLockWindow = () => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // 非主窗口身份（preload 据此判定）：锁定窗不承担偏好设置的启动同步，
+      // 否则锁定时会在锁定窗内重放全局快捷键/代理/托盘的设置 IPC（与登录窗同口径）
+      additionalArguments: ["--xiaoye-is-main-window=0"],
     },
   })
   // screen-saver 级置顶：压过普通 alwaysOnTop 窗口，锁定界面不被应用内浮窗盖住
@@ -157,6 +159,8 @@ const createLockWindow = () => {
 
   // 锁定窗内不放行任何 window.open：渲染层被攻破也不能借新开的子窗口绕过锁定
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }))
+  // 整窗导航防护：锁定窗只承载应用自身页面，任何外链导航都不得发生
+  attachNavigationGuard(win.webContents)
 }
 
 /** 「锁定桌面端」动作（菜单/托盘/⌘L/设置页共用）：未设密码时忽略，已锁定则唤到前台。 */

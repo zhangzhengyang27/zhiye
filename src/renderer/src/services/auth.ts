@@ -27,13 +27,17 @@ export interface AuthSuccessResponse {
 
 /**
  * 描述账号密码注册接口需要的字段。
+ * 邮箱账号：`emailCode` 必填（先经 sendEmailCode 取码），图形验证码不需要；
+ * 手机号账号：仍走图形验证码（captchaId/captchaCode）。
  */
 export interface RegisterInput {
   account: string
   password: string
   displayName?: string
-  captchaId: string
-  captchaCode: string
+  captchaId?: string
+  captchaCode?: string
+  /** 邮箱验证码（注册邮箱账号时必填） */
+  emailCode?: string
 }
 
 /**
@@ -78,6 +82,10 @@ const createJsonHeaders = (token?: string): Record<string, string> => {
   })
 }
 
+/** 邮箱形态判定（与后端 normalizeAccount 的 EMAIL_PATTERN 同判据；大小写/首尾空白容忍）。 */
+export const isEmailAccount = (account: string): boolean =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(account.trim().toLowerCase())
+
 const parseResponse = async <T>(response: Response, fallbackMessage: string): Promise<T> => {
   await ensureApiResponseOk(response, fallbackMessage)
   return (await response.json()) as T
@@ -92,7 +100,7 @@ export const fetchAuthCaptcha = async (): Promise<AuthCaptchaPayload> => {
 }
 
 /**
- * 完成手机号登录或自动注册流程。
+ * 使用手机号登录或自动注册。
  */
 export const phoneSignInOrRegister = async (
   payload: PhoneAuthInput,
@@ -101,6 +109,9 @@ export const phoneSignInOrRegister = async (
     method: "POST",
     headers: createJsonHeaders(),
     body: JSON.stringify(payload),
+    // 桌面端页面与后端跨源（app://bundle 或 dev 5173 → 3200）：不显式 include
+    // 凭据，响应里的 kb_refresh cookie 会被浏览器丢弃，重启后无法静默续期
+    credentials: "include",
   })
 
   return parseResponse<AuthSuccessResponse>(response, "手机号登录失败")
@@ -114,6 +125,7 @@ export const registerByAccount = async (payload: RegisterInput): Promise<AuthSuc
     method: "POST",
     headers: createJsonHeaders(),
     body: JSON.stringify(payload),
+    credentials: "include",
   })
 
   return parseResponse<AuthSuccessResponse>(response, "注册失败")
@@ -127,6 +139,7 @@ export const loginByAccount = async (payload: LoginInput): Promise<AuthSuccessRe
     method: "POST",
     headers: createJsonHeaders(),
     body: JSON.stringify(payload),
+    credentials: "include",
   })
 
   return parseResponse<AuthSuccessResponse>(response, "登录失败")
@@ -150,6 +163,8 @@ export const logoutByToken = async (token: string): Promise<void> => {
   const response = await fetch(buildApiUrl("/auth/logout"), {
     method: "POST",
     headers: createJsonHeaders(token),
+    // 同登录：跨源下要凭据模式 include，服务端清 refresh cookie 才能落到本端
+    credentials: "include",
   })
 
   await ensureApiResponseOk(response, "退出登录失败")
@@ -179,12 +194,63 @@ export const requestPasswordReset = async (email: string): Promise<PasswordReset
 
 /**
  * 凭重置链接中的令牌设置新密码（对齐后端 ResetPasswordDto：token + newPassword）。
+ * 旧链接式找回已由验证码制（resetPasswordByEmailCode）取代，端点保留向后兼容。
  */
 export const resetPasswordByToken = async (token: string, newPassword: string): Promise<void> => {
   const response = await fetch(buildApiUrl("/auth/reset-password"), {
     method: "POST",
     headers: createJsonHeaders(),
     body: JSON.stringify({ token, newPassword }),
+  })
+
+  await ensureApiResponseOk(response, "密码重置失败")
+}
+
+/**
+ * 描述邮箱验证码的用途：注册验证 / 找回密码（对齐后端 SendEmailCodeDto）。
+ */
+export type EmailCodePurpose = "register" | "password_reset" | "change_email"
+
+/**
+ * 描述邮箱验证码发送响应。devCode 仅开发环境返回（SMTP 未配置/发送失败/
+ * EMAIL_CODE_DEV_ECHO=1），用于自动化与联调自动回填。
+ */
+export interface EmailCodeSendResult {
+  sent: boolean
+  channel?: "email"
+  devCode?: string
+  message?: string
+}
+
+/**
+ * 发送邮箱验证码（注册验证 / 找回密码取码）。
+ * 服务端分层限流：IP 10 次/分 + 同邮箱 5 次/小时 + 60 秒重发冷却。
+ */
+export const sendEmailCode = async (
+  email: string,
+  purpose: EmailCodePurpose,
+): Promise<EmailCodeSendResult> => {
+  const response = await fetch(buildApiUrl("/auth/email-code"), {
+    method: "POST",
+    headers: createJsonHeaders(),
+    body: JSON.stringify({ email, purpose }),
+  })
+
+  return parseResponse<EmailCodeSendResult>(response, "验证码发送失败")
+}
+
+/**
+ * 凭邮箱验证码重置密码（对齐后端 ResetPasswordByCodeDto；验证码一次性）。
+ */
+export const resetPasswordByEmailCode = async (payload: {
+  email: string
+  code: string
+  newPassword: string
+}): Promise<void> => {
+  const response = await fetch(buildApiUrl("/auth/reset-password-by-code"), {
+    method: "POST",
+    headers: createJsonHeaders(),
+    body: JSON.stringify(payload),
   })
 
   await ensureApiResponseOk(response, "密码重置失败")

@@ -170,9 +170,17 @@ try {
   const uniqueMark = `b3share${Date.now().toString(36)}`
   const shareKeyword = `星尘检索词${uniqueMark}`
   const accountB = `${uniqueMark}@example.com`
-  const captcha = await apiRequest("/auth/captcha", { errorMessage: "获取验证码失败" })
-  if (!captcha?.captchaCode) {
-    throw new Error("开发环境验证码未回显明文，无法自动注册第二账号（NODE_ENV=production？）")
+  // 邮箱账号注册改走邮箱验证码（开发环境 email-code 接口回显明文 devCode）
+  const emailCodeSent = await apiRequest("/auth/email-code", {
+    method: "POST",
+    body: { email: accountB, purpose: "register" },
+    errorMessage: "发送邮箱验证码失败",
+  })
+  const emailCode = emailCodeSent?.devCode
+  if (!emailCode) {
+    throw new Error(
+      "开发环境 email-code 未回显 devCode，无法自动注册第二账号（NODE_ENV=production？）",
+    )
   }
   await apiRequest("/auth/register", {
     method: "POST",
@@ -180,8 +188,7 @@ try {
       account: accountB,
       password: "b3share123456",
       displayName: "B3 分享源用户",
-      captchaId: captcha.captchaId,
-      captchaCode: captcha.captchaCode,
+      emailCode,
     },
     errorMessage: "注册第二账号失败",
   })

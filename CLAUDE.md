@@ -1,8 +1,8 @@
-# 知识库前端项目开发规范
+# 知叶前端项目开发规范
 
 ## 项目概述
 
-知识库管理系统，**Electron 桌面端 + Web 双端**（electron-vite），基于 Vue 3 + TypeScript + Tailwind CSS 4，覆盖认证、账户设置、知识库工作区、语雀 Lake 富文本编辑与 Excalidraw 画板编辑。UI 层为「**EP 直用 + 全局校准层**」模型（2026-09-14 决策，原 App\* 适配层已解散）：调用方模板直接写 element-plus（el-\*）组件，语雀像素观感由全局校准层 `assets/styles/element-plus-calibration.css` 统一提供、EP 缺口行为收进共享 composable（详见「EP 直用约定」）；知识树/右键菜单/划词浮条等高定制件保持自建。
+知叶（zhīyè，2026-09-22 定名，取「一叶知秋」与「叶=页」双关）——AI 知识库管理系统，**Electron 桌面端 + Web 双端**（electron-vite），基于 Vue 3 + TypeScript + Tailwind CSS 4，覆盖认证、账户设置、知识库工作区、语雀 Lake 富文本编辑与 Excalidraw 画板编辑。UI 层为「**EP 直用 + 全局校准层**」模型（2026-09-14 决策，原 App\* 适配层已解散）：调用方模板直接写 element-plus（el-\*）组件，语雀像素观感由全局校准层 `assets/styles/element-plus-calibration.css` 统一提供、EP 缺口行为收进共享 composable（详见「EP 直用约定」）；知识树/右键菜单/划词浮条等高定制件保持自建。
 
 ## 常用命令
 
@@ -29,14 +29,14 @@
 ## 验证实践
 
 - 主要验证路径：`pnpm typecheck` + `pnpm lint` + `pnpm build:web` + `pnpm build` + 按改动范围选 smoke/profile。
-- 改动登录态/账户流程跑 `smoke:account`；工作区/侧栏/编辑器壳层跑 `smoke:workspace`；外围导航跑 `smoke:periphery`。`smoke:account` 的入口/账户页选择器已对齐 09-07 账号页重设计、09-11 侧栏语雀化、09-13 登录页重构后的现状（2026-09-13 修复，头像步断言按 MinIO http 公开地址适配），可直接使用。
+- 改动登录态/账户流程跑 `smoke:account`；工作区/侧栏/编辑器壳层跑 `smoke:workspace`；外围导航跑 `smoke:periphery`。`smoke:account` 的入口/账户页选择器已对齐 09-22 账号页现状（资料行 label 结构、「保存资料/更新密码」文案、内联改密流程、注册/找回走邮箱验证码 dev 回显），头像上传链路已于 09-22 接回（AccountView → AvatarCropDialog → oss/upload → 保存资料持久化），可直接使用。
 - EP 专项验证脚本（`scripts/`，前置同冒烟：后端 3200 + `build:web` + preview :4173）：
   - `visual-pixdiff.mjs`：改动前后双口径像素对比（同轮自配对 before/after；校准层/EP 直用相关改动必跑）
   - EP 直用改造全套回归资产（T2-T10 逐组件解散的 verify/capture，明细与门禁口径见 `docs/EP直用改造与适配层解散实施计划-2026-09-14.md`）：`verify-appcheckbox-t2.mjs` + `verify-t3..t10.mjs`（行为断言 36-134 项/件）、`visual-capture-t2..t10.mjs`（同屏同参截图采集）
   - `verify-task-3.4.mjs`：全局通知（use-transient-toast）行为断言 25 项（toast 件仍在，Task 3.4 资产）
   - `visual-capture-ep-baseline.mjs` / `visual-capture-replica.mjs` / `visual-baseline-report.mjs`：EP 基线/自绘版截图采集与报告（通用工具）
   - `verify-ep-native-behavior.mjs` + `scripts/ep-native-probe/`：EP 2.14.5 原生行为探针（独立 vite 静态应用，不含项目样式；升级 EP 版本时复测）
-- 冒烟脚本跑 Web 路径（preview :4173），需 xiaoye-server 在 3200 运行；桌面端改动另需 `pnpm start` 人工走查。
+- 冒烟脚本跑 Web 路径（preview :4173），需后端 zhiye-server 在 3200 运行；桌面端改动另需 `pnpm start` 人工走查。
 
 ## 当前技术栈
 
@@ -73,7 +73,9 @@ electron-builder.yml  # 打包配置
 ### 桌面端运行时
 
 - 生产模式通过特权协议 `app://bundle` 加载本地渲染层（protocol.handle + SPA fallback，**HTML5 History 路由无需 hash**）；开发模式加载 electron-vite dev server。
+- **登录是独立小窗**（`src/main/login-window.ts`，对齐语雀 windows/login 语义）：未登录时只开 400×649 登录窗（macOS hiddenInset、正式包不可调宽、窗题「登录」、渲染层为扁平无卡片版式），登录成功才销毁它并开主窗；refresh cookie 仍有效时登录窗自举后自动跳过进主窗。会话失效（auth:unauthorized）与退出登录（AccountView → `logoutDesktop`）都回到登录窗，不在内容窗内整页跳登录页；登录窗不在广播接收名单（同锁定窗）。主窗几何持久化与失焦自动锁定要求 `asMain: true`（登录后主窗带回跳路由创建，不能靠「无 targetPath」推断主窗身份）。
 - 后端地址解析优先级：`XIAOYE_SERVER_URL` 环境变量 > `userData/config.json`（`serverBaseUrl`/`webBaseUrl`）> `http://localhost:3200`；经环境变量注入 sandbox preload，渲染层 `services/desktop-bridge.ts` 同步读取。Web 端行为与历史完全一致（相对 `/api` + location.origin）。
+- **认证请求必须带 `credentials: "include"`**（login/register/phone-auth/logout）：桌面端页面与后端跨源（app://bundle 或 dev 5173 → 3200），不 include 则响应里的 `kb_refresh` HttpOnly cookie 被浏览器丢弃，重启后无法静默续期（后端 CORS 本就按 credentials:true + 显式白名单设计）。`/auth/refresh` 一直带 include。
 - window.open 三分流：空白页（PDF 打印窗）放行；下载端点（drive 下载 / OSS 签名直链）转 session 下载；其余 http(s) 走系统浏览器。
 
 ### Design Tokens（重要）

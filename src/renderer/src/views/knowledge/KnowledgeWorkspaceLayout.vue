@@ -25,7 +25,12 @@ import KnowledgeWorkspaceTreePanelHeader, {
 import KnowledgeMoveNodeDialog from "@/components/knowledge/KnowledgeMoveNodeDialog.vue"
 import KnowledgePageShell from "@/components/knowledge/KnowledgePageShell.vue"
 import { useTransientToast } from "@/composables/use-transient-toast"
-import { importDocxFile, importLakeFile, importMarkdownFile } from "@/services/document-import"
+import {
+  importDocxFile,
+  importLakeFile,
+  importLocalDocumentFiles,
+  importMarkdownFile,
+} from "@/services/document-import"
 import KnowledgeAddLinkDialog from "@/components/knowledge/KnowledgeAddLinkDialog.vue"
 import { createKnowledgeDocument } from "@/services/knowledge-documents"
 import { useTreeDrag } from "@/components/knowledge/use-tree-drag"
@@ -107,7 +112,7 @@ const activeDocId = computed(() => {
   return null
 })
 
-const { hasStoredExpandedFolderIds } = useWorkspacePersistence({
+const { hasStoredExpandedFolderIds, applyProgrammaticExpandedFolderIds } = useWorkspacePersistence({
   kbId,
   expandedFolderIds,
   focusedNodeId,
@@ -147,6 +152,10 @@ const {
   expandedFolderIds,
   hasStoredExpandedFolderIds,
   focusedNodeId,
+  // 默认展开级别的应用已下沉到 loader（loadTree 初始化时一次性生效）：
+  // 布局层 watch 与持久化 watcher 存在双输竞态，2026-09-23 移除
+  getDefaultExpandLevel: () => knowledgeBase.value?.settings?.defaultExpandLevel,
+  applyProgrammaticExpandedFolderIds,
   ensureNodeAncestorsExpanded,
   ensureFocusedNode,
   showToastMessage,
@@ -155,20 +164,19 @@ const {
 const canEdit = computed(() => permissions.value?.canEdit ?? false)
 const isWorkspaceHomeRoute = computed(() => route.name === "knowledge-workspace-home")
 
-// ==================== 默认展开级别（#16，KB 偏好 settings.defaultExpandLevel） ====================
-// 从未持久化过展开态的库，按偏好级别初始化展开目录（根为 1 级，展开深度 < level）；
-// 缺省/非法时不动 loader 的「全展开」兜底，用户手动改过（有存档）后也不再干预
-watch([knowledgeBase, treeNodes, hasStoredExpandedFolderIds], () => {
-  if (hasStoredExpandedFolderIds.value) {
+// 默认展开级别补偿：loadTree 与 loadKnowledgeBase 在 refreshWorkspace 里并发，
+// 树先归而库信息晚到时 loader 拿不到 level 只能走全展开兜底——这里在库信息
+// 落地后补一次按级别的展开。走持久化的程序性通道（幂等、不落存档），
+// 不会再引入旧布局 watch 与持久化 watcher 的竞态。
+watch(knowledgeBase, (loadedKb) => {
+  if (!loadedKb || hasStoredExpandedFolderIds.value || treeNodes.value.length === 0) {
     return
   }
 
-  const level = knowledgeBase.value?.settings?.defaultExpandLevel
-  if (typeof level !== "number" || !Number.isFinite(level) || level <= 0) {
-    return
+  const level = loadedKb.settings?.defaultExpandLevel
+  if (typeof level === "number" && Number.isFinite(level) && level > 0) {
+    applyProgrammaticExpandedFolderIds(collectFolderIdsUpToDepth(treeNodes.value, level))
   }
-
-  expandedFolderIds.value = collectFolderIdsUpToDepth(treeNodes.value, level)
 })
 
 const treePanelHeaderRef = ref<InstanceType<typeof KnowledgeWorkspaceTreePanelHeader> | null>(null)
@@ -505,7 +513,8 @@ watch(permissions, (loaded) => {
 
 const onImportFileChange = async (event: Event) => {
   const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
+  const selectedFiles = Array.from(input.files ?? [])
+  const file = selectedFiles[0]
   input.value = ""
   if (!file) {
     return
@@ -523,6 +532,30 @@ const onImportFileChange = async (event: Event) => {
   showToastMessage(importingMessage, "info")
 
   try {
+    // any（「导入…」统一入口）：按扩展名分发并支持多选/zip 解包，
+    // 逐文件互不回滚；此前误落到 importDocxFile 导致非 docx 全部失败
+    if (kind === "any") {
+      const { imported, failures } = await importLocalDocumentFiles(selectedFiles, kbId.value)
+      const firstImported = imported[0]
+      if (firstImported) {
+        showToastMessage(
+          failures.length > 0
+            ? `已导入 ${imported.length} 篇，${failures.length} 篇失败（${failures[0]?.name ?? ""}…）`
+            : `已导入 ${imported.length} 篇文档`,
+          failures.length > 0 ? "info" : "success",
+        )
+        await refreshTree()
+        void router.push({
+          name: "knowledge-doc-editor",
+          params: { kbId: kbId.value, docId: firstImported.id },
+        })
+      } else {
+        const reason = failures[0]?.reason ?? "不支持的文件类型"
+        showToastMessage(`导入失败：${reason}`, "error")
+      }
+      return
+    }
+
     const document =
       kind === "md"
         ? await importMarkdownFile(file, kbId.value)
@@ -971,6 +1004,7 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
       type="file"
       class="hidden"
       :accept="importAccept"
+      :multiple="importKind === 'any'"
       @change="onImportFileChange"
     />
 

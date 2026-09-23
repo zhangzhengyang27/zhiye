@@ -15,15 +15,19 @@ import {
   type KnowledgeBasePermissions,
 } from "@/services/knowledge-permissions"
 import { getApiErrorMessage } from "@/services/http-client"
-import { collectFolderIds } from "@/components/knowledge/tree-utils"
+import { collectFolderIds, collectFolderIdsUpToDepth } from "@/components/knowledge/tree-utils"
 
 export const useWorkspaceLoader = (options: {
   kbId: Ref<string>
   treeNodes: Ref<KnowledgeDocumentTreeNode[]>
   expandedFolderIds: Ref<string[]>
-  /** 本地是否有展开状态存档；没有时加载完自动展开全部目录 */
+  /** 本地是否有展开状态存档；没有时加载完按默认展开级别（无则全展开）初始化 */
   hasStoredExpandedFolderIds: Ref<boolean>
   focusedNodeId: Ref<string | null>
+  /** KB 偏好 settings.defaultExpandLevel（根为 1 级，展开深度 < level）；无效值回退全展开 */
+  getDefaultExpandLevel: () => number | null | undefined
+  /** 程序性展开赋值（不落存档、不标记「已有存档」），由持久化模块提供 */
+  applyProgrammaticExpandedFolderIds: (folderIds: string[]) => void
   ensureNodeAncestorsExpanded: (nodeId: string) => void
   ensureFocusedNode: () => void
   showToastMessage: (message: string, type?: "success" | "error" | "info") => void
@@ -38,6 +42,12 @@ export const useWorkspaceLoader = (options: {
 
   /** 工作区刷新序号：kbId 快速切换时丢弃过期加载结果，防止旧工作区数据覆盖新工作区 */
   let workspaceLoadSeq = 0
+
+  /**
+   * 树加载序号：同一库内 refreshTree 会被改名/拖拽提交/自动保存等多处并发
+   * 触发，慢的旧响应晚归会用旧树覆盖新树（丢刚提交的改名/删除），序号过期即丢弃
+   */
+  let treeLoadSeq = 0
 
   const loadKnowledgeBase = async (targetKbId: string) => {
     // 触屏拖拽回滚等瞬态会把 kbId 短暂置空，直接请求会打 undefined 路径
@@ -66,13 +76,15 @@ export const useWorkspaceLoader = (options: {
     if (!targetKbId) {
       return
     }
+    const seq = ++treeLoadSeq
     loadingTree.value = true
 
     try {
       const result = await getKnowledgeDocumentTree(targetKbId)
 
-      // kbId 已切换：丢弃过期结果，避免覆盖新工作区的树与展开/聚焦态
-      if (kbId.value !== targetKbId) {
+      // kbId 已切换：丢弃过期结果，避免覆盖新工作区的树与展开/聚焦态；
+      // 同库并发时序号过期（旧请求晚归）同样丢弃，loadingTree 只由最新一次复位
+      if (kbId.value !== targetKbId || seq !== treeLoadSeq) {
         return
       }
 
@@ -80,7 +92,15 @@ export const useWorkspaceLoader = (options: {
       const allFolderIds = collectFolderIds(result)
 
       if (expandedFolderIds.value.length === 0 && !options.hasStoredExpandedFolderIds.value) {
-        expandedFolderIds.value = allFolderIds
+        // 首次加载且无存档：按 KB 偏好的默认展开级别初始化，无效/缺省时全展开兜底。
+        // 赋值必须走「程序性」通道——直接赋值会被持久化 watcher 误标成用户存档，
+        // 偏好从此失效（2026-09-23 修复：此前布局层 watch 与此处竞态，两种顺序都输）
+        const level = options.getDefaultExpandLevel()
+        const initialFolderIds =
+          typeof level === "number" && Number.isFinite(level) && level > 0
+            ? collectFolderIdsUpToDepth(result, level)
+            : allFolderIds
+        options.applyProgrammaticExpandedFolderIds(initialFolderIds)
       } else {
         const validFolderIds = new Set(allFolderIds)
         expandedFolderIds.value = expandedFolderIds.value.filter((folderId) =>
@@ -94,7 +114,9 @@ export const useWorkspaceLoader = (options: {
 
       options.ensureFocusedNode()
     } finally {
-      loadingTree.value = false
+      if (seq === treeLoadSeq) {
+        loadingTree.value = false
+      }
     }
   }
 

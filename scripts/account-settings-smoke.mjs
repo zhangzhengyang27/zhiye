@@ -153,11 +153,11 @@ function sidebarUserLabelFromProfile(profile) {
 
 /**
  * 账户页行式设置项的输入框定位：行结构为
- * `<div class="flex items-center ..."><span>昵称</span><AppInput/></div>`，
- * 行标签与输入框无 label 包裹（无 accessible name），按「span 精确文本的直接父行」定位。
+ * `<label class="block"><span>昵称</span><el-input/></label>`（label 包裹行标签与
+ * 输入框），按「span 精确文本的直接父 label」定位。
  */
 function profileRowInput(page, rowLabel) {
-  return page.locator(`div:has(> span:text-is("${rowLabel}")) input`)
+  return page.locator(`label:has(> span:text-is("${rowLabel}")) input`)
 }
 
 async function createAvatarFixture() {
@@ -217,7 +217,7 @@ async function saveProfile(page) {
     { timeout },
   )
 
-  await page.getByRole("button", { name: "保存修改" }).click()
+  await page.getByRole("button", { name: "保存资料" }).click()
 
   await saveResponse
   await waitForToast(page, "账号资料已更新。")
@@ -235,16 +235,15 @@ async function changePasswordThroughUi(page, currentPassword, nextPassword) {
     { timeout },
   )
 
-  // 09-07 账号页重设计后修改密码收进 AppDialog：先点「修改密码」打开弹窗再填写
-  await page.getByRole("button", { name: "修改密码" }).click()
+  // 修改密码现为内联三字段（label 包裹提供 accessible name），提交按钮为「更新密码」
   await page.getByRole("textbox", { name: "当前密码" }).fill(currentPassword)
   await page.getByRole("textbox", { name: "新密码", exact: true }).fill(nextPassword)
   await page.getByRole("textbox", { name: "确认新密码" }).fill(nextPassword)
-  // 弹窗确认按钮文案（旧版内联卡片为「更新密码」）
-  await page.getByRole("button", { name: "确认修改" }).click()
+  await page.getByRole("button", { name: "更新密码" }).click()
 
   await passwordResponse
-  await waitForToast(page, "密码已更新。下次登录请使用新密码。")
+  // 改密即吊销全部会话（后端 tokenVersion bump）：前端提示后主动登出回登录页
+  await waitForToast(page, "密码已更新，请重新登录。")
 }
 
 async function restoreByApi() {
@@ -391,12 +390,10 @@ async function main() {
     await changePasswordThroughUi(page, password, newPassword)
     cleanupState.passwordState = "new"
 
-    logStep("验证新密码可重新登录")
-    await Promise.all([
-      page.waitForURL((url) => url.pathname === "/auth/login", { timeout }),
-      page.getByRole("button", { name: "退出登录" }).click(),
-    ])
+    logStep("验证改密后自动登出回登录页")
+    await page.waitForURL((url) => url.pathname === "/auth/login", { timeout })
 
+    logStep("验证新密码可重新登录")
     await loginThroughUi(page, newPassword)
     await openAccountPageFromSidebar(page, nextDisplayName)
 

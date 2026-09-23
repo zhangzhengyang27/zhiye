@@ -132,5 +132,10 @@ export const requestKbDriveApi = async <T>(
     return undefined as T
   }
 
-  return JSON.parse(bodyText) as T
+  // 代理/网关故障可能回 200 + HTML 错误页：裸 parse 会把 SyntaxError 原文抛给用户 toast
+  try {
+    return JSON.parse(bodyText) as T
+  } catch {
+    throw new Error("接口响应不是有效 JSON，请稍后重试（若持续出现请检查服务地址配置）。")
+  }
 }

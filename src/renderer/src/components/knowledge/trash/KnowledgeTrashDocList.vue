@@ -9,12 +9,9 @@ type TrashDocItem = {
   title: string
   editorType?: string
   kbId: string
-  updatedAt: string
+  /** 后端 listTrash 返回扁平 kbName（无嵌套 kb 对象） */
+  kbName: string
   deletedAt: string
-  kb: {
-    id: string
-    name: string
-  }
 }
 
 const props = defineProps<{

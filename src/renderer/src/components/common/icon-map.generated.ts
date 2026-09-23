@@ -135,6 +135,7 @@ import { LoaderCircle } from "lucide-vue-next"
 import { Locate } from "lucide-vue-next"
 import { Lock } from "lucide-vue-next"
 import { LockOpen } from "lucide-vue-next"
+import { MailCheck } from "lucide-vue-next"
 import { MessageCircle } from "lucide-vue-next"
 import { MessageSquareText } from "lucide-vue-next"
 import { Network } from "lucide-vue-next"
@@ -302,6 +303,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-locate": { component: Locate },
   "i-lucide-lock": { component: Lock },
   "i-lucide-lock-open": { component: LockOpen },
+  "i-lucide-mail-check": { component: MailCheck },
   "i-lucide-message-circle": { component: MessageCircle },
   "i-lucide-message-square-text": { component: MessageSquareText },
   "i-lucide-network": { component: Network },

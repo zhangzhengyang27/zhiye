@@ -105,6 +105,19 @@ export const useWorkspacePersistence = (options: {
     })
   }
 
+  /**
+   * 程序性整批赋值（加载器初始化默认展开/清理失效 id 时用）：与 restore 同为
+   * 回放而非用户操作，不落存档、不标记「已有存档」——否则 loader 的默认展开
+   * 会被误当成用户偏好持久化，「默认展开级别」偏好从此永不生效。
+   */
+  const applyProgrammaticExpandedFolderIds = (folderIds: string[]) => {
+    isRestoring = true
+    expandedFolderIds.value = folderIds
+    void nextTick(() => {
+      isRestoring = false
+    })
+  }
+
   watch(
     kbId,
     (targetKbId) => {
@@ -152,5 +165,6 @@ export const useWorkspacePersistence = (options: {
   return {
     hasStoredExpandedFolderIds,
     restoreWorkspaceState,
+    applyProgrammaticExpandedFolderIds,
   }
 }

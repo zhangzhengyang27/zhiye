@@ -85,6 +85,8 @@ export interface XiaoyeDesktopApi {
   readonly hiddenTitleBar: boolean
   /** 本窗口是否主窗口（偏好设置的启动同步只由主窗执行，避免多窗口重复 IPC）。 */
   readonly isMainWindow: boolean
+  /** 本窗口是否独立登录窗（登录/跳转行为据此分叉；Web 端恒 false）。 */
+  readonly isLoginWindow: boolean
   /** 兜底异步通道：返回主进程解析后的完整配置。 */
   getConfig: () => Promise<DesktopRuntimeConfig>
   /**
@@ -94,7 +96,7 @@ export interface XiaoyeDesktopApi {
   openDocumentInNewWindow: (targetPath: string) => Promise<OpenDocumentWindowResult>
   /** 发送系统通知（macOS 通知中心）。 */
   notify: (title: string, body: string) => Promise<DesktopNotifyResult>
-  /** 订阅托盘菜单广播（`navigate-start` / `navigate-recent` / `navigate-notes`）。 */
+  /** 订阅托盘菜单广播（`navigate-start` / `navigate-notes`）。 */
   onTrayCommand: (callback: (command: string) => void) => () => void
   /**
    * 订阅应用菜单命令（`find-in-page` 在当页查找 / `doc-history` 查看文档
@@ -142,4 +144,16 @@ export interface XiaoyeDesktopApi {
   secureStoreSet: (storageKey: string, plaintext: string) => Promise<DesktopSecureStoreResult>
   secureStoreGet: (storageKey: string) => Promise<DesktopSecureStoreResult>
   secureStoreDelete: (storageKey: string) => Promise<DesktopSecureStoreResult>
+  /**
+   * 独立登录窗（窗口化登录）流程。通道语义见 src/main/login-window.ts：
+   * - loginWindowReady：登录窗 hydration 后确认未登录，请主进程亮窗；
+   * - notifyAuthSessionEstablished：登录/注册成功或 refresh cookie 自动登录，
+   *   主进程关登录窗、开/唤回主窗（redirectPath 为回跳目标）；
+   * - openLoginWindow：内容窗会话失效，唤起登录窗（redirectPath 为失效页路径）；
+   * - logoutDesktop：退出登录，销毁内容窗回到登录窗。
+   */
+  loginWindowReady: () => Promise<{ ok: boolean }>
+  notifyAuthSessionEstablished: (redirectPath?: string) => Promise<{ ok: boolean }>
+  openLoginWindow: (redirectPath?: string) => Promise<{ ok: boolean }>
+  logoutDesktop: () => Promise<{ ok: boolean }>
 }

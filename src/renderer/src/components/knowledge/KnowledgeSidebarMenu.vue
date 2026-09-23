@@ -50,7 +50,6 @@ const resolvedActiveMenu = computed<KnowledgeSidebarMenuKey | null>(() => {
   }
 
   if (route.name === "knowledge-start") return "start"
-  if (route.name === "knowledge-recent") return "recent"
   if (route.name === "knowledge-boards") return "boards"
   if (route.name === "knowledge-favorites") return "favorites"
   if (route.name === "knowledge-trash") return "trash"
@@ -106,12 +105,6 @@ const navItems = computed<KnowledgeSidebarNavItem[]>(() => [
     label: "小记",
     icon: "ph:feather",
     to: { name: "knowledge-notes" },
-  },
-  {
-    key: "recent",
-    label: "最近",
-    icon: "ph:clock-counter-clockwise",
-    to: { name: "knowledge-recent" },
   },
   {
     key: "boards",

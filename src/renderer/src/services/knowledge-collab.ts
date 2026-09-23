@@ -1,4 +1,5 @@
 import { resolveServerOriginUrl } from "./desktop-bridge"
+import { getAccessToken } from "./auth-session"
 
 /**
  * P-C1 协作感知 WS 客户端。
@@ -44,7 +45,6 @@ const NO_RECONNECT_CODES = new Set([4000, 4001])
 
 export const openDocCollabChannel = (options: OpenCollabChannelOptions): DocCollabChannel => {
   const origin = resolveServerOriginUrl().replace(/^http/, "ws")
-  const url = `${origin}/collab?token=${encodeURIComponent(options.token)}`
   let socket: WebSocket | null = null
   let closed = false
   let heartbeatTimer: number | null = null
@@ -83,7 +83,7 @@ export const openDocCollabChannel = (options: OpenCollabChannelOptions): DocColl
     if (closed || reconnectTimer !== null) return
     reconnectTimer = window.setTimeout(() => {
       reconnectTimer = null
-      connect()
+      void connect()
     }, reconnectDelay)
     // 指数退避：3s → 6s → 12s → … 封顶 30s；连接成功（open）后重置
     reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
@@ -107,8 +107,19 @@ export const openDocCollabChannel = (options: OpenCollabChannelOptions): DocColl
     }
   }
 
-  const connect = () => {
+  const connect = async () => {
     if (closed) return
+    // 每次建连都现取令牌：access token 只有 15 分钟，复用打开文档时拼进 URL 的
+    // 旧 token 会被服务端以 4001 拒掉并进入永久 closed（presence 与 doc:changed
+    // 静默失效，协作只剩轮询兜底）——开文档超 15 分钟后的第一次断线即永久掉线
+    let token = options.token
+    try {
+      token = (await getAccessToken()) ?? options.token
+    } catch {
+      // 取令牌失败（网络抖动）沿用旧值，让 close/重连链路自然兜底
+    }
+    if (closed) return
+    const url = `${origin}/collab?token=${encodeURIComponent(token)}`
     try {
       socket = new WebSocket(url)
     } catch {
@@ -139,7 +150,7 @@ export const openDocCollabChannel = (options: OpenCollabChannelOptions): DocColl
     })
   }
 
-  connect()
+  void connect()
 
   return {
     close() {
