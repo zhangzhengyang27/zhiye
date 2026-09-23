@@ -1,4 +1,5 @@
 /* global window */
+/* global window, innerWidth, innerHeight */
 /**
  * 全路由几何扫描工具（视觉细节回归，可重复执行）：
  * 用 API 建临时 KB + 五类文档，逐路由渲染后跑三类几何断言——
@@ -15,16 +16,44 @@ const API = "http://127.0.0.1:3200"
 const BASE = "http://127.0.0.1:4173"
 
 // 准备数据
-const login = await fetch(`${API}/api/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ account: "demo@example.com", password: "123456" }) }).then((r) => r.json())
+const login = await fetch(`${API}/api/auth/login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ account: "demo@example.com", password: "123456" }),
+}).then((r) => r.json())
 const H = { "Content-Type": "application/json", Authorization: `Bearer ${login.accessToken}` }
-const kb = await fetch(`${API}/api/knowledge/knowledge-bases`, { method: "POST", headers: H, body: JSON.stringify({ name: "视觉审计 KB" }) }).then((r) => r.json())
+const kb = await fetch(`${API}/api/knowledge/knowledge-bases`, {
+  method: "POST",
+  headers: H,
+  body: JSON.stringify({ name: "视觉审计 KB" }),
+}).then((r) => r.json())
 const mkDoc = async (title, editorType, content) =>
-  fetch(`${API}/api/knowledge/documents`, { method: "POST", headers: H, body: JSON.stringify({ kbId: kb.id, title, type: "doc", editorType, status: "draft", content }) }).then((r) => r.json())
-const doc = await mkDoc("审计-富文本文档", "nuxt-editor", { scheme: "text/markdown", value: "# 审计标题\n\n一段足够长的正文用于撑起编辑器渲染，验证横向溢出与文本截断情况。包括中文、English、数字 1234567890 混排。" })
-const board = await mkDoc("审计-画板", "board", { scheme: "application/vnd.kb-board+json", value: { elements: [], appState: {} } })
-const datatable = await mkDoc("审计-数据表", "datatable", { scheme: "application/vnd.kb-datatable+json", value: { fields: [{ id: "f1", name: "名称", type: "text" }], rows: [] } })
-const sheet = await mkDoc("审计-表格", "sheet", { scheme: "application/vnd.kb-datatable+json", value: { fields: [], rows: [] } })
-const mindmap = await mkDoc("审计-思维导图", "mindmap", { scheme: "application/vnd.kb-mindmap+json", value: { data: { text: "中心主题", uid: "auditroot1" }, children: [] } })
+  fetch(`${API}/api/knowledge/documents`, {
+    method: "POST",
+    headers: H,
+    body: JSON.stringify({ kbId: kb.id, title, type: "doc", editorType, status: "draft", content }),
+  }).then((r) => r.json())
+const doc = await mkDoc("审计-富文本文档", "nuxt-editor", {
+  scheme: "text/markdown",
+  value:
+    "# 审计标题\n\n一段足够长的正文用于撑起编辑器渲染，验证横向溢出与文本截断情况。包括中文、English、数字 1234567890 混排。",
+})
+const board = await mkDoc("审计-画板", "board", {
+  scheme: "application/vnd.kb-board+json",
+  value: { elements: [], appState: {} },
+})
+const datatable = await mkDoc("审计-数据表", "datatable", {
+  scheme: "application/vnd.kb-datatable+json",
+  value: { fields: [{ id: "f1", name: "名称", type: "text" }], rows: [] },
+})
+const sheet = await mkDoc("审计-表格", "sheet", {
+  scheme: "application/vnd.kb-datatable+json",
+  value: { fields: [], rows: [] },
+})
+const mindmap = await mkDoc("审计-思维导图", "mindmap", {
+  scheme: "application/vnd.kb-mindmap+json",
+  value: { data: { text: "中心主题", uid: "auditroot1" }, children: [] },
+})
 
 const routes = [
   ["/knowledge", "知识库列表"],
@@ -46,8 +75,19 @@ const routes = [
   [`/kb-settings/${kb.id}`, "KB 设置独立窗"],
 ]
 
+// 可参数化：AUDIT_DARK=1 暗色模式、AUDIT_WIDTH/AUDIT_HEIGHT 视口（盲区覆盖：暗色逐页/窄窗）
+const AUDIT_DARK = process.env.AUDIT_DARK === "1"
+const AUDIT_WIDTH = Number(process.env.AUDIT_WIDTH ?? 1600)
+const AUDIT_HEIGHT = Number(process.env.AUDIT_HEIGHT ?? 952)
+const MODE_LABEL = `${AUDIT_DARK ? "暗色" : "亮色"}@${AUDIT_WIDTH}x${AUDIT_HEIGHT}`
+
 const browser = await chromium.launch({ headless: true, args: ["--no-proxy-server"] })
-const page = await browser.newPage({ viewport: { width: 1600, height: 952 } })
+const page = await browser.newPage({ viewport: { width: AUDIT_WIDTH, height: AUDIT_HEIGHT } })
+if (AUDIT_DARK) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("vueuse-color-scheme", "dark")
+  })
+}
 await page.goto(`${BASE}/auth/login`, { waitUntil: "networkidle" })
 await page.getByRole("textbox", { name: "账号" }).fill("demo@example.com")
 await page.getByRole("textbox", { name: "密码" }).fill("123456")
@@ -87,6 +127,51 @@ for (const [path, label] of routes) {
           `文本截断无提示 <${el.tagName.toLowerCase()} class="${(el.className + "").slice(0, 40)}"> "${(el.textContent ?? "").trim().slice(0, 18)}"`,
         )
         if (out.length > 8) break
+      }
+    }
+
+    // ②b 暗色模式：大面积亮背景（暗色链路漏改的白斑）
+    if (document.documentElement.classList.contains("dark")) {
+      let brightArea = 0
+      for (const el of document.querySelectorAll("body *")) {
+        const cs = getComputedStyle(el)
+        const r = el.getBoundingClientRect()
+        if (r.width < 40 || r.height < 20 || r.width * r.height < 4000) continue
+        const m = cs.backgroundColor.match(/rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)/)
+        if (!m) continue
+        const alpha = m[4] === undefined ? 1 : Number(m[4])
+        if (alpha < 0.6) continue
+        const luma = 0.299 * Number(m[1]) + 0.587 * Number(m[2]) + 0.114 * Number(m[3])
+        if (luma > 225) {
+          brightArea += r.width * r.height
+        }
+      }
+      const viewportArea = innerWidth * innerHeight
+      if (brightArea / viewportArea > 0.18) {
+        out.push(
+          `暗色亮斑：亮背景元素覆盖 ${((100 * brightArea) / viewportArea).toFixed(0)}% 视口（暗色链路疑漏改）`,
+        )
+      }
+    }
+
+    // ②c 窄窗：可见元素超右缘（横向挤压证据）
+    if (innerWidth <= 1000) {
+      for (const el of document.querySelectorAll("body *")) {
+        const cs = getComputedStyle(el)
+        const r = el.getBoundingClientRect()
+        if (
+          r.width > 8 &&
+          r.height > 8 &&
+          r.right > innerWidth + 2 &&
+          cs.position !== "fixed" &&
+          cs.visibility !== "hidden" &&
+          (el.textContent ?? "").trim().length > 0
+        ) {
+          out.push(
+            `元素超右缘 right=${r.right.toFixed(0)} vw=${innerWidth}：<${el.tagName.toLowerCase()} class="${(el.className + "").slice(0, 40)}"> "${(el.textContent ?? "").trim().slice(0, 16)}"`,
+          )
+          if (out.filter((o) => o.startsWith("元素超右缘")).length > 4) break
+        }
       }
     }
 
@@ -132,7 +217,7 @@ for (const [path, label] of routes) {
 }
 
 for (const { label, path, issues } of report) {
-  console.log(`\n【${label}】${path}`)
+  console.log(`\n【${label}】${path}（${MODE_LABEL}）`)
   if (issues.length === 0) {
     console.log("  ✅ 无发现")
   } else {
