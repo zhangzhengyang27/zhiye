@@ -1,6 +1,11 @@
 /**
  * knowledge:// 深链解析（#31）——纯函数层，不 import electron。
  *
+ * ⚠️ 现状：本模块「未接线」——主进程没有 setAsDefaultProtocolClient /
+ * open-url / second-instance argv 解析（2026-09-23 决策暂缓：编辑器刚需追平
+ * 优先于分发能力）。接线前 OS 不会把 knowledge:// 链接路由到应用，单测通过
+ * 不代表功能可用；接线时以本模块为解析层 + index.ts bootstrap 注册。
+ *
  * 只承接自家唤起形态 `knowledge://kb/:kbId/doc/:docId`（对齐站内文档路由
  * /knowledge/:kbId/doc/:docId）；分享复制链接保持 http(s)，不走本协议。
  * 单独成模块同样是为了 `scripts/verify-desktop-b6.mjs` 能单测级断言。
