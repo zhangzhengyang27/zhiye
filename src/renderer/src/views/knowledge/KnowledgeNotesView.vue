@@ -46,6 +46,12 @@ const handleEditorReady = (api: YuqueEditorRef) => {
   draftEditorApi.value = api
 }
 
+/** 点击卡片空白处聚焦编辑器（原 textarea 整块可点的体验） */
+const focusDraftEditor = () => {
+  const engine = document.querySelector<HTMLElement>(".kb-notes-editor .ne-engine")
+  engine?.focus()
+}
+
 /** 卡片待办勾选回写（#17）：翻转对应行后整条 updateNote 持久化 */
 const handleToggleTodo = async (note: Note, lineIndex: number) => {
   const nextContent = toggleTodoLine(note.content, lineIndex)
@@ -365,7 +371,11 @@ onMounted(() => {
               />
             </div>
 
-            <div class="kb-notes-editor min-h-[220px] flex-1" @keydown="handleDraftKeydown">
+            <div
+              class="kb-notes-editor min-h-[220px] flex-1"
+              @click="focusDraftEditor"
+              @keydown="handleDraftKeydown"
+            >
               <YuqueDocEditor
                 :key="editingId ?? 'draft-new'"
                 v-model="draftContent"
@@ -661,5 +671,12 @@ onMounted(() => {
 
 .kb-notes-editor .ne-engine {
   font-size: 14px;
+}
+
+/* 内核给 .ne-engine 的 min-height 是文档编辑页的大画布档（实测 1024px）：
+   小记卡内容少时它把卡片顶到超出视口，页面出现幽灵滚动。小记随内容
+   自适应（autoHeight），最小高度交给外层卡片的 min-h 决定 */
+.kb-notes-editor .ne-editor .ne-engine {
+  min-height: 0;
 }
 </style>
