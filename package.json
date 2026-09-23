@@ -39,7 +39,8 @@
     "perf:budget:check": "node scripts/perf-budget-check.mjs",
     "test": "vitest run",
     "verify:settings": "node scripts/verify-desktop-settings.mjs",
-    "verify:settings:native": "node scripts/verify-desktop-native.mjs"
+    "verify:settings:native": "node scripts/verify-desktop-native.mjs",
+    "audit:visual": "node scripts/audit-visual.mjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",

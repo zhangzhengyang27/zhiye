@@ -632,7 +632,7 @@ onMounted(() => {
                 </div>
               </article>
             </div>
-            <p v-else-if="!loading" class="-mt-4 text-[13px] text-ink-quaternary">
+            <p v-else-if="!loading" class="-mt-2 text-[13px] text-ink-quaternary">
               {{ filterActive ? "没有符合条件的小记。" : "还没有小记，左边记一条吧。" }}
             </p>
           </div>
