@@ -14,6 +14,8 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from "vue-router"
 import AppIcon from "@/components/common/AppIcon.vue"
 import UiIcon from "@/components/common/UiIcon.vue"
 import MindMap from "simple-mind-map"
+import { isDarkMode } from "@/composables/useThemeMode"
+import { MINDMAP_DARK_THEME_CONFIG } from "@/utils/knowledge-mindmap-theme"
 import {
   getKnowledgeDocument,
   updateKnowledgeDocument,
@@ -171,6 +173,8 @@ const mountMindMap = (nodeTree: KnowledgeMindmapNode) => {
     readonly: !canEdit.value,
     layout: "logicalStructure",
     theme: "default",
+    // 暗色走 themeConfig 差异覆盖（内核无 dark 内置主题，见 utils 主题文件注释）
+    themeConfig: isDarkMode.value ? MINDMAP_DARK_THEME_CONFIG : undefined,
     initRootNodePosition: ["center", "center"],
     maxZoomRatio: 3,
     minZoomRatio: 0.3,
@@ -182,6 +186,15 @@ const mountMindMap = (nodeTree: KnowledgeMindmapNode) => {
     scheduleSave()
   })
 }
+
+// 暗色切换不刷新页面：运行时同步画布配色（setThemeConfig 深合并覆盖并重渲染；
+// 内核类型声明未收录该方法，经实例收窄调用）
+watch(isDarkMode, (dark) => {
+  const instance = mindMapInstance as unknown as {
+    setThemeConfig?: (config: Record<string, unknown>) => void
+  } | null
+  instance?.setThemeConfig?.(dark ? { ...MINDMAP_DARK_THEME_CONFIG } : {})
+})
 
 const recenter = () => {
   mindMapInstance?.renderer?.setRootNodeCenter?.()
@@ -328,7 +341,12 @@ watch(title, () => {
 
     <!-- 画布：simple-mind-map 自行管理内部滚动/缩放 -->
     <div v-show="!loading && !loadError" class="relative min-h-0 flex-1">
-      <div ref="canvasRef" class="h-full w-full bg-white" aria-label="思维导图画布" />
+      <div
+        ref="canvasRef"
+        class="h-full w-full"
+        :class="isDarkMode ? 'bg-[#141414]' : 'bg-white'"
+        aria-label="思维导图画布"
+      />
 
       <div
         class="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-[11px] text-white"
