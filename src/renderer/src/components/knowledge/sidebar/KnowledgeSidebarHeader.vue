@@ -146,7 +146,7 @@ const fallbackInitial = (label?: string) => {
             @click="handleCreateAction('doc')"
           >
             <Icon icon="ph:file-plus" :width="15" :height="15" class="text-accent-blue!" />
-            <span class="flex-1">新建文档</span>
+            <span class="flex-1">文档</span>
             <span class="shrink-0 text-[11px] text-ink-quaternary">⌘ N</span>
           </button>
           <button
@@ -155,7 +155,7 @@ const fallbackInitial = (label?: string) => {
             @click="handleCreateAction('sheet')"
           >
             <Icon icon="ph:grid-nine" :width="15" :height="15" class="text-brand!" />
-            <span>新建表格</span>
+            <span>表格</span>
           </button>
           <button
             type="button"
@@ -163,7 +163,7 @@ const fallbackInitial = (label?: string) => {
             @click="handleCreateAction('board')"
           >
             <Icon icon="ph:frame-corners" :width="15" :height="15" class="text-accent-purple!" />
-            <span>新建画板</span>
+            <span>画板</span>
           </button>
           <button
             type="button"
@@ -171,7 +171,7 @@ const fallbackInitial = (label?: string) => {
             @click="handleCreateAction('datatable')"
           >
             <Icon icon="ph:table" :width="15" :height="15" class="text-accent-cyan!" />
-            <span>新建数据表</span>
+            <span>数据表</span>
           </button>
           <button
             type="button"
@@ -179,7 +179,7 @@ const fallbackInitial = (label?: string) => {
             @click="handleCreateAction('mindmap')"
           >
             <Icon icon="ph:tree-structure" :width="15" :height="15" class="text-warning!" />
-            <span>新建思维导图</span>
+            <span>思维导图</span>
           </button>
           <button
             type="button"
@@ -187,7 +187,7 @@ const fallbackInitial = (label?: string) => {
             @click="handleCreateKb"
           >
             <Icon icon="ph:book-open-text" :width="15" :height="15" class="text-accent-blue!" />
-            <span>新建知识库</span>
+            <span>知识库</span>
           </button>
 
           <div class="my-1 h-px bg-line" />

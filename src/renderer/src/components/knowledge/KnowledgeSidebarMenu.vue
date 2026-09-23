@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
 import KnowledgeCommandPalette from "@/components/knowledge/KnowledgeCommandPalette.vue"
+import KnowledgeCreateContentDialog from "@/components/knowledge/KnowledgeCreateContentDialog.vue"
 import KnowledgeCreateKbDialog from "@/components/knowledge/KnowledgeCreateKbDialog.vue"
 import NotificationBell from "@/components/knowledge/NotificationBell.vue"
 import KnowledgeSidebarHeader from "@/components/knowledge/sidebar/KnowledgeSidebarHeader.vue"
@@ -183,9 +184,38 @@ const resolveCreateTargetKbId = () => {
   return knowledgeBases.value[0]?.id ?? ""
 }
 
+/**
+ * 内容类型（文档/表格/画板/数据表/思维导图）走「选择知识库」弹层——对齐语雀
+ * 「+ → 文档」：先选库，点库即在该库创建并打开（跨库建文档，不受当前激活库
+ * 限制）；folder/template 仍按当前库上下文直达。
+ */
+/** 弹层覆盖的内容类型（folder/template 走各自入口） */
+type CreateContentAction = "doc" | "board" | "datatable" | "sheet" | "mindmap"
+
+const CREATE_CONTENT_DIALOG_TITLES: Record<CreateContentAction, string> = {
+  doc: "新建文档",
+  board: "新建画板",
+  datatable: "新建数据表",
+  sheet: "新建表格",
+  mindmap: "新建思维导图",
+}
+
+const createContentDialog = ref<{ open: boolean; action: CreateContentAction }>({
+  open: false,
+  action: "doc",
+})
+
+const isCreateContentAction = (action: string): action is CreateContentAction =>
+  action in CREATE_CONTENT_DIALOG_TITLES
+
 const handleSidebarCreate = async (
   action: "doc" | "folder" | "template" | "board" | "datatable" | "sheet" | "mindmap",
 ) => {
+  if (isCreateContentAction(action)) {
+    createContentDialog.value = { open: true, action }
+    return
+  }
+
   const targetKbId = resolveCreateTargetKbId()
 
   if (!targetKbId) {
@@ -196,6 +226,16 @@ const handleSidebarCreate = async (
   await router.push({
     name: "knowledge-workspace-home",
     params: { kbId: targetKbId },
+    query: { intent: sidebarCreateIntents[action] },
+  })
+}
+
+/** 弹层选库后：跳目标库工作台首页带创建意图（createNode 链路即时创建 + 树内命名） */
+const handleCreateContentSelect = async (kbId: string) => {
+  const action = createContentDialog.value.action
+  await router.push({
+    name: "knowledge-workspace-home",
+    params: { kbId },
     query: { intent: sidebarCreateIntents[action] },
   })
 }
@@ -383,6 +423,13 @@ watch(
     </div>
 
     <KnowledgeCreateKbDialog v-model:open="createKbDialogOpen" @created="handleKbCreated" />
+
+    <KnowledgeCreateContentDialog
+      v-model:open="createContentDialog.open"
+      :title="CREATE_CONTENT_DIALOG_TITLES[createContentDialog.action] ?? '新建文档'"
+      :knowledge-bases="knowledgeBases"
+      @select="handleCreateContentSelect"
+    />
 
     <div class="border-t border-line px-3 py-2">
       <div class="flex items-center">

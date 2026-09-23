@@ -78,6 +78,7 @@ declare module 'vue' {
     KnowledgeAddLinkDialog: typeof import('./src/components/knowledge/KnowledgeAddLinkDialog.vue')['default']
     KnowledgeCommandPalette: typeof import('./src/components/knowledge/KnowledgeCommandPalette.vue')['default']
     KnowledgeContentHeader: typeof import('./src/components/knowledge/KnowledgeContentHeader.vue')['default']
+    KnowledgeCreateContentDialog: typeof import('./src/components/knowledge/KnowledgeCreateContentDialog.vue')['default']
     KnowledgeCreateKbDialog: typeof import('./src/components/knowledge/KnowledgeCreateKbDialog.vue')['default']
     KnowledgeDocCreateDialog: typeof import('./src/components/knowledge/KnowledgeDocCreateDialog.vue')['default']
     KnowledgeDocList: typeof import('./src/components/knowledge/KnowledgeDocList.vue')['default']
