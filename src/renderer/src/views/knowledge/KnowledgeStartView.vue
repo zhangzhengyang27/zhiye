@@ -11,6 +11,7 @@ import { useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
 import KnowledgeCreateKbDialog from "@/components/knowledge/KnowledgeCreateKbDialog.vue"
 import KnowledgePageShell from "@/components/knowledge/KnowledgePageShell.vue"
+import KnowledgeCreateContentDialog from "@/components/knowledge/KnowledgeCreateContentDialog.vue"
 import { DROPDOWN_POPPER_OPTIONS, useDropdownMenu } from "@/composables/use-dropdown-menu"
 import { listKnowledgeBases, type KnowledgeBaseItem } from "@/services/knowledge-base"
 import {
@@ -219,9 +220,10 @@ const openDoc = (item: KnowledgeDashboardDocumentItem) => {
   )
 }
 
-/** 新建/导入统一走侧栏同款路由意图：跳到目标库工作台首页，由布局壳消费（即时创建，无命名弹窗） */
-const navigateWithCreateIntent = (intent: string) => {
-  const kbId = createDocTargetKbId.value
+/** 新建/导入统一走侧栏同款路由意图：跳到目标库工作台首页，由布局壳消费（即时创建，无命名弹窗）。
+ * kbId 缺省取上次活跃库（旧直建入口）；弹层选库后显式传入目标库。 */
+const navigateWithCreateIntent = (intent: string, explicitKbId?: string) => {
+  const kbId = explicitKbId ?? createDocTargetKbId.value
   if (!kbId) {
     void router.push({ name: "knowledge" })
     return
@@ -276,14 +278,29 @@ type StartCreateMenuItem = {
 }
 
 const startCreateMenuItems: StartCreateMenuItem[] = [
-  { key: "notes", label: "新建小记", icon: "ph:leaf", iconClass: "text-brand!", shortcut: "⌘ ⇧ Y" },
-  { key: "doc", label: "新建文档", icon: "ph:file-text", iconClass: "text-accent-blue!" },
-  { key: "sheet", label: "新建表格", icon: "ph:rows", iconClass: "text-brand!" },
-  { key: "board", label: "新建画板", icon: "ph:shapes", iconClass: "text-accent-purple!" },
-  { key: "datatable", label: "新建数据表", icon: "ph:chart-bar", iconClass: "text-accent-cyan!" },
+  { key: "notes", label: "小记", icon: "ph:leaf", iconClass: "text-brand!", shortcut: "⌘ ⇧ Y" },
+  { key: "doc", label: "文档", icon: "ph:file-text", iconClass: "text-accent-blue!" },
+  { key: "sheet", label: "表格", icon: "ph:rows", iconClass: "text-brand!" },
+  { key: "board", label: "画板", icon: "ph:shapes", iconClass: "text-accent-purple!" },
+  { key: "datatable", label: "数据表", icon: "ph:chart-bar", iconClass: "text-accent-cyan!" },
 ]
 
 const docCreateMenuOpen = ref(false)
+
+/** 内容类型走「选择知识库」弹层（对齐侧栏「+ → 文档」：先选库，点库即建并打开） */
+const createContentDialog = ref<{ open: boolean; action: "doc" | "sheet" | "board" | "datatable" }>(
+  {
+    open: false,
+    action: "doc",
+  },
+)
+
+const CREATE_CONTENT_DIALOG_TITLES = {
+  doc: "新建文档",
+  sheet: "新建表格",
+  board: "新建画板",
+  datatable: "新建数据表",
+} as const
 
 const handleCreateMenuItem = (key: StartCreateMenuItem["key"] | "import") => {
   docCreateMenuOpen.value = false
@@ -299,7 +316,7 @@ const handleCreateMenuItem = (key: StartCreateMenuItem["key"] | "import") => {
     return
   }
 
-  navigateWithCreateIntent(`create-${key}`)
+  createContentDialog.value = { open: true, action: key }
 }
 
 const handleDocMenuKeydown = (event: KeyboardEvent) => {
@@ -715,6 +732,15 @@ onBeforeUnmount(() => {
   </KnowledgePageShell>
 
   <KnowledgeCreateKbDialog v-model:open="createKbDialogOpen" @created="handleKbCreated" />
+
+  <KnowledgeCreateContentDialog
+    v-model:open="createContentDialog.open"
+    :title="CREATE_CONTENT_DIALOG_TITLES[createContentDialog.action]"
+    :knowledge-bases="knowledgeBases"
+    @select="
+      (kbId: string) => navigateWithCreateIntent(`create-${createContentDialog.action}`, kbId)
+    "
+  />
 
   <!-- 模板中心（语雀双栏弹窗形态）：创建成功进新文档编辑器 -->
   <TemplateSelectDialog

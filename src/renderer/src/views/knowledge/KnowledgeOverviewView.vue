@@ -9,6 +9,7 @@ import { computed, inject, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
 import KnowledgeContentHeader from "@/components/knowledge/KnowledgeContentHeader.vue"
+import KnowledgeCreateContentDialog from "@/components/knowledge/KnowledgeCreateContentDialog.vue"
 import KnowledgeQuickActions, {
   type QuickActionItem,
 } from "@/components/knowledge/KnowledgeQuickActions.vue"
@@ -181,13 +182,39 @@ const openDoc = (item: DocListItem) => {
   )
 }
 
+/** 内容类型（文档/画板）走「选择知识库」弹层对齐侧栏/开始页；分组/模板保留库内语义 */
+const createContentDialog = ref<{ open: boolean; action: "doc" | "board" }>({
+  open: false,
+  action: "doc",
+})
+
+const CREATE_CONTENT_DIALOG_TITLES = {
+  doc: "新建文档",
+  board: "新建画板",
+} as const
+
 const handleQuickAction = (item: QuickActionItem) => {
   if (item.id === "template") {
     workspaceContext.openTemplateLibrary()
     return
   }
 
+  if (item.id === "doc" || item.id === "board") {
+    createContentDialog.value = { open: true, action: item.id }
+    return
+  }
+
   workspaceContext.createNode(item.id as "doc" | "folder" | "board")
+}
+
+/** 弹层选库后跳目标库工作台首页带创建意图（createNode 链路即时创建） */
+const handleCreateContentSelect = (kbId: string) => {
+  const action = createContentDialog.value.action
+  void router.push({
+    name: "knowledge-workspace-home",
+    params: { kbId },
+    query: { intent: `create-${action}` },
+  })
 }
 
 const openSearch = () => {
@@ -272,6 +299,12 @@ watch(
     <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
       <div class="mx-auto w-full max-w-(--kb-content-max-width) space-y-6">
         <KnowledgeQuickActions :items="quickActions" @select="handleQuickAction" />
+
+        <KnowledgeCreateContentDialog
+          v-model:open="createContentDialog.open"
+          :title="CREATE_CONTENT_DIALOG_TITLES[createContentDialog.action]"
+          @select="handleCreateContentSelect"
+        />
 
         <KnowledgeDocList
           v-model:active-tab="activeTab"

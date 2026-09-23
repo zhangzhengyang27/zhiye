@@ -11,14 +11,14 @@ import { computed, ref, watch } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
 import { useDialogBehavior } from "@/composables/use-dialog-behavior"
 import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
-import type { KnowledgeBaseItem } from "@/services/knowledge-base"
+import { listKnowledgeBases, type KnowledgeBaseItem } from "@/services/knowledge-base"
 
 const props = defineProps<{
   open: boolean
   /** 弹层标题（随创建类型变化：新建文档/新建表格/新建画板/新建数据表/新建思维导图） */
   title: string
-  /** 可选的知识库全集（宿主传入侧栏已加载列表，避免重复请求） */
-  knowledgeBases: KnowledgeBaseItem[]
+  /** 可选的知识库全集：宿主传入侧栏已加载列表时不重复请求；缺省弹层自拉 */
+  knowledgeBases?: KnowledgeBaseItem[]
   /** 提交中禁点列表 */
   submitting?: boolean
 }>()
@@ -31,21 +31,39 @@ const emit = defineEmits<{
 
 const keyword = ref("")
 
+/** 库列表：宿主传入优先；缺省时弹层打开时自拉（Overview 等无侧栏数据的接入点） */
+const selfFetchedKbList = ref<KnowledgeBaseItem[]>([])
+const selfLoading = ref(false)
+
 watch(
   () => props.open,
-  (open) => {
-    if (open) {
-      keyword.value = ""
+  async (open) => {
+    if (!open) {
+      return
+    }
+
+    keyword.value = ""
+    if (!props.knowledgeBases && selfFetchedKbList.value.length === 0) {
+      selfLoading.value = true
+      try {
+        selfFetchedKbList.value = await listKnowledgeBases()
+      } catch {
+        // 列表失败保持空态（空态文案兜底），不阻断弹层
+      } finally {
+        selfLoading.value = false
+      }
     }
   },
 )
 
+const kbList = computed(() => props.knowledgeBases ?? selfFetchedKbList.value)
+
 const filteredKbList = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) {
-    return props.knowledgeBases
+    return kbList.value
   }
-  return props.knowledgeBases.filter((item) => item.name.toLowerCase().includes(kw))
+  return kbList.value.filter((item) => item.name.toLowerCase().includes(kw))
 })
 
 const handleSelect = (kbId: string) => {
@@ -120,7 +138,7 @@ const dialog = useDialogBehavior({
           v-if="filteredKbList.length === 0"
           class="px-3 py-8 text-center text-[13px] text-ink-quaternary"
         >
-          没有匹配的知识库
+          {{ selfLoading ? "正在加载知识库…" : "没有匹配的知识库" }}
         </div>
       </div>
     </div>
