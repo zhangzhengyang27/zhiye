@@ -521,7 +521,7 @@ onMounted(() => {
                 <Icon icon="ph:push-pin" :width="12" :height="12" />
                 置顶
               </p>
-              <div class="-mt-4 space-y-3">
+              <div class="-mt-2 space-y-3">
                 <article
                   v-for="note in pinnedNotes"
                   :key="note.id"
@@ -578,7 +578,7 @@ onMounted(() => {
             </template>
 
             <p class="text-[12px] text-ink-quaternary">小记</p>
-            <div v-if="normalNotes.length > 0" class="-mt-4 space-y-3">
+            <div v-if="normalNotes.length > 0" class="-mt-2 space-y-3">
               <article
                 v-for="note in normalNotes"
                 :key="note.id"
