@@ -29,13 +29,13 @@ describe("normalizeNodeIds", () => {
   })
 })
 
-describe("collectFolderIds（可展开容器 = 分组节点）", () => {
+describe("collectFolderIds（可展开容器 = 分组节点 + 挂子级的文档，批次 B）", () => {
   it("递归收集全部分组节点 id", () => {
     expect(collectFolderIds(tree).sort()).toEqual(["a", "a-2"])
   })
 
-  it("挂了子级的文档不算分组（当前口径：可展开容器只有 folder）", () => {
-    expect(collectFolderIds([makeNode("d", "doc", [makeNode("d-1", "doc")])])).toEqual([])
+  it("挂了子级的文档算可展开容器（批次 B 文档嵌套文档）", () => {
+    expect(collectFolderIds([makeNode("d", "doc", [makeNode("d-1", "doc")])])).toEqual(["d"])
   })
 })
 
@@ -97,9 +97,19 @@ describe("canDropTreeNode（拖拽合法性纯函数）", () => {
     ).toBe(false)
   })
 
-  it("inside 仅目录：文档落 inside 拒绝，目录落 inside 放行", () => {
+  it("inside 落点：分组放行；纯净文档放行（两级文档链），带 doc 子级的文档与分组拒绝", () => {
     expect(
       canDropTreeNode(workTree, sourceDoc, { position: "inside", nodeId: "b", parentId: null }),
+    ).toBe(true)
+    expect(
+      canDropTreeNode(workTree, makeNode("dx", "doc", [makeNode("dx-1", "doc")]), {
+        position: "inside",
+        nodeId: "b",
+        parentId: null,
+      }),
+    ).toBe(false)
+    expect(
+      canDropTreeNode(workTree, sourceFolder, { position: "inside", nodeId: "b", parentId: null }),
     ).toBe(false)
     expect(
       canDropTreeNode(workTree, sourceDoc, { position: "inside", nodeId: "a", parentId: null }),
