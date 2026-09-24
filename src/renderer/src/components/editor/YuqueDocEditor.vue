@@ -77,9 +77,18 @@ const emit = defineEmits<{
  * toggleTocView 命令（ne-ui-sidebar，右侧 305px，与语雀产品一致），
  * 由宿主「目录」按钮与阅读态自动展开逻辑调用。
  */
+const tocOpen = ref(false)
+/** 开合状态镜像：内核切换的 .ne-normal-toc 类挂在 .ne-editor 上（Lake 1.67 内部
+ *  形态，升级需核对），命令无返回值，切换后下一帧读 DOM 校正 */
+const syncTocOpenState = () => {
+  const editorRoot = surfaceRef.value?.querySelector<HTMLElement>(".ne-editor")
+  tocOpen.value = editorRoot?.classList.contains("ne-normal-toc") ?? false
+}
 const toggleToc = () => {
   const richText = editorComponentRef.value as YuqueEditorRef | null
   richText?.execCommand?.("toggleTocView")
+  window.requestAnimationFrame(syncTocOpenState)
+  window.setTimeout(syncTocOpenState, 80)
 }
 
 /**
@@ -91,7 +100,7 @@ const insertEmojiCard = () => {
   editorApi.value?.execCommand("unicodeEmoji")
 }
 
-defineExpose({ toggleToc, insertEmojiCard })
+defineExpose({ toggleToc, insertEmojiCard, tocOpen })
 
 /** 表面根节点：Lake 的 DOM（.ne-editor 等）挂载其内，经 surfaceReady 抛给宿主 */
 const surfaceRef = ref<HTMLElement | null>(null)
@@ -270,8 +279,10 @@ const uploadAudio = bridgeUpload(() => props.onAudioUpload)
 </script>
 
 <template>
+  <!-- min-w-0：作为 flex 子项允许收缩到容器内（侧栏面板打开时挤压编辑区，
+       Lake 工具栏自行折进溢出菜单）；否则 min-width:auto 会被工具栏行最小宽撑破容器 -->
   <div
-    class="yuque-doc-editor relative flex w-full flex-col"
+    class="yuque-doc-editor relative flex w-full min-w-0 flex-col"
     :class="autoHeight ? '' : 'h-full min-h-0'"
   >
     <div

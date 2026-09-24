@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
- * 顶栏 ☆ 收藏的「选择分组」浮层(对齐语雀真机 2026-09-21):
- * 标题「选择分组」+ 副文案(含「取消收藏」蓝链)+ 分组列表 +「+ 新建分组」。
+ * 顶栏 ☆ 收藏的「选择分组」浮层内容(对齐语雀真机 2026-09-21):
+ * 副文案(含「取消收藏」蓝链)+ 分组列表 +「+ 新建分组」;壳(标题行/定位/动画)由 DocHeaderPopper 承担。
  * 数据走收藏夹分组 API(B3a);文档当前所在分组行高亮,点击行即移入。
  * 语雀浮层里的「高质量知识库」勾选属官方计划能力,本产品无对应概念,不渲染。
  */
 import { computed, onMounted, ref } from "vue"
+import AppIcon from "@/components/common/AppIcon.vue"
 import {
   createFavoriteFolder,
   listFavoriteFolders,
@@ -28,6 +29,7 @@ const emit = defineEmits<{
 const folders = ref<KnowledgeFavoriteFolder[]>([])
 const currentFolderId = ref<string | null>(null)
 const loading = ref(false)
+const loadError = ref("")
 const busy = ref(false)
 const creating = ref(false)
 const newFolderName = ref("")
@@ -38,6 +40,7 @@ const canSubmitNewFolder = computed(
 
 const loadFolders = async () => {
   loading.value = true
+  loadError.value = ""
   try {
     const [folderList, favoriteList] = await Promise.all([
       listFavoriteFolders(),
@@ -48,6 +51,7 @@ const loadFolders = async () => {
       favoriteList.items.find((item) => item.id === props.documentId)?.folderId ?? null
   } catch {
     folders.value = []
+    loadError.value = "分组加载失败，请重试。"
   } finally {
     loading.value = false
   }
@@ -91,18 +95,32 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="w-72 select-none px-3 pb-2 pt-3">
-    <p class="px-1 text-[14px] font-semibold text-ink">选择分组</p>
-    <p class="mt-1 px-1 text-[12px] leading-5 text-ink-tertiary">
+  <div class="select-none px-3 pb-2 pt-3">
+    <p class="px-1 text-[12px] leading-5 text-ink-tertiary">
       你可以选择分组或直接
       <button type="button" class="text-brand hover:underline" @click.stop="emit('unfavorited')">
         取消收藏
       </button>
     </p>
 
-    <div v-if="loading" class="px-1 py-4 text-[12px] text-ink-quaternary">分组加载中…</div>
+    <div v-if="loading" class="space-y-1 px-1 py-2">
+      <div v-for="index in 3" :key="index" class="h-8 animate-pulse rounded-kb-md bg-muted" />
+    </div>
+
+    <div v-else-if="loadError" class="flex flex-col items-start gap-2 px-1 py-3">
+      <p class="text-[12px] text-ink-tertiary">{{ loadError }}</p>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 rounded-kb-md border border-line px-2 py-1 text-[12px] text-ink-secondary transition hover:border-brand-lighter hover:text-brand"
+        @click.stop="loadFolders"
+      >
+        <AppIcon name="i-lucide-refresh-cw" class="h-3 w-3" />
+        重新加载
+      </button>
+    </div>
+
     <template v-else>
-      <div v-if="folders.length > 0" class="mt-2 max-h-56 overflow-y-auto">
+      <div v-if="folders.length > 0" class="mt-1 max-h-56 overflow-y-auto">
         <button
           v-for="folder in folders"
           :key="folder.id"
@@ -125,10 +143,7 @@ onMounted(() => {
           class="flex w-full items-center gap-1.5 rounded-kb-md px-2 py-2 text-left text-[13px] text-ink-secondary transition hover:bg-fill-muted"
           @click.stop="creating = true"
         >
-          <span
-            class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-line-input text-[11px] leading-none text-ink-tertiary"
-            >+</span
-          >
+          <AppIcon name="i-lucide-plus" class="h-3.5 w-3.5 shrink-0" />
           <span>新建分组</span>
         </button>
         <form

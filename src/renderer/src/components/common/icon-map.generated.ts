@@ -140,7 +140,6 @@ import { MessageCircle } from "lucide-vue-next"
 import { MessageSquareText } from "lucide-vue-next"
 import { Network } from "lucide-vue-next"
 import { OctagonAlert } from "lucide-vue-next"
-import { PanelLeftClose } from "lucide-vue-next"
 import { PanelRightOpen } from "lucide-vue-next"
 import { Plus } from "lucide-vue-next"
 import { QrCode } from "lucide-vue-next"
@@ -151,6 +150,7 @@ import { ShieldCheck } from "lucide-vue-next"
 import { Sparkles } from "lucide-vue-next"
 import { Star } from "lucide-vue-next"
 import { Table2 } from "lucide-vue-next"
+import { TableOfContents } from "lucide-vue-next"
 import { ThumbsUp } from "lucide-vue-next"
 import { Trash2 } from "lucide-vue-next"
 import { TriangleAlert } from "lucide-vue-next"
@@ -308,7 +308,6 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-message-square-text": { component: MessageSquareText },
   "i-lucide-network": { component: Network },
   "i-lucide-octagon-alert": { component: OctagonAlert },
-  "i-lucide-panel-left-close": { component: PanelLeftClose },
   "i-lucide-panel-right-open": { component: PanelRightOpen },
   "i-lucide-plus": { component: Plus },
   "i-lucide-qr-code": { component: QrCode },
@@ -319,6 +318,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-sparkles": { component: Sparkles },
   "i-lucide-star": { component: Star },
   "i-lucide-table-2": { component: Table2 },
+  "i-lucide-table-of-contents": { component: TableOfContents },
   "i-lucide-thumbs-up": { component: ThumbsUp },
   "i-lucide-trash-2": { component: Trash2 },
   "i-lucide-triangle-alert": { component: TriangleAlert },
