@@ -2399,6 +2399,7 @@ watch(
     commentComposeQuote.value = null
     commentDraftAnchor = null
     versionsDialogOpen.value = false
+    discussPageOpen.value = false
     versions.value = []
     // 使在途的旧文档版本请求失效，避免其 finally/loading 态波及新文档
     versionsLoadSeq++
