@@ -23,9 +23,6 @@ importers:
       '@vueuse/core':
         specifier: ^14.4.0
         version: 14.4.0(vue@3.5.43(typescript@5.9.3))
-      '@zhangzhengyang27/yuque-editor-core':
-        specifier: ^0.2.0
-        version: 0.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vue@3.5.43(typescript@5.9.3))
       diff:
         specifier: ^8.0.3
         version: 8.0.4
@@ -99,9 +96,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.2.1
         version: 4.3.3
-      '@types/ali-oss':
-        specifier: ^6.23.3
-        version: 6.23.3
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.6
@@ -1380,9 +1374,6 @@ packages:
   '@tailwindcss/postcss@4.3.3':
     resolution: {integrity: sha512-JTSZZGQi1AyKirbLN3azmjVzef92tcX7h+iSqPdaeStyFpGpDlKvvpxeOE8njhbUanbRwr3z8DyzhICWnMtQeg==}
 
-  '@types/ali-oss@6.23.3':
-    resolution: {integrity: sha512-huSf6njkqhSeR37OMJTGMCyUg2d9Zp2AioefhYuUMeh0vNM+WybctrBor7bO/RcCbLCQI6sHn6NtPBIWALYVJg==}
-
   '@types/cacheable-request@6.0.3':
     resolution: {integrity: sha512-IQ3EbTzGxIigb1I3qPZc1rWJnH0BmSKv5QYTalEwweFvyBDLSAe24zP0le/hyi7ecGfZVlIVAg4BZqb8WBwKqw==}
 
@@ -1718,8 +1709,8 @@ packages:
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
     engines: {node: '>=10.0.0'}
 
-  '@zhangzhengyang27/yuque-editor-core@0.2.0':
-    resolution: {integrity: sha512-dQPinlW266IBBlXdxVFSpHi5PsV2VJU3WJT7jxOTjC0dFefCkfPgCfq0sCrxZcpYqraw0VVF1AdWMe06BZSnfA==, tarball: https://npm.pkg.github.com/download/@zhangzhengyang27/yuque-editor-core/0.2.0/5f5b322471a0987ea6089e720ff0390ec9b286d7}
+  '@zhangzhengyang27/yuque-editor-core@0.2.1':
+    resolution: {integrity: sha512-Mmy1Mcyqdm2/ZttTDRwfyuY0QAJP6Q1hgWmbZ6duAk/IAalxv1caUXxI74mEqLdlNSNvbsVzYgibXKO+uEkd7g==, tarball: https://npm.pkg.github.com/download/@zhangzhengyang27/yuque-editor-core/0.2.1/b96afa7a3932d9e692f0ee65dc211d67e934f2b3}
     engines: {node: '>=18'}
     peerDependencies:
       react: '>=18'
@@ -1732,14 +1723,6 @@ packages:
         optional: true
       vue:
         optional: true
-
-  '@zhangzhengyang27/yuque-editor-core@0.2.1':
-    resolution: {integrity: sha512-Mmy1Mcyqdm2/ZttTDRwfyuY0QAJP6Q1hgWmbZ6duAk/IAalxv1caUXxI74mEqLdlNSNvbsVzYgibXKO+uEkd7g==, tarball: https://npm.pkg.github.com/download/@zhangzhengyang27/yuque-editor-core/0.2.1/b96afa7a3932d9e692f0ee65dc211d67e934f2b3}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: '>=18'
-      react-dom: '>=18'
-      vue: '>=3'
 
   abbrev@4.0.0:
     resolution: {integrity: sha512-a1wflyaL0tHtJSmLSOVybYhy22vRih4eduhhrkcjgrWGnRfrZtovJ2FRjxuTtkkj47O/baf0R86QU5OuYpz8fA==}
@@ -5513,8 +5496,6 @@ snapshots:
       postcss: 8.5.28
       tailwindcss: 4.3.3
 
-  '@types/ali-oss@6.23.3': {}
-
   '@types/cacheable-request@6.0.3':
     dependencies:
       '@types/http-cache-semantics': 4.2.0
@@ -5944,14 +5925,8 @@ snapshots:
 
   '@xmldom/xmldom@0.8.15': {}
 
-  '@zhangzhengyang27/yuque-editor-core@0.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vue@3.5.43(typescript@5.9.3))':
-    optionalDependencies:
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      vue: 3.5.43(typescript@5.9.3)
-
   '@zhangzhengyang27/yuque-editor-core@0.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vue@3.5.43(typescript@5.9.3))':
-    dependencies:
+    optionalDependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       vue: 3.5.43(typescript@5.9.3)
