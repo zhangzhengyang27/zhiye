@@ -187,9 +187,9 @@ const loadMoreFavorites = async () => {
     }
     showToastMessage(error instanceof Error ? error.message : "加载更多收藏失败。", "error")
   } finally {
-    if (seq === loadSeq) {
-      loadingMore.value = false
-    }
+    // 无条件复位：过期分支若不复位，loadingMore 永远为 true，按钮永久「加载中…」
+    // 且守卫挡住重试（同族修复见 KnowledgeTrashView 的 loadMore）
+    loadingMore.value = false
   }
 }
 

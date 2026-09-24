@@ -442,27 +442,36 @@ const saveBoard = async (options?: { silent?: boolean; auto?: boolean }): Promis
     return activeBoardSave
   }
   const savedDocId = docId.value
+  // 发起保存时捕获实际发送的内容：基线只对齐「发出的内容」——若保存后重新序列化
+  // 当前值（旧写法 syncSerializedState），在途期间的编辑会既不在请求里又不再被视为
+  // 脏（静默丢失）；在途标题也要防被服务端回包覆盖（旧写法 title.value = updated.title）
+  const rawTitleAtRequest = title.value
+  const titleAtRequest = rawTitleAtRequest.trim() || "无标题画板"
+  const boardAtRequest = JSON.parse(JSON.stringify(board.value)) as KnowledgeBoardDocument
   saveError.value = ""
   saving.value = !(options?.auto ?? false)
   autoSaving.value = options?.auto ?? false
   activeBoardSave = (async () => {
     try {
       const updated = await updateKnowledgeDocument(savedDocId, {
-        title: title.value.trim() || "无标题画板",
+        title: titleAtRequest,
         editorType: KNOWLEDGE_DOCUMENT_EDITOR_TYPES.board,
         content: {
           scheme: KNOWLEDGE_BOARD_CONTENT_SCHEME,
-          value: board.value,
+          value: boardAtRequest,
         },
       })
       // await 期间切走了文档：旧响应不能回写新文档状态
       if (docId.value !== savedDocId) {
         return
       }
-      title.value = updated.title
       lastSavedAt.value = updated.updatedAt
-      syncSerializedState()
-      snapshot.value = serializedState.value
+      // 标题在途未被继续编辑时才归一到发送值（与服务端存储一致，基线才能对齐）；
+      // 在途有编辑则保留用户输入，保持脏态交由下一次保存
+      if (title.value === rawTitleAtRequest) {
+        title.value = titleAtRequest
+      }
+      snapshot.value = JSON.stringify({ title: titleAtRequest, board: boardAtRequest })
       if (!options?.silent) {
         showToastMessage("画板已保存。", "success")
       }

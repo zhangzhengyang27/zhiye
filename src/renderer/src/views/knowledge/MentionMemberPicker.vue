@@ -53,10 +53,10 @@ const handleSelect = (member: KnowledgeBaseMember) => {
   emit("select", member)
 }
 
-/** 成员角色中文标签（接口返回 owner/admin/editor/reader） */
+/** 成员角色中文标签（接口返回 owner/admin/editor/reader；admin 与成员管理页口径一致叫「管理员」） */
 const MEMBER_ROLE_LABELS: Record<KnowledgeBaseMember["role"], string> = {
   owner: "所有者",
-  admin: "管理者",
+  admin: "管理员",
   editor: "编辑者",
   reader: "阅读者",
 }

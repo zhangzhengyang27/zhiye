@@ -1,6 +1,7 @@
 /** 封装Use文档分享对话框相关组合式状态与交互逻辑。 */
 
 import { computed, ref, watch } from "vue"
+import { getApiErrorMessage } from "@/services/http-client"
 import {
   createDocumentShare,
   deleteDocumentShare,
@@ -156,8 +157,8 @@ export function useDocumentShareDialog(options: {
 
     try {
       shares.value = await getDocumentShares(options.documentId())
-    } catch {
-      options.showToastMessage("加载分享列表失败", "error")
+    } catch (error) {
+      options.showToastMessage(getApiErrorMessage(error, "加载分享列表失败。"), "error")
     } finally {
       loading.value = false
     }
@@ -192,8 +193,8 @@ export function useDocumentShareDialog(options: {
       password.value = ""
       usePassword.value = false
       expiresIn.value = "never"
-    } catch {
-      options.showToastMessage("创建分享失败。", "error")
+    } catch (error) {
+      options.showToastMessage(getApiErrorMessage(error, "创建分享失败。"), "error")
     } finally {
       creating.value = false
     }

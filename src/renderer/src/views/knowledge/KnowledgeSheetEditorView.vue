@@ -92,6 +92,9 @@ const saveNow = async () => {
 
   // 发起保存时的文档 id：await 期间切走后，旧表格的响应不能回写新文档状态
   const savedDocId = docId.value
+  // 发起保存时的脏版本号：基线必须对齐「实际发出的内容」——serialize() 在此刻执行，
+  // 若对齐 await 后的当前版本，在途期间的编辑会既不在请求里又不再被视为脏（静默丢失）
+  const versionAtRequest = editVersion.value
 
   saving.value = true
   saveError.value = ""
@@ -110,7 +113,7 @@ const saveNow = async () => {
     if (typeof updated.updatedAt === "string") {
       savedAtLabel.value = `已保存 ${formatClock(updated.updatedAt)}`
     }
-    savedVersion.value = editVersion.value
+    savedVersion.value = versionAtRequest
   } catch (error) {
     saveError.value = error instanceof Error ? error.message : "保存失败"
   } finally {

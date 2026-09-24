@@ -331,11 +331,21 @@ const applySuggestedSearch = async (
   await handleSearch()
 }
 
+let lastSearchKbId = ""
+
 watch(
   [() => workspaceContext.kbId.value, () => route.query.q, () => route.query.scope],
   () => {
     keyword.value = getRouteKeyword()
     scope.value = getRouteScope()
+    // 切库重置日期/状态筛选：筛选语义属于当前库的检索上下文，
+    // 残留会对新库结果继续过滤，命中数莫名变少
+    if (lastSearchKbId !== "" && lastSearchKbId !== workspaceContext.kbId.value) {
+      filterStatus.value = "all"
+      filterDateFrom.value = ""
+      filterDateTo.value = ""
+    }
+    lastSearchKbId = workspaceContext.kbId.value
     void runSearch()
   },
   { immediate: true },

@@ -121,6 +121,9 @@ const applyHistoryEntry = (entry: AiWritingHistoryEntry) => {
   deepThink.value = entry.deepThink
 }
 
+/** 待确认清空历史：破坏性操作（本地 20 条生成记录不可恢复），与其他删除操作同样走确认 */
+const confirmClearHistory = ref(false)
+
 const clearHistoryEntries = () => {
   historyEntries.value = []
   persistHistoryEntries()
@@ -350,7 +353,7 @@ onMounted(async () => {
               v-if="historyEntries.length > 0"
               type="button"
               class="inline-flex h-7 items-center rounded-kb-md px-2 text-[12px] text-ink-tertiary transition hover:bg-grey-200 hover:text-ink"
-              @click="clearHistoryEntries"
+              @click="confirmClearHistory = true"
             >
               <Icon icon="ph:trash" :width="13" :height="13" class="mr-1" />
               清空
@@ -379,4 +382,11 @@ onMounted(async () => {
       </div>
     </div>
   </KnowledgePageShell>
+  <ConfirmDialog
+    v-model:open="confirmClearHistory"
+    danger
+    message="确认清空全部历史生成记录吗？清空后无法找回。"
+    confirm-text="清空"
+    @confirm="clearHistoryEntries"
+  />
 </template>

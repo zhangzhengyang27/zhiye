@@ -50,6 +50,8 @@ if (!workspaceContext) {
 
 const activeTab = ref("recent")
 const recentItems = ref<OverviewRecentItem[]>([])
+/** 最近访问加载失败：与「真空态」区分，否则接口故障被误读为没有浏览轨迹 */
+const recentLoadFailed = ref(false)
 
 const canEdit = computed(() => workspaceContext.permissions.value?.canEdit ?? false)
 const workspaceName = computed(() => workspaceContext.knowledgeBase.value?.name || "知识库")
@@ -120,7 +122,7 @@ const listItems = computed<DocListItem[]>(() => {
 
 const emptyTitle = computed(() => {
   if (activeTab.value === "recent") {
-    return "暂无最近访问记录"
+    return recentLoadFailed.value ? "最近访问加载失败" : "暂无最近访问记录"
   }
 
   return "当前知识库还没有文档"
@@ -128,7 +130,9 @@ const emptyTitle = computed(() => {
 
 const emptyDescription = computed(() => {
   if (activeTab.value === "recent") {
-    return "浏览文档后，这里会自动沉淀你的最近工作轨迹。"
+    return recentLoadFailed.value
+      ? "网络或服务异常，请稍后重试。"
+      : "浏览文档后，这里会自动沉淀你的最近工作轨迹。"
   }
 
   return canEdit.value
@@ -249,11 +253,13 @@ const loadRecentItems = async () => {
       return
     }
     recentItems.value = result
+    recentLoadFailed.value = false
   } catch {
     if (requestedKbId !== workspaceContext.kbId.value) {
       return
     }
     recentItems.value = []
+    recentLoadFailed.value = true
   }
 }
 

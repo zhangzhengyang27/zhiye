@@ -131,11 +131,18 @@ const openRow = (row: OutlineRow) => {
   )
 }
 
+let favoriteToastTimer: number | null = null
+
 const showToastThenClear = (message: string) => {
+  // 先清上一个句柄：连续操作（收藏→分享）时，旧定时器会把新文案提前清掉
+  if (favoriteToastTimer !== null) {
+    window.clearTimeout(favoriteToastTimer)
+  }
   favoriteToast.value = message
 
-  window.setTimeout(() => {
+  favoriteToastTimer = window.setTimeout(() => {
     favoriteToast.value = ""
+    favoriteToastTimer = null
   }, 2400)
 }
 

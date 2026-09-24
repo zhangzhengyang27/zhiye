@@ -6,6 +6,7 @@
  * 浏览过复用 recent-all；提到我/我点赞的暂无对应数据模型，不提供。
  */
 import { formatShortDate } from "@/utils/date-format"
+import { Z_DROPDOWN, Z_DROPDOWN_BACKDROP } from "@/constants/z-index"
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
@@ -464,12 +465,14 @@ onBeforeUnmount(() => {
 
             <div
               v-if="docCreateMenuOpen"
-              class="fixed inset-0 z-10"
+              class="fixed inset-0"
+              :style="{ zIndex: Z_DROPDOWN_BACKDROP }"
               @click="docCreateMenuOpen = false"
             />
             <div
               v-if="docCreateMenuOpen"
-              class="absolute left-0 top-[calc(100%+8px)] z-20 w-full rounded-kb-xl border border-line bg-surface p-2 shadow-[var(--kb-float-shadow)]"
+              class="absolute left-0 top-[calc(100%+8px)] w-full rounded-kb-xl border border-line bg-surface p-2 shadow-[var(--kb-float-shadow)]"
+              :style="{ zIndex: Z_DROPDOWN }"
             >
               <button
                 v-for="menuItem in startCreateMenuItems"

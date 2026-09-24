@@ -113,12 +113,23 @@ const snapshotToRestore = ref<TreeSnapshotItem | null>(null)
 
 const loadSnapshots = async () => {
   snapshotsLoading.value = true
+  // 切库过期守卫：迟归的旧库快照列表不能盖到新库上
+  const requestedKbId = workspaceContext.kbId.value
   try {
-    snapshots.value = await listTreeSnapshots(workspaceContext.kbId.value)
+    const items = await listTreeSnapshots(requestedKbId)
+    if (requestedKbId !== workspaceContext.kbId.value) {
+      return
+    }
+    snapshots.value = items
   } catch (error) {
+    if (requestedKbId !== workspaceContext.kbId.value) {
+      return
+    }
     showToastMessage(error instanceof Error ? error.message : "目录历史加载失败。", "error")
   } finally {
-    snapshotsLoading.value = false
+    if (requestedKbId === workspaceContext.kbId.value) {
+      snapshotsLoading.value = false
+    }
   }
 }
 
@@ -455,6 +466,12 @@ const handleAddMember = async () => {
     return
   }
 
+  // 客户端先做格式校验：纯依赖服务端回包时，「abc」这类输入要等一次往返才得到笼统报错
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addMemberEmail.value.trim())) {
+    showToastMessage("邮箱格式不正确，请检查后重试", "error")
+    return
+  }
+
   addingMember.value = true
 
   try {
@@ -606,6 +623,16 @@ watch(
     syncVisibilityFromWorkspace()
     syncMoreSettingsFromWorkspace()
     void loadMembers()
+    // 切库必须丢弃旧库的目录历史状态：列表若残留，恢复/预览会用
+    // 新 kbId + 旧库 snapshotId 打接口（必 404）
+    snapshots.value = []
+    snapshotsLoading.value = false
+    selectedSnapshotId.value = null
+    selectedSnapshotDetail.value = null
+    snapshotToRestore.value = null
+    if (activeSection.value === "history") {
+      void loadSnapshots()
+    }
   },
   { immediate: true },
 )

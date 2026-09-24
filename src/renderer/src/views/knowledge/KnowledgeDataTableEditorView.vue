@@ -135,6 +135,9 @@ const saveNow = async () => {
 
   // 发起保存时的文档 id：await 期间切走后，旧表格的响应不能回写新文档状态
   const savedDocId = docId.value
+  // 发起保存时的脏版本号：基线必须对齐「实际发出的内容」——请求体在此刻序列化，
+  // 若对齐 await 后的当前版本，在途期间的编辑会既不在请求里又不再被视为脏（静默丢失）
+  const versionAtRequest = editVersion.value
 
   saving.value = true
   saveError.value = ""
@@ -153,7 +156,7 @@ const saveNow = async () => {
     if (typeof updated.updatedAt === "string") {
       savedAtLabel.value = `已保存 ${formatClock(updated.updatedAt)}`
     }
-    savedVersion.value = editVersion.value
+    savedVersion.value = versionAtRequest
   } catch (error) {
     saveError.value = error instanceof Error ? error.message : "保存失败"
   } finally {
@@ -237,8 +240,23 @@ const addField = () => {
   fieldEditingStyleId.value = table.value.fields[table.value.fields.length - 1]?.id ?? null
 }
 
+// 字段名编辑进入时备份原名：v-model 会先把空串写进 field.name，blur 时原值已不可得
+const fieldNameBackup = ref("")
+
+const beginFieldNameEdit = (field: KnowledgeDataTableField) => {
+  fieldNameBackup.value = field.name
+  fieldEditingStyleId.value = field.id
+}
+
+const FIELD_TYPE_FALLBACK_LABEL: Record<KnowledgeDataTableField["type"], string> = {
+  text: "文本",
+  select: "单选",
+  date: "日期",
+}
+
 const updateFieldName = (field: KnowledgeDataTableField, name: string) => {
-  field.name = name.trim() || field.name
+  // 空名回退：先还原进入编辑前的名字，本就为空则退回类型默认名，避免无名列落库
+  field.name = name.trim() || fieldNameBackup.value || FIELD_TYPE_FALLBACK_LABEL[field.type]
 }
 
 const changeFieldType = (field: KnowledgeDataTableField, type: KnowledgeDataTableField["type"]) => {
@@ -379,7 +397,7 @@ const setCellValue = (
                     type="button"
                     class="min-w-0 flex-1 truncate text-left font-medium text-ink"
                     :disabled="!canEdit"
-                    @click="fieldEditingStyleId = field.id"
+                    @click="beginFieldNameEdit(field)"
                   >
                     {{ field.name }}
                   </button>
