@@ -36,12 +36,18 @@ const emit = defineEmits<{
 
 const rootRef = ref<HTMLElement | null>(null)
 
-/** 点外关闭的判定根包含触发钮：点触发钮走 toggle 语义，不会先关再弹 */
-onClickOutside(rootRef, () => {
-  if (props.open) {
-    emit("close")
-  }
-})
+/** 点外关闭的判定根包含触发钮：点触发钮走 toggle 语义，不会先关再弹。
+ *  ignore 掉 EP teleport 到 body 的弹层容器（.el-popper）：浮层内的
+ *  el-dropdown 菜单项点击不算点外，否则改角色/切档会当场关掉整个浮层 */
+onClickOutside(
+  rootRef,
+  () => {
+    if (props.open) {
+      emit("close")
+    }
+  },
+  { ignore: [".el-popper"] },
+)
 
 /** Esc 关闭（对话框压顶时让位；输入法组词中的 Esc 是取消候选，不关浮层） */
 const handleKeydown = (event: KeyboardEvent) => {
