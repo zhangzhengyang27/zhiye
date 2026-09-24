@@ -35,6 +35,8 @@
     "verify:packaged": "node scripts/verify-packaged-app.mjs",
     "visual:capture": "node scripts/visual-capture-replica.mjs",
     "visual:report": "node scripts/visual-baseline-report.mjs",
+    "visual:pixdiff": "node scripts/visual-pixdiff.mjs",
+    "visual:diff": "node scripts/visual-pixdiff-dir.mjs",
     "perf:budget": "PROFILE_MODE=both node scripts/knowledge-workbench-profile.mjs && node scripts/perf-budget-check.mjs",
     "perf:budget:check": "node scripts/perf-budget-check.mjs",
     "test": "vitest run",
