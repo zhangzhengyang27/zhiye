@@ -158,8 +158,11 @@ const ShareDialog = defineAsyncComponent(() => import("@/components/share/ShareD
 const VersionCompareDialog = defineAsyncComponent(
   () => import("@/components/version/VersionCompareDialog.vue"),
 )
-const DocumentVersionsPanel = defineAsyncComponent(
-  () => import("@/components/version/DocumentVersionsPanel.vue"),
+const DocumentHistoryPage = defineAsyncComponent(
+  () => import("@/components/version/DocumentHistoryPage.vue"),
+)
+const DocumentDiscussPage = defineAsyncComponent(
+  () => import("@/components/editor/DocumentDiscussPage.vue"),
 )
 const KnowledgeNetworkDialog = defineAsyncComponent(
   () => import("@/components/editor/KnowledgeNetworkDialog.vue"),
@@ -297,16 +300,11 @@ const deletingVersionId = ref<string | null>(null)
 type VersionSelection = { kind: "version"; id: string } | { kind: "local"; at: number } | null
 const versionSelection = ref<VersionSelection>(null)
 const versionPreview = ref<{ loading: boolean; scheme: string; value: string } | null>(null)
-const versionsPanelRef = ref<{ openSaveForm?: () => void; closeSaveForm?: () => void } | null>(null)
-/** 历史面板的 radio tab（全部记录/版本/本地缓存）：壳头部「恢复此{N}」按钮按它变文案 */
+const historyPageRef = ref<{ openSaveForm?: () => void; closeSaveForm?: () => void } | null>(null)
+/** 历史全页的 tab（全部记录/版本/本地缓存）：跨开关保留浏览位置 */
 const versionsHistoryTab = ref<"records" | "versions" | "local">("records")
-const versionsRestoreLabel = computed(() =>
-  versionsHistoryTab.value === "records"
-    ? "恢复此记录"
-    : versionsHistoryTab.value === "versions"
-      ? "恢复此版本"
-      : "恢复此本地缓存",
-)
+/** 「讨论」全页（对齐语雀真机：顶栏讨论按钮打开全页评论视图） */
+const discussPageOpen = ref(false)
 const favorited = ref(false)
 
 /** 版本面板「本地缓存」分区：展示未保存改动 / 保存失败等仅存在于本地的状态 */
@@ -862,14 +860,9 @@ const scrollToReadingComments = () => {
   readingCommentsAnchor.value?.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
-/** 顶栏「讨论」：阅读态滚动到文末评论区，编辑态打开评论侧栏 */
+/** 顶栏「讨论」（easel 图标，对齐语雀真机）：打开全页讨论视图 */
 const handleDiscussClick = () => {
-  if (isReadingMode.value) {
-    scrollToReadingComments()
-    return
-  }
-
-  void switchSidePanel("comments")
+  discussPageOpen.value = true
 }
 
 /** 文内评论 ⌘/Ctrl+Enter 发布；输入法组词中的 Enter 是确认候选 */
@@ -928,11 +921,8 @@ const onlinePresence = ref<CollabPresenceMember[]>([])
 const toggleCollaboratorsPopper = () => {
   collaboratorsPopperOpen.value = !collaboratorsPopperOpen.value
 }
+/** 历史记录已全页化（DocumentHistoryPage），不再是侧栏分支；此处仅剩三个侧栏 */
 const activeSidePanel = computed<DocSidePanelTab | null>(() => {
-  if (versionsDialogOpen.value) {
-    return "versions"
-  }
-
   if (commentsPanelOpen.value) {
     return "comments"
   }
@@ -949,10 +939,6 @@ const activeSidePanel = computed<DocSidePanelTab | null>(() => {
 })
 /** 统一右侧面板壳的头部元数据：标题/宽度/计数（仅讨论面板显示评论数） */
 const sidePanelMeta = computed<{ title: string; width: number; count?: number }>(() => {
-  if (versionsDialogOpen.value) {
-    return { title: "历史记录", width: 372 }
-  }
-
   if (commentsPanelOpen.value) {
     return { title: "讨论", width: 380, count: commentItems.value.length }
   }
@@ -1326,12 +1312,12 @@ const handleSaveAsVersion = async (name: string) => {
       versionName: name,
       message: `保存为版本 ${name}`,
     })
-    versionsPanelRef.value?.closeSaveForm?.()
+    historyPageRef.value?.closeSaveForm?.()
     normalizeDocument(updated)
     showToastMessage(`已存为版本「${name}」。`, "success")
     await loadVersions()
   } catch (error) {
-    versionsPanelRef.value?.closeSaveForm?.()
+    historyPageRef.value?.closeSaveForm?.()
     showToastMessage(error instanceof Error ? error.message : "保存版本失败。", "error")
   }
 }
@@ -1813,8 +1799,9 @@ const openVersions = async () => {
     return
   }
 
+  versionsDialogOpen.value = true
   void refreshLocalSnapshots()
-  await openSidePanel("versions")
+  await loadVersions()
 }
 
 /** 统计详情「历史版本」卡点击：关统计弹窗并打开版本面板（内联多语句会踩模板表达式语法） */
@@ -2247,7 +2234,9 @@ const commentsPanelOpen = ref(false)
 const aiPanelOpen = ref(false)
 
 const closeSidePanels = (nextTab: DocSidePanelTab | null = null) => {
-  versionsDialogOpen.value = nextTab === "versions"
+  // 历史记录/讨论已全页化：随统一收口一并关闭（进阅读态、切文档、开其它面板时）
+  versionsDialogOpen.value = false
+  discussPageOpen.value = false
   showInfoPanel.value = nextTab === "info"
   commentsPanelOpen.value = nextTab === "comments"
   aiPanelOpen.value = nextTab === "ai"
@@ -2255,10 +2244,6 @@ const closeSidePanels = (nextTab: DocSidePanelTab | null = null) => {
 
 const openSidePanel = async (tab: DocSidePanelTab) => {
   closeSidePanels(tab)
-
-  if (tab === "versions") {
-    await loadVersions()
-  }
 
   if (tab === "comments") {
     await reloadDocComments()
@@ -2635,8 +2620,9 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="flex min-w-0 shrink-0 items-center justify-end gap-1">
-          <!-- 顶栏图标组对齐语雀真机（2026-09-21 实测，见 docs/文档标题栏对标语雀真机-2026-09-21.md）：
-               ☆收藏 ⧉复制MD 👤+协作 💬讨论 [分享] [目录|评论|信息] ▯AI独立框；
+          <!-- 顶栏图标组对齐语雀真机（2026-09-21 实测 + 2026-09-24 easel 图标复核，
+               见 docs/文档标题栏对标语雀真机-2026-09-21.md）：
+               ☆收藏 ⧉复制MD 👤+协作 ▷讨论(easel) [分享] [目录|评论|信息] ▯AI独立框；
                浮层（收藏/协作/分享）统一走 DocHeaderPopper 壳（定位/动画/Esc/点外关闭） -->
           <DocHeaderPopper
             :open="favoritePopperOpen"
@@ -2714,13 +2700,15 @@ onBeforeUnmount(() => {
             />
           </DocHeaderPopper>
 
+          <!-- 「讨论」独立入口（easel 展示板图标，对齐语雀真机；气泡留给胶囊组评论，
+                避免双讨论图标重复）：点击打开全页讨论视图 -->
           <button
             type="button"
             class="flex h-8 w-8 shrink-0 items-center justify-center rounded-kb-sm text-ink-secondary transition hover:bg-fill-muted"
             title="讨论"
             @click="handleDiscussClick"
           >
-            <UiIcon icon="i-lucide-message-square-text" class="h-[18px] w-[18px] shrink-0" />
+            <UiIcon icon="i-lucide-presentation" class="h-[18px] w-[18px] shrink-0" />
           </button>
 
           <DocHeaderPopper :open="sharePopperOpen" :width="400" @close="sharePopperOpen = false">
@@ -3114,8 +3102,9 @@ onBeforeUnmount(() => {
         @ai="beginAiFromSelection"
       />
 
-      <!-- 右侧面板统一容器：讨论 / AI 写作 / 操作与信息 / 历史记录共用一壳
-           （in-flow 侧栏 + 紧凑头部 + 宽度动画 + Esc；面板间切换换内容不重播动画） -->
+      <!-- 右侧面板统一容器：讨论 / AI 写作 / 操作与信息共用一壳
+           （in-flow 侧栏 + 紧凑头部 + 宽度动画 + Esc；面板间切换换内容不重播动画）；
+           历史记录与讨论已按语雀真机全页化（见下方 DocumentHistoryPage / DocumentDiscussPage） -->
       <DocSidePanelShell
         :open="Boolean(activeSidePanel)"
         :title="sidePanelMeta.title"
@@ -3123,26 +3112,6 @@ onBeforeUnmount(() => {
         :width="sidePanelMeta.width"
         @close="closeSidePanels(null)"
       >
-        <template #actions>
-          <template v-if="versionsDialogOpen">
-            <el-button
-              size="small"
-              class="kb-btn-soft rounded-kb-xl bg-brand-faint text-brand hover:bg-brand-light"
-              :disabled="!versionSelection"
-              :title="versionSelection ? versionsRestoreLabel : '先在列表中选择一条记录'"
-              @click="handleRestoreSelected"
-              ><span class="truncate">{{ versionsRestoreLabel }}</span>
-            </el-button>
-            <el-button
-              size="small"
-              plain
-              class="border-line-input bg-surface text-ink-secondary hover:border-brand-lighter hover:text-brand"
-              @click="versionsPanelRef?.openSaveForm?.()"
-              ><span class="truncate">保存为版本</span>
-            </el-button>
-          </template>
-        </template>
-
         <DocumentCommentsPanel
           v-if="commentsPanelOpen"
           :comments="commentItems"
@@ -3201,24 +3170,6 @@ onBeforeUnmount(() => {
           @reload-doc="reloadRemoteDocument()"
           @make-template="toggleTemplate"
           @move-trash="deleteDocument"
-        />
-
-        <DocumentVersionsPanel
-          v-else-if="versionsDialogOpen"
-          ref="versionsPanelRef"
-          v-model:history-tab="versionsHistoryTab"
-          :versions-loading="versionsLoading"
-          :versions="versions"
-          :local-snapshots="localSnapshots"
-          :deleting-version-id="deletingVersionId"
-          :selection="versionSelection"
-          :preview="versionPreview"
-          @selection-change="handleVersionSelectionChange"
-          @delete-version="deleteVersion"
-          @compare-version="openVersionCompare"
-          @save-as-version="handleSaveAsVersion"
-          @restore-snapshot="handleRestoreSnapshot"
-          @clear-snapshots="handleClearSnapshots"
         />
       </DocSidePanelShell>
     </div>
@@ -3306,6 +3257,44 @@ onBeforeUnmount(() => {
     </el-dialog>
 
     <EditorShortcutPanel :open="showShortcutPanel" @close="showShortcutPanel = false" />
+
+    <!-- 历史记录全页（对齐语雀真机 2026-09-24：顶栏动作 + 左列表右预览/对比） -->
+    <DocumentHistoryPage
+      v-if="versionsDialogOpen"
+      ref="historyPageRef"
+      v-model:history-tab="versionsHistoryTab"
+      :versions-loading="versionsLoading"
+      :versions="versions"
+      :local-snapshots="localSnapshots"
+      :deleting-version-id="deletingVersionId"
+      :selection="versionSelection"
+      :preview="versionPreview"
+      @close="closeSidePanels(null)"
+      @selection-change="handleVersionSelectionChange"
+      @restore-selected="handleRestoreSelected"
+      @delete-version="deleteVersion"
+      @compare-version="openVersionCompare"
+      @save-as-version="handleSaveAsVersion"
+      @restore-snapshot="handleRestoreSnapshot"
+      @clear-snapshots="handleClearSnapshots"
+    />
+
+    <!-- 讨论全页（对齐语雀真机 2026-09-24：左上文档名小字 + 大标题 + 筛选 + 评论列表） -->
+    <DocumentDiscussPage
+      v-if="discussPageOpen"
+      :document-title="title || '无标题文档'"
+      :comments="commentItems"
+      :current-user-id="authStore.user?.id ?? ''"
+      @close="closeSidePanels(null)"
+      @scroll-to="
+        (id) => {
+          discussPageOpen = false
+          scrollCommentIntoView(id)
+          setHoveredComment(id)
+        }
+      "
+      @reply="handleCommentReply"
+    />
 
     <ShareDialog
       v-if="docId && showShareDialog"

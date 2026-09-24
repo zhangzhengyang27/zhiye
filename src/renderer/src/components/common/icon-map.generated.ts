@@ -103,6 +103,7 @@ import { BookOpen } from "lucide-vue-next"
 import { Calendar } from "lucide-vue-next"
 import { Check } from "lucide-vue-next"
 import { ChevronDown } from "lucide-vue-next"
+import { ChevronLeft } from "lucide-vue-next"
 import { ChevronRight } from "lucide-vue-next"
 import { CircleAlert } from "lucide-vue-next"
 import { CircleCheckBig } from "lucide-vue-next"
@@ -112,6 +113,7 @@ import { CloudAlert } from "lucide-vue-next"
 import { Copy } from "lucide-vue-next"
 import { CornerDownLeft } from "lucide-vue-next"
 import { CornerDownRight } from "lucide-vue-next"
+import { Crosshair } from "lucide-vue-next"
 import { Database } from "lucide-vue-next"
 import { Eraser } from "lucide-vue-next"
 import { Eye } from "lucide-vue-next"
@@ -142,6 +144,7 @@ import { Network } from "lucide-vue-next"
 import { OctagonAlert } from "lucide-vue-next"
 import { PanelRightOpen } from "lucide-vue-next"
 import { Plus } from "lucide-vue-next"
+import { Presentation } from "lucide-vue-next"
 import { QrCode } from "lucide-vue-next"
 import { RefreshCw } from "lucide-vue-next"
 import { Search } from "lucide-vue-next"
@@ -271,6 +274,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-calendar": { component: Calendar },
   "i-lucide-check": { component: Check },
   "i-lucide-chevron-down": { component: ChevronDown },
+  "i-lucide-chevron-left": { component: ChevronLeft },
   "i-lucide-chevron-right": { component: ChevronRight },
   "i-lucide-circle-alert": { component: CircleAlert },
   "i-lucide-circle-check-big": { component: CircleCheckBig },
@@ -280,6 +284,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-copy": { component: Copy },
   "i-lucide-corner-down-left": { component: CornerDownLeft },
   "i-lucide-corner-down-right": { component: CornerDownRight },
+  "i-lucide-crosshair": { component: Crosshair },
   "i-lucide-database": { component: Database },
   "i-lucide-eraser": { component: Eraser },
   "i-lucide-eye": { component: Eye },
@@ -310,6 +315,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-octagon-alert": { component: OctagonAlert },
   "i-lucide-panel-right-open": { component: PanelRightOpen },
   "i-lucide-plus": { component: Plus },
+  "i-lucide-presentation": { component: Presentation },
   "i-lucide-qr-code": { component: QrCode },
   "i-lucide-refresh-cw": { component: RefreshCw },
   "i-lucide-search": { component: Search },
