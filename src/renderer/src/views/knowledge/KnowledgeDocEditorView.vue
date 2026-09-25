@@ -72,6 +72,7 @@ import {
 } from "@/services/comments"
 import { CommentManager } from "yuque-editor-core"
 import type { HighlightSelection } from "yuque-editor-core"
+import PresentationPaginationDialog from "@/components/editor/PresentationPaginationDialog.vue"
 import DocumentCommentsPanel from "@/components/editor/DocumentCommentsPanel.vue"
 import type { DocCommentItem } from "@/components/editor/DocumentCommentsPanel.vue"
 import DocumentAiPanel from "@/components/editor/DocumentAiPanel.vue"
@@ -157,8 +158,8 @@ const VersionCompareDialog = defineAsyncComponent(
 const DocumentHistoryPage = defineAsyncComponent(
   () => import("@/components/version/DocumentHistoryPage.vue"),
 )
-const DocumentDiscussPage = defineAsyncComponent(
-  () => import("@/components/editor/DocumentDiscussPage.vue"),
+const DocumentPresentationPage = defineAsyncComponent(
+  () => import("@/components/editor/DocumentPresentationPage.vue"),
 )
 const KnowledgeNetworkDialog = defineAsyncComponent(
   () => import("@/components/editor/KnowledgeNetworkDialog.vue"),
@@ -315,8 +316,9 @@ const openMoveDialog = () => {
 }
 /** 历史全页的 tab（全部记录/版本/本地缓存）：跨开关保留浏览位置 */
 const versionsHistoryTab = ref<"records" | "versions" | "local">("records")
-/** 「讨论」全页（对齐语雀真机：顶栏讨论按钮打开全页评论视图） */
-const discussPageOpen = ref(false)
+/** 「演示」放映全页与「编辑演示分页」对话框（对齐语雀真机：展示板按钮 = 演示） */
+const presentationPageOpen = ref(false)
+const presentMenuOpen = ref(false)
 const favorited = ref(false)
 
 /** 版本面板「本地缓存」分区：展示未保存改动 / 保存失败等仅存在于本地的状态 */
@@ -872,9 +874,33 @@ const scrollToReadingComments = () => {
   readingCommentsAnchor.value?.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
-/** 顶栏「讨论」（easel 图标，对齐语雀真机）：打开全页讨论视图 */
-const handleDiscussClick = () => {
-  discussPageOpen.value = true
+/** 顶栏展示板按钮 = 语雀「演示」：点击弹出 开始演示/编辑演示分页 下拉 */
+const handlePresentClick = () => {
+  presentMenuOpen.value = !presentMenuOpen.value
+}
+
+const startPresentation = () => {
+  presentMenuOpen.value = false
+  presentationPageOpen.value = true
+}
+
+const paginationDialogRef = ref<{ open: () => void; close: () => void } | null>(null)
+/** 编辑分页对话框挂载开关：关闭时父级 v-if 卸载（el-dialog 兜底关） */
+const paginationDialogMounted = ref(false)
+const openPaginationEditor = () => {
+  presentMenuOpen.value = false
+  paginationDialogMounted.value = true
+  // 组件经 v-if 挂载后 ref 才绑定，短轮询直至可开
+  const tryOpen = (attempt: number) => {
+    if (paginationDialogRef.value) {
+      paginationDialogRef.value.open()
+      return
+    }
+    if (attempt < 20) {
+      window.setTimeout(() => tryOpen(attempt + 1), 100)
+    }
+  }
+  tryOpen(0)
 }
 
 /** 文内评论 ⌘/Ctrl+Enter 发布；输入法组词中的 Enter 是确认候选 */
@@ -2173,9 +2199,10 @@ const commentsPanelOpen = ref(false)
 const aiPanelOpen = ref(false)
 
 const closeSidePanels = (nextTab: DocSidePanelTab | null = null) => {
-  // 历史记录/讨论已全页化：随统一收口一并关闭（进阅读态、切文档、开其它面板时）
+  // 历史记录已全页化：随统一收口一并关闭（进阅读态、切文档、开其它面板时）
   versionsDialogOpen.value = false
-  discussPageOpen.value = false
+  presentationPageOpen.value = false
+  paginationDialogMounted.value = false
   showInfoPanel.value = nextTab === "info"
   commentsPanelOpen.value = nextTab === "comments"
   aiPanelOpen.value = nextTab === "ai"
@@ -2293,7 +2320,8 @@ watch(
     commentComposeQuote.value = null
     commentDraftAnchor = null
     versionsDialogOpen.value = false
-    discussPageOpen.value = false
+    presentationPageOpen.value = false
+    paginationDialogMounted.value = false
     versions.value = []
     // 使在途的旧文档版本请求失效，避免其 finally/loading 态波及新文档
     versionsLoadSeq++
@@ -2426,6 +2454,26 @@ onBeforeRouteUpdate(async () => {
   return await confirmLeaveWithUnsavedChanges()
 })
 
+/** 语雀演示快捷键 P：非输入态直接开始放映（划词/输入框聚焦时不触发） */
+const handlePresentShortcut = (event: KeyboardEvent) => {
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+    return
+  }
+  if (event.key.toLowerCase() !== "p" || event.repeat || isImeComposing(event)) {
+    return
+  }
+  const target = event.target as HTMLElement | null
+  if (
+    target?.closest(
+      "input, textarea, select, [contenteditable=true], .ne-engine, .yuque-doc-editor__surface",
+    )
+  ) {
+    return
+  }
+  event.preventDefault()
+  presentationPageOpen.value = true
+}
+
 const handleBeforeUnload = (event: BeforeUnloadEvent) => {
   if (!canEdit.value || !isDirty.value) {
     return
@@ -2437,6 +2485,7 @@ const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 
 onMounted(() => {
   window.addEventListener("keydown", handleSaveShortcut)
+  window.addEventListener("keydown", handlePresentShortcut)
   window.addEventListener("beforeunload", handleBeforeUnload)
   window.addEventListener("online", handleOnline)
   window.addEventListener("offline", handleOffline)
@@ -2467,6 +2516,7 @@ onBeforeUnmount(() => {
   }
   editorInstance.value = null
   window.removeEventListener("keydown", handleSaveShortcut)
+  window.removeEventListener("keydown", handlePresentShortcut)
   window.removeEventListener("beforeunload", handleBeforeUnload)
   window.removeEventListener("online", handleOnline)
   window.removeEventListener("offline", handleOffline)
@@ -2517,7 +2567,7 @@ onBeforeUnmount(() => {
         <div class="flex min-w-0 shrink-0 items-center justify-end gap-1">
           <!-- 顶栏图标组对齐语雀真机（2026-09-21 实测 + 2026-09-24 easel 图标复核，
                见 docs/文档标题栏对标语雀真机-2026-09-21.md）：
-               ☆收藏 ⧉复制MD 👤+协作 ▷讨论(easel) [分享] [目录|评论|信息] ▯AI独立框；
+               ☆收藏 ⧉复制MD 👤+协作 ▷演示(easel) [分享] [目录|评论|信息] ▯AI独立框；
                浮层（收藏/协作/分享）统一走 DocHeaderPopper 壳（定位/动画/Esc/点外关闭） -->
           <DocHeaderPopper
             :open="favoritePopperOpen"
@@ -2595,16 +2645,45 @@ onBeforeUnmount(() => {
             />
           </DocHeaderPopper>
 
-          <!-- 「讨论」独立入口（easel 展示板图标，对齐语雀真机；气泡留给胶囊组评论，
-                避免双讨论图标重复）：点击打开全页讨论视图 -->
-          <button
-            type="button"
-            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-kb-sm text-ink-secondary transition hover:bg-fill-muted"
-            title="讨论"
-            @click="handleDiscussClick"
-          >
-            <UiIcon icon="i-lucide-presentation" class="h-[18px] w-[18px] shrink-0" />
-          </button>
+          <!-- 展示板按钮 = 语雀「演示」（真机：开始演示 P / 编辑演示分页 下拉） -->
+          <DocHeaderPopper :open="presentMenuOpen" :width="190" @close="presentMenuOpen = false">
+            <template #anchor="{ open }">
+              <button
+                type="button"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-kb-sm transition hover:bg-fill-muted"
+                :class="open ? 'bg-fill-muted text-ink' : 'text-ink-secondary'"
+                title="演示"
+                @click="handlePresentClick"
+              >
+                <UiIcon icon="i-lucide-presentation" class="h-[18px] w-[18px] shrink-0" />
+              </button>
+            </template>
+            <div class="p-1.5">
+              <button
+                type="button"
+                class="flex h-9 w-full items-center gap-2.5 rounded-kb-lg px-2.5 text-left text-[13px] text-ink transition hover:bg-fill-muted"
+                @click="startPresentation"
+              >
+                <UiIcon icon="i-lucide-presentation" class="h-4 w-4 shrink-0 text-ink-secondary" />
+                <span class="min-w-0 flex-1 truncate">开始演示</span>
+                <span
+                  class="shrink-0 rounded-kb-sm border border-line bg-muted px-1.5 py-0.5 text-[10px] text-ink-quaternary"
+                  >P</span
+                >
+              </button>
+              <button
+                type="button"
+                class="flex h-9 w-full items-center gap-2.5 rounded-kb-lg px-2.5 text-left text-[13px] text-ink transition hover:bg-fill-muted"
+                @click="openPaginationEditor"
+              >
+                <UiIcon
+                  icon="i-lucide-gallery-horizontal-end"
+                  class="h-4 w-4 shrink-0 text-ink-secondary"
+                />
+                <span class="min-w-0 flex-1 truncate">编辑演示分页</span>
+              </button>
+            </div>
+          </DocHeaderPopper>
 
           <DocHeaderPopper :open="sharePopperOpen" :width="400" @close="sharePopperOpen = false">
             <template #anchor="{ open }">
@@ -3165,21 +3244,26 @@ onBeforeUnmount(() => {
       @clear-snapshots="handleClearSnapshots"
     />
 
-    <!-- 讨论全页（对齐语雀真机 2026-09-24：左上文档名小字 + 大标题 + 筛选 + 评论列表） -->
-    <DocumentDiscussPage
-      v-if="discussPageOpen"
+    <!-- 演示放映全页（对齐语雀真机：全屏沉浸 + 按分页方案放映文档） -->
+    <DocumentPresentationPage
+      v-if="presentationPageOpen"
+      :doc-id="docId"
       :document-title="title || '无标题文档'"
-      :comments="commentItems"
-      :current-user-id="authStore.user?.id ?? ''"
+      :content="content"
+      :scheme="scheme"
       @close="closeSidePanels(null)"
-      @scroll-to="
-        (id) => {
-          discussPageOpen = false
-          scrollCommentIntoView(id)
-          setHoveredComment(id)
-        }
-      "
-      @reply="handleCommentReply"
+      @edit-pagination="openPaginationEditor"
+    />
+
+    <!-- 编辑演示分页对话框 -->
+    <PresentationPaginationDialog
+      v-if="docId && paginationDialogMounted"
+      ref="paginationDialogRef"
+      :doc-id="docId"
+      :document-title="title || '无标题文档'"
+      :content="content"
+      :scheme="scheme"
+      @close="paginationDialogMounted = false"
     />
 
     <ShareDialog

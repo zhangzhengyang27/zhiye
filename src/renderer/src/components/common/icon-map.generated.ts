@@ -114,7 +114,6 @@ import { CloudAlert } from "lucide-vue-next"
 import { Copy } from "lucide-vue-next"
 import { CornerDownLeft } from "lucide-vue-next"
 import { CornerDownRight } from "lucide-vue-next"
-import { Crosshair } from "lucide-vue-next"
 import { Database } from "lucide-vue-next"
 import { Eraser } from "lucide-vue-next"
 import { Eye } from "lucide-vue-next"
@@ -128,6 +127,7 @@ import { FileType } from "lucide-vue-next"
 import { FlaskConical } from "lucide-vue-next"
 import { Folder } from "lucide-vue-next"
 import { FolderInput } from "lucide-vue-next"
+import { GalleryHorizontalEnd } from "lucide-vue-next"
 import { GitCompare } from "lucide-vue-next"
 import { Highlighter } from "lucide-vue-next"
 import { History } from "lucide-vue-next"
@@ -136,6 +136,7 @@ import { ImageUp } from "lucide-vue-next"
 import { Info } from "lucide-vue-next"
 import { KeyRound } from "lucide-vue-next"
 import { Keyboard } from "lucide-vue-next"
+import { LayoutList } from "lucide-vue-next"
 import { LayoutTemplate } from "lucide-vue-next"
 import { Link } from "lucide-vue-next"
 import { Link2 } from "lucide-vue-next"
@@ -160,6 +161,8 @@ import { RefreshCw } from "lucide-vue-next"
 import { Search } from "lucide-vue-next"
 import { ShieldCheck } from "lucide-vue-next"
 import { Sparkles } from "lucide-vue-next"
+import { Square } from "lucide-vue-next"
+import { SquareCheckBig } from "lucide-vue-next"
 import { Stamp } from "lucide-vue-next"
 import { Star } from "lucide-vue-next"
 import { Table2 } from "lucide-vue-next"
@@ -296,7 +299,6 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-copy": { component: Copy },
   "i-lucide-corner-down-left": { component: CornerDownLeft },
   "i-lucide-corner-down-right": { component: CornerDownRight },
-  "i-lucide-crosshair": { component: Crosshair },
   "i-lucide-database": { component: Database },
   "i-lucide-eraser": { component: Eraser },
   "i-lucide-eye": { component: Eye },
@@ -310,6 +312,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-flask-conical": { component: FlaskConical },
   "i-lucide-folder": { component: Folder },
   "i-lucide-folder-input": { component: FolderInput },
+  "i-lucide-gallery-horizontal-end": { component: GalleryHorizontalEnd },
   "i-lucide-git-compare": { component: GitCompare },
   "i-lucide-highlighter": { component: Highlighter },
   "i-lucide-history": { component: History },
@@ -318,6 +321,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-info": { component: Info },
   "i-lucide-key-round": { component: KeyRound },
   "i-lucide-keyboard": { component: Keyboard },
+  "i-lucide-layout-list": { component: LayoutList },
   "i-lucide-layout-template": { component: LayoutTemplate },
   "i-lucide-link": { component: Link },
   "i-lucide-link-2": { component: Link2 },
@@ -342,6 +346,8 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-search": { component: Search },
   "i-lucide-shield-check": { component: ShieldCheck },
   "i-lucide-sparkles": { component: Sparkles },
+  "i-lucide-square": { component: Square },
+  "i-lucide-square-check-big": { component: SquareCheckBig },
   "i-lucide-stamp": { component: Stamp },
   "i-lucide-star": { component: Star },
   "i-lucide-table-2": { component: Table2 },

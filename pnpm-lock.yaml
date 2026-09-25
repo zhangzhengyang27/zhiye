@@ -74,6 +74,9 @@ importers:
       simple-mind-map:
         specifier: 0.14.0-fix.3
         version: 0.14.0-fix.3
+      swiper:
+        specifier: ^14.2.0
+        version: 14.2.0
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.7.0
@@ -3891,6 +3894,10 @@ packages:
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
+
+  swiper@14.2.0:
+    resolution: {integrity: sha512-GsL4M9Fq7Sg22OyL3SjdNj/0bxTfIxPJJHHW394Li0u5vYtExi0a09iBUc8CuLafJi5pAlH2AHUe1PocxHl45g==}
+    engines: {node: '>= 4.7.0'}
 
   synckit@0.11.13:
     resolution: {integrity: sha512-eNRKgb3z66Yp3D2CixVujOUvXLFUTij/zVnV8KRyvFdQwpz7I5DS8UfRkTeLzb64u+dkzDSdelE24izu+zSSUg==}
@@ -8314,6 +8321,8 @@ snapshots:
   supports-color@7.2.0:
     dependencies:
       has-flag: 4.0.0
+
+  swiper@14.2.0: {}
 
   synckit@0.11.13:
     dependencies:
