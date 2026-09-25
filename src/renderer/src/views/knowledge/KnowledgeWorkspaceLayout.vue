@@ -228,14 +228,14 @@ const handleTreeNodeDragStart = (payload: {
   beginDrag(payload)
 }
 
-/** 拖拽结算：把焦点还原到拖拽前的节点（被拖行不再保持焦点高亮） */
+/** 拖拽结算：焦点还原到拖拽前节点；拖前无焦点（刷新后直接拖）或原节点已不存在
+ *  时清焦点——否则被拖行保持焦点灰底，与当前文档行双高亮 */
 const handleTreeDragSettled = () => {
-  if (!focusedNodeIdBeforeDrag) {
-    return
-  }
-  const node = findTreeNode(treeNodes.value, focusedNodeIdBeforeDrag)
-  if (node) {
-    focusTreeNode(node)
+  if (focusedNodeIdBeforeDrag) {
+    const node = findTreeNode(treeNodes.value, focusedNodeIdBeforeDrag)
+    focusedNodeId.value = node ? node.id : null
+  } else {
+    focusedNodeId.value = null
   }
   focusedNodeIdBeforeDrag = null
 }
@@ -1026,7 +1026,12 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
       <div
         v-if="treeDragSession?.active && treeDragPointer"
         class="pointer-events-none fixed z-[var(--kb-z-dropdown)]"
-        :style="{ left: `${treeDragPointer.x + 10}px`, top: `${treeDragPointer.y + 14}px` }"
+        :style="{
+          left: `${treeDragPointer.x + 10}px`,
+          top: treeDragPointer.touch
+            ? `${treeDragPointer.y - 52}px`
+            : `${treeDragPointer.y + 14}px`,
+        }"
       >
         <div
           class="max-w-52 truncate rounded-kb-lg border border-line bg-surface px-3 py-1.5 text-[13px] text-ink shadow-[var(--kb-surface-shadow)]"
