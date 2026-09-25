@@ -210,10 +210,7 @@ const editPaginationFromPresentation = () => {
         >
           <Icon icon="i-lucide-chevron-left" class="h-4 w-4" />
         </button>
-        <span
-          class="min-w-[64px] text-center text-[12px] text-grey-100!"
-          data-presentation-counter
-        >
+        <span class="min-w-[64px] text-center text-[12px] text-grey-100!" data-presentation-counter>
           {{ pages.length > 0 ? activeIndex + 1 : 0 }} / {{ pages.length }}
         </span>
         <button
