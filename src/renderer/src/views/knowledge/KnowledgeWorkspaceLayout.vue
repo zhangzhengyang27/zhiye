@@ -211,6 +211,35 @@ const treeDragGhostTitle = computed(() => {
 
 const treeDragDisabled = computed(() => !canEdit.value || loadingTree.value || reorderingTree.value)
 
+/** 拖拽前的焦点节点：拖拽聚焦被拖行，结算后还原——否则焦点行与当前文档行双高亮 */
+let focusedNodeIdBeforeDrag: string | null = null
+
+const handleTreeNodeDragStart = (payload: {
+  node: KnowledgeDocumentTreeNode
+  event: PointerEvent
+}) => {
+  if (treeDragDisabled.value) {
+    return
+  }
+
+  closeNodeMenu()
+  focusedNodeIdBeforeDrag = focusedNodeId.value
+  focusTreeNode(payload.node)
+  beginDrag(payload)
+}
+
+/** 拖拽结算：把焦点还原到拖拽前的节点（被拖行不再保持焦点高亮） */
+const handleTreeDragSettled = () => {
+  if (!focusedNodeIdBeforeDrag) {
+    return
+  }
+  const node = findTreeNode(treeNodes.value, focusedNodeIdBeforeDrag)
+  if (node) {
+    focusTreeNode(node)
+  }
+  focusedNodeIdBeforeDrag = null
+}
+
 const {
   treeDragSession,
   treeDropTarget,
@@ -230,6 +259,7 @@ const {
   reordering: reorderingTree,
   refreshTree,
   ensureFocusedNode,
+  onDragSettled: handleTreeDragSettled,
 })
 
 const openNodeMenu = (payload: TreeNodeMenuPayload) => {
@@ -338,18 +368,6 @@ const openWorkspaceSettings = () => {
   })
 }
 
-const handleTreeNodeDragStart = (payload: {
-  node: KnowledgeDocumentTreeNode
-  event: PointerEvent
-}) => {
-  if (treeDragDisabled.value) {
-    return
-  }
-
-  closeNodeMenu()
-  focusTreeNode(payload.node)
-  beginDrag(payload)
-}
 const moveNodeDialogRef = ref<InstanceType<typeof KnowledgeMoveNodeDialog> | null>(null)
 
 const openMoveDialog = (node: KnowledgeDocumentTreeNode) => {

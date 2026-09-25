@@ -43,6 +43,8 @@ export const useTreeDrag = (options: {
   refreshTree: () => Promise<void>
   /** 回滚快照后修复聚焦节点 */
   ensureFocusedNode: () => void
+  /** 拖拽结算（提交成功/失败/取消）后回调：视图用它还原拖拽前焦点，避免焦点行与当前文档行双高亮 */
+  onDragSettled?: () => void
 }) => {
   const { treeNodes, expandedFolderIds, scrollRef } = options
   const { showToastMessage } = useTransientToast()
@@ -83,16 +85,21 @@ export const useTreeDrag = (options: {
   }
 
   const getSortedTreeRows = () => {
-    return [...treeRowRegistry.value.values()].sort((left, right) => {
-      const topDiff =
-        left.element.getBoundingClientRect().top - right.element.getBoundingClientRect().top
+    // 源行拖拽中 display:none（rect 全 0）：不参与排序/命中/缝隙兜底，
+    // 否则 top=0 会把它排到最前、兜底 band 从 y=0 起算，指针在树顶部
+    // 空白区的落点判定全部失真
+    return [...treeRowRegistry.value.values()]
+      .filter((item) => item.element.getBoundingClientRect().width > 0)
+      .sort((left, right) => {
+        const topDiff =
+          left.element.getBoundingClientRect().top - right.element.getBoundingClientRect().top
 
-      if (Math.abs(topDiff) > 0.5) {
-        return topDiff
-      }
+        if (Math.abs(topDiff) > 0.5) {
+          return topDiff
+        }
 
-      return left.depth - right.depth
-    })
+        return left.depth - right.depth
+      })
   }
 
   /** 拖拽激活的位移阈值：超过该距离才认定为拖拽手势 */
@@ -497,7 +504,11 @@ export const useTreeDrag = (options: {
       return
     }
 
+    const hadActiveDrag = treeDragSession.value.active
     resetTreeDragState()
+    if (hadActiveDrag) {
+      options.onDragSettled?.()
+    }
   }
 
   const handleGlobalTreeDragEnd = async (event: PointerEvent) => {
@@ -660,6 +671,7 @@ export const useTreeDrag = (options: {
     } finally {
       options.reordering.value = false
       resetTreeDragState()
+      options.onDragSettled?.()
     }
   }
 
