@@ -203,39 +203,42 @@ const editPaginationFromPresentation = () => {
       >
         <button
           type="button"
-          class="inline-flex h-8 w-8 items-center justify-center rounded-kb-lg text-grey-100 transition hover:bg-grey-800 disabled:cursor-default disabled:opacity-40"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-kb-lg text-grey-100! transition hover:bg-grey-800! disabled:cursor-default disabled:opacity-40"
           title="上一页（←）"
           :disabled="activeIndex === 0"
           @click="slidePrev"
         >
           <Icon icon="i-lucide-chevron-left" class="h-4 w-4" />
         </button>
-        <span class="min-w-[64px] text-center text-[12px] text-grey-100" data-presentation-counter>
+        <span
+          class="min-w-[64px] text-center text-[12px] text-grey-100!"
+          data-presentation-counter
+        >
           {{ pages.length > 0 ? activeIndex + 1 : 0 }} / {{ pages.length }}
         </span>
         <button
           type="button"
-          class="inline-flex h-8 w-8 items-center justify-center rounded-kb-lg text-grey-100 transition hover:bg-grey-800 disabled:cursor-default disabled:opacity-40"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-kb-lg text-grey-100! transition hover:bg-grey-800! disabled:cursor-default disabled:opacity-40"
           title="下一页（→ / 空格）"
           :disabled="pages.length === 0 || activeIndex >= pages.length - 1"
           @click="slideNext"
         >
           <Icon icon="i-lucide-chevron-right" class="h-4 w-4" />
         </button>
-        <span class="mx-0.5 h-4 w-px bg-grey-700" />
+        <span class="mx-0.5 h-4 w-px bg-grey-700!" />
         <button
           type="button"
-          class="inline-flex h-8 items-center gap-1.5 rounded-kb-lg px-2.5 text-[12px] text-grey-100 transition hover:bg-grey-800"
+          class="inline-flex h-8 items-center gap-1.5 rounded-kb-lg px-2.5 text-[12px] text-grey-100! transition hover:bg-grey-800!"
           title="编辑演示分页"
           @click="editPaginationFromPresentation"
         >
           <Icon icon="i-lucide-layout-list" class="h-3.5 w-3.5" />
           编辑分页
         </button>
-        <span class="mx-0.5 h-4 w-px bg-grey-700" />
+        <span class="mx-0.5 h-4 w-px bg-grey-700!" />
         <button
           type="button"
-          class="inline-flex h-8 items-center gap-1.5 rounded-kb-lg px-2.5 text-[12px] text-grey-100 transition hover:bg-grey-800"
+          class="inline-flex h-8 items-center gap-1.5 rounded-kb-lg px-2.5 text-[12px] text-grey-100! transition hover:bg-grey-800!"
           title="退出演示（Esc）"
           @click="closePresentation"
         >
