@@ -398,8 +398,6 @@ onBeforeUnmount(() => {
     >
       <div class="h-7 rounded-kb-md border-2 border-brand bg-surface" />
     </div>
-
-
   </div>
 </template>
 
