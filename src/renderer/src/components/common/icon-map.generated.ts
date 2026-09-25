@@ -94,6 +94,7 @@ import { PhWarningCircle } from "@phosphor-icons/vue"
 import { PhX } from "@phosphor-icons/vue"
 
 import { AlertCircle } from "lucide-vue-next"
+import { AppWindow } from "lucide-vue-next"
 import { Archive } from "lucide-vue-next"
 import { AtSign } from "lucide-vue-next"
 import { BadgeCheck } from "lucide-vue-next"
@@ -117,10 +118,16 @@ import { Crosshair } from "lucide-vue-next"
 import { Database } from "lucide-vue-next"
 import { Eraser } from "lucide-vue-next"
 import { Eye } from "lucide-vue-next"
+import { FileBox } from "lucide-vue-next"
+import { FileCode } from "lucide-vue-next"
 import { FileEdit } from "lucide-vue-next"
+import { FileImage } from "lucide-vue-next"
+import { FileOutput } from "lucide-vue-next"
 import { FileText } from "lucide-vue-next"
+import { FileType } from "lucide-vue-next"
 import { FlaskConical } from "lucide-vue-next"
 import { Folder } from "lucide-vue-next"
+import { FolderInput } from "lucide-vue-next"
 import { GitCompare } from "lucide-vue-next"
 import { Highlighter } from "lucide-vue-next"
 import { History } from "lucide-vue-next"
@@ -131,6 +138,7 @@ import { KeyRound } from "lucide-vue-next"
 import { Keyboard } from "lucide-vue-next"
 import { LayoutTemplate } from "lucide-vue-next"
 import { Link } from "lucide-vue-next"
+import { Link2 } from "lucide-vue-next"
 import { List } from "lucide-vue-next"
 import { Loader2 } from "lucide-vue-next"
 import { LoaderCircle } from "lucide-vue-next"
@@ -145,12 +153,13 @@ import { OctagonAlert } from "lucide-vue-next"
 import { PanelRightOpen } from "lucide-vue-next"
 import { Plus } from "lucide-vue-next"
 import { Presentation } from "lucide-vue-next"
+import { Printer } from "lucide-vue-next"
 import { QrCode } from "lucide-vue-next"
 import { RefreshCw } from "lucide-vue-next"
 import { Search } from "lucide-vue-next"
-import { Settings2 } from "lucide-vue-next"
 import { ShieldCheck } from "lucide-vue-next"
 import { Sparkles } from "lucide-vue-next"
+import { Stamp } from "lucide-vue-next"
 import { Star } from "lucide-vue-next"
 import { Table2 } from "lucide-vue-next"
 import { TableOfContents } from "lucide-vue-next"
@@ -162,6 +171,7 @@ import { User } from "lucide-vue-next"
 import { UserPlus } from "lucide-vue-next"
 import { UserRound } from "lucide-vue-next"
 import { Wand2 } from "lucide-vue-next"
+import { Waypoints } from "lucide-vue-next"
 import { X } from "lucide-vue-next"
 
 /** 源码中出现的图标名 -> 本地图标组件（attrs 为渲染时附加的默认属性）。 */
@@ -265,6 +275,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "ph:warning-circle": { component: PhWarningCircle },
   "ph:x": { component: PhX },
   "i-lucide-alert-circle": { component: AlertCircle },
+  "i-lucide-app-window": { component: AppWindow },
   "i-lucide-archive": { component: Archive },
   "i-lucide-at-sign": { component: AtSign },
   "i-lucide-badge-check": { component: BadgeCheck },
@@ -288,10 +299,16 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-database": { component: Database },
   "i-lucide-eraser": { component: Eraser },
   "i-lucide-eye": { component: Eye },
+  "i-lucide-file-box": { component: FileBox },
+  "i-lucide-file-code": { component: FileCode },
   "i-lucide-file-edit": { component: FileEdit },
+  "i-lucide-file-image": { component: FileImage },
+  "i-lucide-file-output": { component: FileOutput },
   "i-lucide-file-text": { component: FileText },
+  "i-lucide-file-type": { component: FileType },
   "i-lucide-flask-conical": { component: FlaskConical },
   "i-lucide-folder": { component: Folder },
+  "i-lucide-folder-input": { component: FolderInput },
   "i-lucide-git-compare": { component: GitCompare },
   "i-lucide-highlighter": { component: Highlighter },
   "i-lucide-history": { component: History },
@@ -302,6 +319,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-keyboard": { component: Keyboard },
   "i-lucide-layout-template": { component: LayoutTemplate },
   "i-lucide-link": { component: Link },
+  "i-lucide-link-2": { component: Link2 },
   "i-lucide-list": { component: List },
   "i-lucide-loader-2": { component: Loader2 },
   "i-lucide-loader-circle": { component: LoaderCircle },
@@ -316,12 +334,13 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-panel-right-open": { component: PanelRightOpen },
   "i-lucide-plus": { component: Plus },
   "i-lucide-presentation": { component: Presentation },
+  "i-lucide-printer": { component: Printer },
   "i-lucide-qr-code": { component: QrCode },
   "i-lucide-refresh-cw": { component: RefreshCw },
   "i-lucide-search": { component: Search },
-  "i-lucide-settings-2": { component: Settings2 },
   "i-lucide-shield-check": { component: ShieldCheck },
   "i-lucide-sparkles": { component: Sparkles },
+  "i-lucide-stamp": { component: Stamp },
   "i-lucide-star": { component: Star },
   "i-lucide-table-2": { component: Table2 },
   "i-lucide-table-of-contents": { component: TableOfContents },
@@ -333,5 +352,6 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-user-plus": { component: UserPlus },
   "i-lucide-user-round": { component: UserRound },
   "i-lucide-wand-2": { component: Wand2 },
+  "i-lucide-waypoints": { component: Waypoints },
   "i-lucide-x": { component: X },
 }

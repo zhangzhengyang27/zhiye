@@ -1,7 +1,7 @@
 <!-- 组件说明：KnowledgeDocEditorView 组件，负责页面展示与交互逻辑。 -->
 <script setup lang="ts">
 /** 页面组件，负责知识库文档编辑、保存、评论与版本侧栏的主流程编排。 */
-import { formatClockTime, formatDateTime } from "@/utils/date-format"
+import { formatClockTime, formatDateTime, formatShortDate } from "@/utils/date-format"
 import { isImeComposing } from "@/utils/keyboard"
 import {
   computed,
@@ -47,6 +47,7 @@ import {
   type DocumentLikeInfo,
   type KnowledgeDocumentItem,
   type KnowledgeDocumentVersionItem,
+  type KnowledgeDocumentTreeNode,
 } from "@/services/knowledge-documents"
 import {
   appendDocumentLocalSnapshot,
@@ -55,11 +56,7 @@ import {
   type DocumentLocalSnapshot,
 } from "@/utils/document-local-cache"
 import { getKnowledgeDocumentRouteTarget, isBoardDocument } from "@/utils/knowledge-document"
-import {
-  extractDocumentOutline,
-  extractDocumentPlainText,
-  type DocumentOutlineItem,
-} from "@/utils/document-content-metadata"
+import { extractDocumentPlainText } from "@/utils/document-content-metadata"
 import {
   getSharedMarkdown,
   renderKnowledgeDocumentHtmlWithMermaid,
@@ -144,7 +141,6 @@ const EDITOR_TOOLBAR_ITEMS = [
   // Lake 内置查找替换（⇧⌘F 唤起面板；内核 search 插件提供 search/replaceText/replaceAll 命令）
   "search",
 ]
-import type { DocumentInfoAction } from "@/components/editor/info/DocumentInfoQuickActionsCard.vue"
 const DocumentInfoPanel = defineAsyncComponent(
   () => import("@/components/editor/DocumentInfoPanel.vue"),
 )
@@ -168,6 +164,9 @@ const KnowledgeNetworkDialog = defineAsyncComponent(
   () => import("@/components/editor/KnowledgeNetworkDialog.vue"),
 )
 const ConfirmDialog = defineAsyncComponent(() => import("@/components/common/ConfirmDialog.vue"))
+const KnowledgeMoveNodeDialog = defineAsyncComponent(
+  () => import("@/components/knowledge/KnowledgeMoveNodeDialog.vue"),
+)
 
 const loadDocumentExportTools = () => import("@/utils/document-export")
 
@@ -301,6 +300,19 @@ type VersionSelection = { kind: "version"; id: string } | { kind: "local"; at: n
 const versionSelection = ref<VersionSelection>(null)
 const versionPreview = ref<{ loading: boolean; scheme: string; value: string } | null>(null)
 const historyPageRef = ref<{ openSaveForm?: () => void; closeSaveForm?: () => void } | null>(null)
+/** 「移动…」对话框：与目录树移动复用同一组件，作用于当前文档 */
+const moveDialogRef = ref<{ open: (node: KnowledgeDocumentTreeNode) => void } | null>(null)
+const openMoveDialog = () => {
+  if (!docId.value) {
+    return
+  }
+  const node = findTreeNode(workspaceContext.treeNodes.value, docId.value)
+  if (!node) {
+    showToastMessage("未在目录中找到当前文档。", "error")
+    return
+  }
+  moveDialogRef.value?.open(node)
+}
 /** 历史全页的 tab（全部记录/版本/本地缓存）：跨开关保留浏览位置 */
 const versionsHistoryTab = ref<"records" | "versions" | "local">("records")
 /** 「讨论」全页（对齐语雀真机：顶栏讨论按钮打开全页评论视图） */
@@ -1012,10 +1024,6 @@ const loadedStateLabel = computed(() =>
 /** D22：内容防抖镜像（400ms）——大纲与字数属展示统计，走镜像避免逐键重算/闪跳 */
 const contentMirror = refDebounced(content, 400)
 
-const outlineItems = computed<DocumentOutlineItem[]>(() => {
-  return extractDocumentOutline(contentMirror.value, scheme.value)
-})
-
 const plainTextContent = computed(() => {
   return extractDocumentPlainText(contentMirror.value, scheme.value)
 })
@@ -1062,46 +1070,6 @@ const headerFeedbackItems = computed(() => {
   return items
 })
 
-const documentInfoStats = computed(() => [
-  { label: "字数", value: `${plainTextContent.value.length}` },
-  { label: "标题", value: `${outlineItems.value.length}` },
-  { label: "协作", value: `${workspaceMembers.value.length}` },
-])
-
-/** 对齐语雀信息面板：创建者 / 创建时间 / 更新时间 */
-const documentInfoMeta = computed(() => [
-  { label: "创建者", value: docCreatorLabel.value || "—" },
-  { label: "创建时间", value: docCreatedAt.value ? formatDateTime(docCreatedAt.value) : "—" },
-  {
-    label: "更新时间",
-    value: snapshot.value?.updatedAt ? formatDateTime(snapshot.value.updatedAt) : "—",
-  },
-])
-
-const infoPanelVisibleActions = computed<DocumentInfoAction[]>(() => [
-  "open-knowledge-network",
-  "enter-reading",
-  // Lake 原生 unicodeEmoji：光标处插入 emoji 卡（卡片自带分类/搜索面板）；编辑态可见
-  ...(canEdit.value && !isPreviewMode.value ? (["insert-emoji"] as const) : []),
-  "copy-link",
-  "copy-markdown-link",
-  "open-in-browser",
-  "open-template-library",
-  "open-share",
-  "open-history",
-  "print-doc",
-  "export-markdown",
-  "export-pdf",
-  "export-word",
-  "export-image",
-  "export-lake",
-  "save-doc",
-  "reload-doc",
-  "make-template",
-  "move-trash",
-  "toggle-favorite",
-])
-
 const handleEditorReady = (editor: unknown) => {
   editorInstance.value = editor
   // 编辑器重建（字号/段间距切换、docId 变化）都会再次走到这里，需要幂等重建
@@ -1127,10 +1095,6 @@ const mountDocTitleHost = () => {
   host.className = "doc-title-host"
   toolbar.after(host)
   docTitleHost.value = host
-}
-
-const handleRequestTemplateLibrary = () => {
-  workspaceContext.openTemplateLibrary()
 }
 
 const ensureEditPermission = (message = "当前角色没有编辑权限。") => {
@@ -1435,31 +1399,6 @@ const loadDocument = async () => {
     if (seq === documentLoadSeq) {
       loading.value = false
     }
-  }
-}
-
-const toggleFavorite = async () => {
-  if (!docId.value || togglingFavorite.value) {
-    return
-  }
-
-  togglingFavorite.value = true
-
-  try {
-    if (favorited.value) {
-      await removeKnowledgeFavorite(docId.value)
-      favorited.value = false
-      showToastMessage("已取消收藏。", "success")
-      return
-    }
-
-    await addKnowledgeFavorite(docId.value)
-    favorited.value = true
-    showToastMessage("已收藏。", "success")
-  } catch (error) {
-    showToastMessage(error instanceof Error ? error.message : "更新收藏状态失败。", "error")
-  } finally {
-    togglingFavorite.value = false
   }
 }
 
@@ -2261,42 +2200,15 @@ const switchSidePanel = async (tab: DocSidePanelTab | null) => {
   await openSidePanel(tab)
 }
 
-const jumpToOutlineItem = async (itemId: string) => {
-  const opened = await openSidePanel("info")
-
-  if (!opened) {
+const openCurrentDocumentInNewTab = () => {
+  if (typeof window === "undefined") {
     return
   }
 
-  const targetIndex = outlineItems.value.findIndex((item) => item.id === itemId)
-
-  if (targetIndex < 0 || typeof document === "undefined") {
-    return
-  }
-
-  requestAnimationFrame(() => {
-    const headings = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        // Lake 渲染标题为自定义元素 ne-h1..ne-h4（非 h1-h6 标签，DOM 调试实证）
-        ".yuque-doc-editor__surface ne-h1, .yuque-doc-editor__surface ne-h2, .yuque-doc-editor__surface ne-h3, .yuque-doc-editor__surface ne-h4",
-      ),
-    )
-
-    headings[targetIndex]?.scrollIntoView({
-      block: "center",
-      behavior: "smooth",
-    })
-  })
+  window.open(window.location.href, "_blank", "noopener,noreferrer")
 }
 
-const openShareDialog = () => {
-  if (!ensureEditPermission("当前角色没有分享权限。")) {
-    return
-  }
-
-  showShareDialog.value = true
-}
-
+/** 信息面板「导出…」分发:顶栏导出菜单收编后的统一入口 */
 /**
  * 当前文档的可分享绝对地址。
  * 桌面端页面自身是 app://bundle/... ，直接取 window.location.href 会得到对收件人无效的链接。
@@ -2332,24 +2244,6 @@ const copyCurrentDocumentMarkdownLink = async () => {
   }
 }
 
-const openCurrentDocumentInNewTab = () => {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  window.open(window.location.href, "_blank", "noopener,noreferrer")
-}
-
-const saveDocumentManually = () => {
-  if (!canEdit.value) {
-    showToastMessage("当前文档为只读模式，无法保存。", "info")
-    return
-  }
-
-  void saveDocument()
-}
-
-/** 信息面板「导出…」分发:顶栏导出菜单收编后的统一入口 */
 const handleInfoExportAction = (
   action:
     "print-doc" | "export-markdown" | "export-pdf" | "export-word" | "export-image" | "export-lake",
@@ -3146,30 +3040,21 @@ onBeforeUnmount(() => {
           :doc-style="docStyle"
           :doc-width-mode="docWidthMode"
           :creator-label="docCreatorLabel"
-          :updated-at-label="snapshot?.updatedAt ? formatDateTime(snapshot.updatedAt) : ''"
-          :outline-items="outlineItems"
-          :stats="documentInfoStats"
-          :meta="documentInfoMeta"
-          :favorite="favorited"
-          :visible-actions="infoPanelVisibleActions"
+          :updated-at-label="snapshot?.updatedAt ? formatShortDate(snapshot.updatedAt) : ''"
+          :is-template="docType === 'template'"
           @open-stats="showStatsDialog = true"
           @update:doc-style="handleDocStyleUpdate"
           @update:doc-width-mode="handleDocWidthModeChange"
-          @jump-outline="jumpToOutlineItem"
           @enter-reading="enterReadingMode"
           @copy-link="copyCurrentDocumentLink"
-          @toggle-favorite="toggleFavorite"
-          @open-share="openShareDialog"
           @open-history="openVersions"
-          @open-template-library="handleRequestTemplateLibrary"
           @open-knowledge-network="openKnowledgeNetwork"
-          @insert-emoji="lakeEditorRef?.insertEmojiCard?.()"
           @copy-markdown-link="copyCurrentDocumentMarkdownLink"
+          @copy-markdown="copyDocumentAsMarkdown"
           @open-in-browser="openCurrentDocumentInNewTab"
           @export-action="handleInfoExportAction"
-          @save-doc="saveDocumentManually"
-          @reload-doc="reloadRemoteDocument()"
-          @make-template="toggleTemplate"
+          @save-as-template="toggleTemplate"
+          @move="openMoveDialog"
           @move-trash="deleteDocument"
         />
       </DocSidePanelShell>
@@ -3341,6 +3226,14 @@ onBeforeUnmount(() => {
       :danger="confirmDialog.danger ?? true"
       :confirm-text="confirmDialog.confirmText ?? '删除'"
       @confirm="confirmDialog.onConfirm"
+    />
+
+    <!-- 移动文档（信息面板「移动…」入口，复用目录树移动对话框） -->
+    <KnowledgeMoveNodeDialog
+      ref="moveDialogRef"
+      :tree-nodes="workspaceContext.treeNodes.value"
+      :can-edit="canEdit"
+      :refresh-tree="workspaceContext.refreshTree"
     />
   </div>
 

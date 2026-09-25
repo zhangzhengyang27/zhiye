@@ -1,21 +1,16 @@
 <script setup lang="ts">
 /**
- * 文档「操作与信息」面板内容（对齐语雀真机 2026-09-21：两 tab——操作与信息 / 样式设置）。
+ * 文档「操作与信息」面板内容（2026-09-25 语雀真机取证对齐）。
  *
- * 外壳（标题/关闭/宽度动画/Esc）由 DocSidePanelShell 统一承担；tab 状态面板自持
- * （此前走视图 openSidePanel('style') 会把整组侧栏关掉，样式设置 tab 实际不可用）。
- * 收编顶栏原「更多菜单」的散落能力（导出/复制/模板/回收站等 19 项动作）。
- *
- * 注：语雀面板无「协作成员」「快捷键」卡——协作入口在顶栏「协作」浮层、快捷键入口
- * 在编辑器右下角悬浮钮（EditorShortcutPanel），此处不再用 workspaceMembers 冒充
- * 文档协作者，也不与快捷键面板重复。
+ * 真机形态：下划线式双 tab（操作与信息/样式设置）+ 知识网络图标卡 +
+ * 文档信息卡（点击开统计详情）+ 单列操作列表卡（在浏览器打开/进入阅读模式/
+ * 另存为模板/查看历史版本/导出…/复制…/移动…/删除红字），「导出…/复制…」
+ * 为可展开子菜单。此前自创的 19 宫格快捷操作、内容大纲卡、文档概况卡已按
+ * 真机移除——大纲走编辑器侧栏（顶栏「目录」），统计走「统计详情」对话框。
+ * 语雀的「文档设置」行本产品无对应文档级设置弹层，不造假渲染。
  */
 import { computed, ref } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
-import DocumentSidePanelTabs from "./DocumentSidePanelTabs.vue"
-import DocumentInfoOverviewCard from "./info/DocumentInfoOverviewCard.vue"
-import DocumentInfoQuickActionsCard from "./info/DocumentInfoQuickActionsCard.vue"
-import type { DocumentInfoAction } from "./info/DocumentInfoQuickActionsCard.vue"
 
 /** 文档级编辑样式：字号（px）+ 段间距档位。视图层与本面板共用此形状。 */
 export interface DocEditorStyle {
@@ -23,66 +18,46 @@ export interface DocEditorStyle {
   paragraphSpacing: "default" | "relax"
 }
 
-type DocumentSidePanelTab = "search" | "comments" | "versions" | "info" | "style" | "ai"
+type DocumentSidePanelTab = "info" | "style"
 
-type OutlineItem = {
-  id: string
-  text: string
-  depth: number
-}
+/** 导出子菜单项：与文档导出工具链对齐 */
+type ExportAction =
+  "print-doc" | "export-markdown" | "export-pdf" | "export-word" | "export-image" | "export-lake"
 
 const props = withDefaults(
   defineProps<{
-    outlineItems: OutlineItem[]
-    stats: Array<{ label: string; value: string }>
-    favorite: boolean
-    visibleActions?: DocumentInfoAction[]
-    actionsBadgeLabel?: string | null
-    /** 创建者 / 创建时间 / 更新时间等元信息行（对齐语雀信息面板） */
-    meta?: Array<{ label: string; value: string }>
     /** 语雀「样式设置」tab：正文样式与页面尺寸 */
     docStyle?: DocEditorStyle
     docWidthMode?: "standard" | "wide"
     creatorLabel?: string
     updatedAtLabel?: string
+    /** 当前文档是否为模板（「另存为模板」行随之切换为「取消模板」） */
+    isTemplate?: boolean
   }>(),
   {
-    visibleActions: () => ["copy-link", "open-share", "open-history", "toggle-favorite"],
-    actionsBadgeLabel: null,
-    meta: () => [],
     docStyle: undefined,
     docWidthMode: undefined,
     creatorLabel: "",
     updatedAtLabel: "",
+    isTemplate: false,
   },
 )
 
 const emit = defineEmits<{
-  "jump-outline": [itemId: string]
-  "copy-link": []
-  "toggle-favorite": []
-  "open-share": []
-  "open-history": []
-  "open-template-library": []
-  "open-knowledge-network": []
-  "insert-emoji": []
-  "enter-reading": []
-  "copy-markdown-link": []
-  "open-in-browser": []
-  "export-action": [
-    action:
-      | "print-doc"
-      | "export-markdown"
-      | "export-pdf"
-      | "export-word"
-      | "export-image"
-      | "export-lake",
-  ]
-  "save-doc": []
-  "reload-doc": []
-  "make-template": []
-  "move-trash": []
   "open-stats": []
+  "open-knowledge-network": []
+  "enter-reading": []
+  "open-history": []
+  "open-in-browser": []
+  "copy-link": []
+  "copy-markdown-link": []
+  /** 复制全文为 Markdown（顶栏 ⧉ 同能力） */
+  "copy-markdown": []
+  /** 打开移动对话框（与目录树移动同一能力） */
+  move: []
+  "move-trash": []
+  "save-as-template": []
+  "export-action": [action: ExportAction]
   "update:doc-style": [style: DocEditorStyle]
   "update:doc-width-mode": [mode: "standard" | "wide"]
 }>()
@@ -90,163 +65,89 @@ const emit = defineEmits<{
 /** tab 面板自持：样式设置此前经视图中转会把侧栏整组关掉（实际不可用） */
 const activeTab = ref<DocumentSidePanelTab>("info")
 
-const quickActions = computed(() => {
-  const actionMap: Array<{ id: DocumentInfoAction; label: string }> = [
-    { id: "open-knowledge-network", label: "知识网络" },
-    { id: "enter-reading", label: "进入阅读模式" },
-    // Lake 原生 unicodeEmoji：光标处插入 emoji 卡（卡片自带分类/搜索面板）；编辑态可见
-    { id: "insert-emoji", label: "插入表情" },
-    { id: "copy-link", label: "复制链接" },
-    { id: "open-share", label: "打开分享" },
-    { id: "open-history", label: "查看历史版本" },
-    { id: "open-template-library", label: "模板库" },
-    { id: "toggle-favorite", label: props.favorite ? "取消收藏" : "收藏文档" },
-    // 顶栏收编的原「更多菜单」能力(对齐语雀操作与信息列表的 导出…/复制…/移动…/删除)
-    { id: "copy-markdown-link", label: "复制标题链接" },
-    { id: "open-in-browser", label: "在浏览器打开" },
-    { id: "print-doc", label: "打印文档" },
-    { id: "export-markdown", label: "导出为 Markdown" },
-    { id: "export-pdf", label: "导出为 PDF" },
-    { id: "export-word", label: "导出为 Word" },
-    { id: "export-image", label: "导出为图片" },
-    { id: "export-lake", label: "导出为语雀文档 (.lake)" },
-    { id: "save-doc", label: "保存文档" },
-    { id: "reload-doc", label: "重新加载文档" },
-    { id: "make-template", label: "设为模板" },
-    { id: "move-trash", label: "移入回收站" },
-  ]
+/** 展开的子菜单（导出…/复制…；同刻只展开一个） */
+const expandedMenu = ref<"export" | "copy" | null>(null)
 
-  return actionMap.filter((action) => props.visibleActions.includes(action.id))
-})
+const toggleMenu = (key: "export" | "copy") => {
+  expandedMenu.value = expandedMenu.value === key ? null : key
+}
 
-/**
- * 徽章配色（T4 评审 I-2 基线保真）：壳时代 AppBadge 的 toneClass bg-muted
- * （dark=grey-100→rgb(20,20,20)）压过本处调用点的 bg-grey-200（dark=#1f1f1f），
- * muted 为基线渲染真值；解散后冲突消失、grey-200 胜出导致暗底 +11/通道
- * （info-dark pixdiff 775 major）——故移除 bg-grey-200，底色交由校准段
- * .el-tag 基准（muted）承担。备选（暗色更可见）属产品决策，留待用户拍板。
- */
-const quickActionsBadge = computed(() => {
-  if (props.actionsBadgeLabel) {
-    return {
-      label: props.actionsBadgeLabel,
-      className: "text-ink-tertiary",
-    }
-  }
+const exportItems: Array<{ action: ExportAction; label: string; icon: string }> = [
+  { action: "export-markdown", label: "导出为 Markdown", icon: "i-lucide-file-text" },
+  { action: "export-pdf", label: "导出为 PDF", icon: "i-lucide-file-type" },
+  { action: "export-word", label: "导出为 Word", icon: "i-lucide-file-type" },
+  { action: "export-image", label: "导出为图片", icon: "i-lucide-file-image" },
+  { action: "export-lake", label: "导出为语雀文档 (.lake)", icon: "i-lucide-file-box" },
+  { action: "print-doc", label: "打印文档", icon: "i-lucide-printer" },
+]
 
-  if (props.visibleActions.includes("toggle-favorite")) {
-    return props.favorite
-      ? {
-          label: "已收藏",
-          className: "bg-warning-bg text-warning-hover",
-        }
-      : {
-          label: "未收藏",
-          className: "text-ink-tertiary",
-        }
-  }
+const copyItems: Array<{
+  emit: "copy-link" | "copy-markdown-link" | "copy-markdown"
+  label: string
+  icon: string
+}> = [
+  { emit: "copy-link", label: "复制链接", icon: "i-lucide-link" },
+  { emit: "copy-markdown-link", label: "复制标题链接", icon: "i-lucide-link-2" },
+  { emit: "copy-markdown", label: "复制为 Markdown", icon: "i-lucide-file-code" },
+]
 
-  return {
-    label: "快捷操作",
-    className: "text-ink-tertiary",
-  }
-})
+const templateLabel = computed(() => (props.isTemplate ? "取消模板" : "另存为模板"))
 
-const handleQuickAction = (action: DocumentInfoAction) => {
-  if (action === "open-knowledge-network") {
-    emit("open-knowledge-network")
-    return
-  }
+type CopyItemEmit = (typeof copyItems)[number]["emit"]
 
-  if (action === "enter-reading") {
-    emit("enter-reading")
-    return
-  }
-
-  if (action === "copy-link") {
+/** 动态事件名在模板 emit 类型推导下不好表达，收敛为分发函数 */
+const runCopyAction = (key: CopyItemEmit) => {
+  if (key === "copy-link") {
     emit("copy-link")
-    return
-  }
-
-  if (action === "open-share") {
-    emit("open-share")
-    return
-  }
-
-  if (action === "open-history") {
-    emit("open-history")
-    return
-  }
-
-  if (action === "open-template-library") {
-    emit("open-template-library")
-    return
-  }
-
-  if (action === "copy-markdown-link") {
+  } else if (key === "copy-markdown-link") {
     emit("copy-markdown-link")
-    return
+  } else {
+    emit("copy-markdown")
   }
-
-  if (action === "open-in-browser") {
-    emit("open-in-browser")
-    return
-  }
-
-  if (action === "insert-emoji") {
-    emit("insert-emoji")
-    return
-  }
-
-  if (
-    action === "print-doc" ||
-    action === "export-markdown" ||
-    action === "export-pdf" ||
-    action === "export-word" ||
-    action === "export-image" ||
-    action === "export-lake"
-  ) {
-    emit("export-action", action)
-    return
-  }
-
-  if (action === "save-doc") {
-    emit("save-doc")
-    return
-  }
-
-  if (action === "reload-doc") {
-    emit("reload-doc")
-    return
-  }
-
-  if (action === "make-template") {
-    emit("make-template")
-    return
-  }
-
-  if (action === "move-trash") {
-    emit("move-trash")
-    return
-  }
-
-  emit("toggle-favorite")
 }
 </script>
 
 <template>
   <div class="min-h-full bg-surface-soft px-4 py-4">
-    <div class="mb-3">
-      <DocumentSidePanelTabs
-        :active-tab="activeTab"
-        :tabs="['info', 'style']"
-        @switch-tab="activeTab = $event"
-      />
+    <!-- 下划线式 tab（对齐语雀真机：无边框容器、选中黑字加粗+黑色下划线） -->
+    <div class="flex items-center gap-6 border-b border-line px-1">
+      <button
+        type="button"
+        class="relative py-2.5 text-[13px] transition"
+        :class="
+          activeTab === 'info'
+            ? 'font-semibold text-ink'
+            : 'text-ink-tertiary hover:text-ink-secondary'
+        "
+        @click="activeTab = 'info'"
+      >
+        操作与信息
+        <span
+          v-if="activeTab === 'info'"
+          class="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-ink"
+        />
+      </button>
+      <button
+        type="button"
+        class="relative py-2.5 text-[13px] transition"
+        :class="
+          activeTab === 'style'
+            ? 'font-semibold text-ink'
+            : 'text-ink-tertiary hover:text-ink-secondary'
+        "
+        @click="activeTab = 'style'"
+      >
+        样式设置
+        <span
+          v-if="activeTab === 'style'"
+          class="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-ink"
+        />
+      </button>
     </div>
 
     <!-- 样式设置 tab（对齐语雀：页面尺寸双卡 + 正文大小 + 段间距） -->
     <template v-if="activeTab === 'style'">
-      <section class="rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
+      <section class="mt-4 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
         <p class="text-sm font-medium text-ink">文档样式</p>
         <p class="mt-1 text-xs leading-5 text-ink-quaternary">
           以下设置仅对当前文档生效；页面尺寸跟随知识库「更多设置」。
@@ -320,75 +221,152 @@ const handleQuickAction = (action: DocumentInfoAction) => {
     </template>
 
     <template v-else>
-      <!-- 文档信息卡（对齐语雀：作者 + 更新时间，点击开「统计详情」） -->
-      <section
-        v-if="creatorLabel || updatedAtLabel"
-        class="flex cursor-pointer items-center gap-3 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)] transition hover:bg-brand-faint/30"
-        @click="emit('open-stats')"
+      <!-- 知识网络卡（对齐语雀：边框方块图标 + 下方左对齐文字） -->
+      <button
+        type="button"
+        class="mt-4 -m-1 flex flex-col items-start gap-2.5 rounded-kb-xl p-1 text-left transition hover:bg-fill-subtle"
+        @click="emit('open-knowledge-network')"
       >
         <span
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-kb-xl bg-fill-muted text-ink-secondary"
+          class="flex h-[68px] w-[68px] items-center justify-center rounded-kb-2xl border border-line bg-surface"
         >
-          <Icon icon="ph:notebook" :width="18" :height="18" />
+          <Icon icon="i-lucide-waypoints" class="h-7 w-7 text-ink-secondary" />
         </span>
-        <div class="min-w-0 flex-1">
-          <p class="text-[13px] font-medium text-ink">文档信息</p>
-          <p class="mt-0.5 truncate text-[11px] text-ink-tertiary">
-            {{ creatorLabel
-            }}<template v-if="updatedAtLabel"> · 更新于 {{ updatedAtLabel }}</template>
-          </p>
-        </div>
-        <Icon icon="ph:caret-right" :width="14" :height="14" class="shrink-0 text-ink-quaternary" />
-      </section>
+        <span class="text-[14px] text-ink">知识网络</span>
+      </button>
 
-      <!-- 内容大纲置顶：信息面板首屏即见大纲（此前排快捷操作/概览之后需滚动才见） -->
-      <section class="rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-sm font-medium text-ink">内容大纲</p>
-            <p class="mt-1 text-xs text-ink-quaternary">快速跳到对应标题附近。</p>
-          </div>
-          <span
-            class="rounded-full bg-fill-muted px-2.5 py-1 text-[11px] font-medium text-ink-tertiary"
-          >
-            {{ outlineItems.length }} 个标题
+      <!-- 文档信息卡（点击开「统计详情」） -->
+      <button
+        type="button"
+        class="mt-4 flex w-full items-center gap-3 rounded-kb-xl bg-fill-subtle px-4 py-3.5 text-left transition hover:bg-fill-muted"
+        @click="emit('open-stats')"
+      >
+        <Icon icon="ph:notebook" :width="22" :height="22" class="shrink-0 text-brand" />
+        <span class="min-w-0 flex-1">
+          <span class="block text-[15px] font-medium text-ink">文档信息</span>
+          <span class="mt-0.5 block truncate text-[12px] text-ink-tertiary">
+            {{ creatorLabel }}<template v-if="updatedAtLabel"> 更新于{{ updatedAtLabel }}</template>
           </span>
-        </div>
+        </span>
+        <Icon icon="ph:caret-right" :width="14" :height="14" class="shrink-0 text-ink-quaternary" />
+      </button>
 
-        <div
-          v-if="outlineItems.length === 0"
-          class="mt-4 rounded-kb-2xl bg-muted px-4 py-6 text-center"
+      <!-- 操作列表卡（单列：图标 + 文字；导出…/复制… 可展开子菜单；删除红字） -->
+      <div class="mt-3 rounded-kb-xl bg-fill-subtle px-2 py-2">
+        <button
+          type="button"
+          class="flex h-11 w-full items-center gap-3 rounded-kb-lg px-3 text-left transition hover:bg-fill-muted"
+          @click="emit('open-in-browser')"
         >
-          <p class="text-sm font-medium text-ink-tertiary">还没有可用的大纲</p>
-          <p class="mt-1 text-xs leading-5 text-ink-quaternary">
-            插入 H1-H4 标题后，这里会自动生成结构。
-          </p>
-        </div>
+          <Icon icon="i-lucide-app-window" class="h-[18px] w-[18px] shrink-0 text-ink-secondary" />
+          <span class="text-[14px] text-ink">在浏览器打开</span>
+        </button>
+        <button
+          type="button"
+          class="flex h-11 w-full items-center gap-3 rounded-kb-lg px-3 text-left transition hover:bg-fill-muted"
+          @click="emit('enter-reading')"
+        >
+          <Icon icon="i-lucide-book-open" class="h-[18px] w-[18px] shrink-0 text-ink-secondary" />
+          <span class="text-[14px] text-ink">进入阅读模式</span>
+        </button>
+        <button
+          type="button"
+          class="flex h-11 w-full items-center gap-3 rounded-kb-lg px-3 text-left transition hover:bg-fill-muted"
+          @click="emit('save-as-template')"
+        >
+          <Icon icon="i-lucide-stamp" class="h-[18px] w-[18px] shrink-0 text-ink-secondary" />
+          <span class="text-[14px] text-ink">{{ templateLabel }}</span>
+        </button>
+        <button
+          type="button"
+          class="flex h-11 w-full items-center gap-3 rounded-kb-lg px-3 text-left transition hover:bg-fill-muted"
+          @click="emit('open-history')"
+        >
+          <Icon icon="i-lucide-history" class="h-[18px] w-[18px] shrink-0 text-ink-secondary" />
+          <span class="text-[14px] text-ink">查看历史版本</span>
+        </button>
 
-        <div v-else class="mt-4 space-y-1.5">
+        <!-- 导出… -->
+        <button
+          type="button"
+          class="flex h-11 w-full items-center gap-3 rounded-kb-lg px-3 text-left transition hover:bg-fill-muted"
+          :aria-expanded="expandedMenu === 'export'"
+          @click="toggleMenu('export')"
+        >
+          <Icon icon="i-lucide-file-output" class="h-[18px] w-[18px] shrink-0 text-ink-secondary" />
+          <span class="min-w-0 flex-1 truncate text-[14px] text-ink">导出…</span>
+          <Icon
+            icon="ph:caret-down"
+            :width="12"
+            :height="12"
+            class="shrink-0 text-ink-quaternary transition"
+            :class="expandedMenu === 'export' ? 'rotate-180' : ''"
+          />
+        </button>
+        <div v-if="expandedMenu === 'export'" class="mb-1 space-y-0.5">
           <button
-            v-for="item in outlineItems"
-            :key="item.id"
+            v-for="item in exportItems"
+            :key="item.action"
             type="button"
-            class="flex h-7 w-full items-center gap-2 rounded-kb-sm px-2 text-left text-kb-sm text-ink-secondary transition-colors hover:bg-grey-200 hover:text-brand"
-            :style="{ paddingLeft: `${12 + item.depth * 14}px` }"
-            @click="emit('jump-outline', item.id)"
+            class="flex h-9 w-full items-center gap-3 rounded-kb-lg pl-10 pr-3 text-left transition hover:bg-fill-muted"
+            @click.stop="emit('export-action', item.action)"
           >
-            <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-60" />
-            <span class="truncate">{{ item.text }}</span>
+            <Icon :icon="item.icon" class="h-4 w-4 shrink-0 text-ink-tertiary" />
+            <span class="truncate text-[13px] text-ink-secondary">{{ item.label }}</span>
           </button>
         </div>
-      </section>
 
-      <DocumentInfoQuickActionsCard
-        v-if="quickActions.length > 0"
-        class="mt-4"
-        :quick-actions="quickActions"
-        :badge="quickActionsBadge"
-        @trigger-action="handleQuickAction"
-      />
+        <!-- 复制… -->
+        <button
+          type="button"
+          class="flex h-11 w-full items-center gap-3 rounded-kb-lg px-3 text-left transition hover:bg-fill-muted"
+          :aria-expanded="expandedMenu === 'copy'"
+          @click="toggleMenu('copy')"
+        >
+          <Icon icon="i-lucide-copy" class="h-[18px] w-[18px] shrink-0 text-ink-secondary" />
+          <span class="min-w-0 flex-1 truncate text-[14px] text-ink">复制…</span>
+          <Icon
+            icon="ph:caret-down"
+            :width="12"
+            :height="12"
+            class="shrink-0 text-ink-quaternary transition"
+            :class="expandedMenu === 'copy' ? 'rotate-180' : ''"
+          />
+        </button>
+        <div v-if="expandedMenu === 'copy'" class="mb-1 space-y-0.5">
+          <button
+            v-for="item in copyItems"
+            :key="item.emit"
+            type="button"
+            class="flex h-9 w-full items-center gap-3 rounded-kb-lg pl-10 pr-3 text-left transition hover:bg-fill-muted"
+            @click.stop="runCopyAction(item.emit)"
+          >
+            <Icon :icon="item.icon" class="h-4 w-4 shrink-0 text-ink-tertiary" />
+            <span class="truncate text-[13px] text-ink-secondary">{{ item.label }}</span>
+          </button>
+        </div>
 
-      <DocumentInfoOverviewCard class="mt-4" :stats="stats" :meta="meta" />
+        <button
+          type="button"
+          class="flex h-11 w-full items-center gap-3 rounded-kb-lg px-3 text-left transition hover:bg-fill-muted"
+          @click="emit('move')"
+        >
+          <Icon
+            icon="i-lucide-folder-input"
+            class="h-[18px] w-[18px] shrink-0 text-ink-secondary"
+          />
+          <span class="text-[14px] text-ink">移动…</span>
+        </button>
+
+        <button
+          type="button"
+          class="flex h-11 w-full items-center gap-3 rounded-kb-lg px-3 text-left transition hover:bg-error-bg"
+          @click="emit('move-trash')"
+        >
+          <Icon icon="i-lucide-trash-2" class="h-[18px] w-[18px] shrink-0 text-error" />
+          <span class="text-[14px] text-error">删除</span>
+        </button>
+      </div>
     </template>
   </div>
 </template>
