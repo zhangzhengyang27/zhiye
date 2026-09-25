@@ -31,6 +31,33 @@ const replyingId = ref<string | null>(null)
 const authorFilter = ref<string>("__all__")
 const authorFilterOpen = ref(false)
 
+/** 语雀的讨论是全屏沉浸模式：进入时请求真全屏（失败静默降级为页内覆盖层），
+ *  关闭/卸载时只在我们自己进入过全屏的情况下退出，不动用户既有的全屏状态 */
+const enteredFullscreen = ref(false)
+const requestImmersiveFullscreen = () => {
+  if (typeof document === "undefined" || document.fullscreenElement) {
+    return
+  }
+  document.documentElement
+    .requestFullscreen()
+    .then(() => {
+      enteredFullscreen.value = true
+    })
+    .catch(() => undefined)
+}
+const exitImmersiveFullscreen = () => {
+  if (enteredFullscreen.value && document.fullscreenElement) {
+    void document.exitFullscreen().catch(() => undefined)
+  }
+  enteredFullscreen.value = false
+}
+
+/** 底部工具条「讨论区」定位：长列表浏览后一键回到列表顶部 */
+const listAnchorRef = ref<HTMLElement | null>(null)
+const scrollToDiscussionList = () => {
+  listAnchorRef.value?.scrollIntoView({ behavior: "smooth", block: "start" })
+}
+
 /** 全部评论 = 未解决在前、按时间；人员筛选按作者（真机「全部人员」下拉） */
 const authors = computed(() => {
   const seen = new Map<string, string>()
@@ -71,7 +98,12 @@ const handleReplyKeydown = (parentId: string) => (event: KeyboardEvent) => {
   }
 }
 
-/** Esc 关闭全页（对话框压顶让位；输入法组词中的 Esc 是取消候选） */
+const closeDiscussion = () => {
+  exitImmersiveFullscreen()
+  emit("close")
+}
+
+/** Esc 退出（浏览器全屏下 Esc 会先被用于退出全屏，keydown 仍会到达，两步同时发生可接受） */
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key !== "Escape" || isImeComposing(event) || hasOpenDialog()) {
     return
@@ -80,15 +112,18 @@ const handleKeydown = (event: KeyboardEvent) => {
     authorFilterOpen.value = false
     return
   }
-  emit("close")
+  closeDiscussion()
 }
 
 onMounted(() => {
   window.addEventListener("keydown", handleKeydown)
+  // 用户手势链路内同步请求全屏（打开讨论的点击 → 视图挂载），迟到会被浏览器拒绝
+  requestImmersiveFullscreen()
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeydown)
+  exitImmersiveFullscreen()
 })
 </script>
 
@@ -103,7 +138,7 @@ onBeforeUnmount(() => {
       type="button"
       class="fixed left-5 top-4 z-10 flex items-center gap-1 rounded-kb-md px-1.5 py-1 text-[12px] text-ink-tertiary transition hover:bg-fill-muted hover:text-ink-secondary"
       title="返回文档"
-      @click="emit('close')"
+      @click="closeDiscussion"
     >
       <UiIcon icon="i-lucide-chevron-left" class="h-3.5 w-3.5" />
       <span class="max-w-[280px] truncate">{{ documentTitle }}</span>
@@ -112,7 +147,7 @@ onBeforeUnmount(() => {
       type="button"
       class="fixed right-5 top-4 z-10 rounded-kb-md p-1.5 text-ink-tertiary transition hover:bg-fill-muted hover:text-ink-secondary"
       title="关闭讨论"
-      @click="emit('close')"
+      @click="closeDiscussion"
     >
       <UiIcon icon="i-lucide-x" class="h-4 w-4" />
     </button>
@@ -281,6 +316,33 @@ onBeforeUnmount(() => {
         <UiIcon icon="i-lucide-message-circle" class="mx-auto h-9 w-9 text-ink-quaternary" />
         <p class="mt-3 text-[13px] text-ink-secondary">还没有讨论</p>
         <p class="mt-1 text-[12px] text-ink-quaternary">在正文中划选内容即可发起针对内容的讨论。</p>
+      </div>
+    </div>
+
+    <!-- 底部深色工具条（对齐语雀沉浸模式底条；仅保留本产品真实能力） -->
+    <div class="fixed bottom-6 left-1/2 z-10 -translate-x-1/2">
+      <div
+        class="flex items-center gap-1 rounded-kb-xl bg-grey-900/95 px-2 py-1.5 shadow-[var(--kb-surface-shadow)]"
+      >
+        <button
+          type="button"
+          class="inline-flex h-8 items-center gap-1.5 rounded-kb-lg px-2.5 text-[12px] text-grey-100 transition hover:bg-grey-800"
+          title="回到讨论列表"
+          @click="scrollToDiscussionList"
+        >
+          <Icon icon="i-lucide-message-circle" class="h-3.5 w-3.5" />
+          讨论区
+        </button>
+        <span class="mx-0.5 h-4 w-px bg-grey-700" />
+        <button
+          type="button"
+          class="inline-flex h-8 items-center gap-1.5 rounded-kb-lg px-2.5 text-[12px] text-grey-100 transition hover:bg-grey-800"
+          title="退出讨论（Esc）"
+          @click="closeDiscussion"
+        >
+          <Icon icon="i-lucide-minimize-2" class="h-3.5 w-3.5" />
+          退出
+        </button>
       </div>
     </div>
   </div>

@@ -148,6 +148,7 @@ import { LockOpen } from "lucide-vue-next"
 import { MailCheck } from "lucide-vue-next"
 import { MessageCircle } from "lucide-vue-next"
 import { MessageSquareText } from "lucide-vue-next"
+import { Minimize2 } from "lucide-vue-next"
 import { Network } from "lucide-vue-next"
 import { OctagonAlert } from "lucide-vue-next"
 import { PanelRightOpen } from "lucide-vue-next"
@@ -329,6 +330,7 @@ export const iconMap: Record<string, IconMapEntry> = {
   "i-lucide-mail-check": { component: MailCheck },
   "i-lucide-message-circle": { component: MessageCircle },
   "i-lucide-message-square-text": { component: MessageSquareText },
+  "i-lucide-minimize-2": { component: Minimize2 },
   "i-lucide-network": { component: Network },
   "i-lucide-octagon-alert": { component: OctagonAlert },
   "i-lucide-panel-right-open": { component: PanelRightOpen },
