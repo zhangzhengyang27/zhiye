@@ -50,6 +50,8 @@ export const useTreeDrag = (options: {
   const treeDragSession = ref<TreeDragSession | null>(null)
   const treeDropTarget = ref<TreeDropTarget | null>(null)
   const treeDragBlockedReason = ref<string | null>(null)
+  /** 拖拽中指针位置（拖拽幽灵卡片跟随渲染用；对齐语雀：源行消失 + 幽灵跟指针） */
+  const treeDragPointer = ref<{ x: number; y: number } | null>(null)
   // 未过位移阈值的手势不暴露为「拖拽中」，避免行高亮/把手样式误亮
   const draggingNodeId = computed(() =>
     treeDragSession.value?.active ? treeDragSession.value.sourceNodeId : null,
@@ -421,6 +423,7 @@ export const useTreeDrag = (options: {
     treeDragSession.value = null
     treeDropTarget.value = null
     treeDragBlockedReason.value = null
+    treeDragPointer.value = null
     clearTreeDragHoverExpand()
     stopTreeAutoScroll()
   }
@@ -449,6 +452,8 @@ export const useTreeDrag = (options: {
 
       session.active = true
     }
+
+    treeDragPointer.value = { x: event.clientX, y: event.clientY }
 
     syncTreeAutoScroll(event.clientY)
 
@@ -713,6 +718,7 @@ export const useTreeDrag = (options: {
     treeDragSession,
     treeDropTarget,
     treeDragBlockedReason,
+    treeDragPointer,
     draggingNodeId,
     registerTreeRow,
     unregisterTreeRow,

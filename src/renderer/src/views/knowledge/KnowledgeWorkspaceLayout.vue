@@ -203,10 +203,18 @@ const flatDocRows = computed(() => {
   return docs
 })
 
+/** 拖拽幽灵卡片内容：源节点标题（对齐语雀：源行消失 + 幽灵跟指针） */
+const treeDragGhostTitle = computed(() => {
+  if (!draggingNodeId.value) return ""
+  return findTreeNode(treeNodes.value, draggingNodeId.value)?.title.trim() ?? ""
+})
+
 const treeDragDisabled = computed(() => !canEdit.value || loadingTree.value || reorderingTree.value)
 
 const {
+  treeDragSession,
   treeDropTarget,
+  treeDragPointer,
   draggingNodeId,
   registerTreeRow,
   unregisterTreeRow,
@@ -994,6 +1002,21 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
         <RouterView />
       </main>
     </div>
+
+    <!-- 拖拽幽灵卡片（对齐语雀：源行从列表消失，白色浮起卡片跟随指针） -->
+    <Teleport to="body">
+      <div
+        v-if="treeDragSession?.active && treeDragPointer"
+        class="pointer-events-none fixed z-[var(--kb-z-dropdown)]"
+        :style="{ left: `${treeDragPointer.x + 10}px`, top: `${treeDragPointer.y + 14}px` }"
+      >
+        <div
+          class="max-w-52 truncate rounded-kb-lg border border-line bg-surface px-3 py-1.5 text-[13px] text-ink shadow-[var(--kb-surface-shadow)]"
+        >
+          {{ treeDragGhostTitle || " " }}
+        </div>
+      </div>
+    </Teleport>
 
     <KnowledgeMoveNodeDialog
       ref="moveNodeDialogRef"

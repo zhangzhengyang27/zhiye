@@ -121,16 +121,21 @@ const actionGroupClass = computed(() => {
   return "translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-has-[:focus-visible]:translate-x-0 group-has-[:focus-visible]:opacity-100"
 })
 
+/**
+ * 落点指示（对齐语雀 2026-09-25 真机取证）：before/after = 整行 2px brand 描边框
+ * （不是指示线），行底保持透明；inside = 行自身不变，由行后的空槽框表达插入位置。
+ */
 const dropIndicatorClass = computed(() => {
   if (!isDropTarget.value || !props.dropPosition) {
     return ""
   }
 
   if (props.dropPosition === "before" || props.dropPosition === "after") {
-    return "border-transparent bg-brand-faint/60"
+    // 行自身常驻 border-transparent（同属性工具类 CSS 顺序在后），brand 描边必须加 !
+    return "border-2 border-brand! bg-transparent"
   }
 
-  return "border-brand-lighter bg-brand-faint ring-2 ring-inset ring-brand-lighter"
+  return "border-transparent"
 })
 
 const dropPreviewOffsetStyle = computed(() => ({
@@ -288,16 +293,6 @@ onBeforeUnmount(() => {
 <template>
   <div class="relative">
     <div
-      v-if="isDropTarget && dropPosition === 'before'"
-      class="pointer-events-none absolute inset-x-2 top-0 z-10 -translate-y-1/2"
-      :style="dropPreviewOffsetStyle"
-    >
-      <span
-        class="block h-[2px] rounded-full bg-gradient-to-r from-brand-lighter/0 via-brand to-brand"
-      />
-    </div>
-
-    <div
       :id="`knowledge-tree-node-${node.id}`"
       ref="rowRef"
       class="group relative z-1 flex min-h-8 items-center gap-1 rounded-kb-sm border px-2 py-1 text-[13px] transition duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-lighter has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-brand-lighter"
@@ -312,7 +307,7 @@ onBeforeUnmount(() => {
       :class="[
         rowStateClass,
         rowRingWidthClass,
-        isDraggingNode ? 'scale-[0.99] opacity-40 shadow-lg ring-1 ring-brand/30' : '',
+        isDraggingNode ? 'hidden' : '',
         isDropTarget ? 'translate-x-[1px]' : '',
         dropIndicatorClass,
       ]"
@@ -398,21 +393,13 @@ onBeforeUnmount(() => {
 
     <div
       v-if="isDropTarget && dropPosition === 'inside'"
-      class="pointer-events-none px-3 pt-1"
+      class="pointer-events-none px-3 pt-0.5 pb-0.5"
       :style="dropPreviewOffsetStyle"
     >
-      <div class="h-6 rounded-kb-md border border-brand-lighter bg-brand-faint" />
+      <div class="h-7 rounded-kb-md border-2 border-brand bg-surface" />
     </div>
 
-    <div
-      v-if="isDropTarget && dropPosition === 'after'"
-      class="pointer-events-none absolute inset-x-2 bottom-0 z-10 translate-y-1/2"
-      :style="dropPreviewOffsetStyle"
-    >
-      <span
-        class="block h-[2px] rounded-full bg-gradient-to-r from-brand-lighter/0 via-brand to-brand"
-      />
-    </div>
+
   </div>
 </template>
 
