@@ -14,6 +14,8 @@ export type TreeDropTarget = {
   index: number
   position: TreeDropPosition
   inputMode: TreeDragInputMode
+  /** 幽灵吸附坐标（语雀形态：幽灵即落点指示器）；由命中解析时计算 */
+  snap?: { x: number; y: number } | null
 }
 
 /** 描述拖拽移动过程中需要实时广播的命中状态。 */

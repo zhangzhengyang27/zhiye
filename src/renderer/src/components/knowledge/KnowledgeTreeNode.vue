@@ -130,17 +130,11 @@ const dropIndicatorClass = computed(() => {
     return ""
   }
 
-  if (props.dropPosition === "before" || props.dropPosition === "after") {
-    // 行自身常驻 border-transparent（同属性工具类 CSS 顺序在后），brand 描边必须加 !
-    return "border-2 border-brand! bg-transparent"
-  }
-
-  return "border-transparent"
+  // 对齐语雀（用户截图 2026-09-26）：before/after/inside 三态统一为
+  // 品牌色 2px 描边整行框——圈住文档行 = 文档移动到该行位置/该组下。
+  // 行自身常驻 border-transparent（同属性工具类 CSS 顺序在后），brand 描边必须加 !
+  return "border-2 border-brand! bg-transparent"
 })
-
-const dropPreviewOffsetStyle = computed(() => ({
-  paddingLeft: rowPaddingLeft.value,
-}))
 
 const syncRowRegistry = () => {
   if (!rowRef.value) {
@@ -389,14 +383,6 @@ onBeforeUnmount(() => {
           <Icon icon="ph:plus" :width="12" :height="12" />
         </button>
       </div>
-    </div>
-
-    <div
-      v-if="isDropTarget && dropPosition === 'inside'"
-      class="pointer-events-none px-3 pt-0.5 pb-0.5"
-      :style="dropPreviewOffsetStyle"
-    >
-      <div class="h-7 rounded-kb-md border-2 border-brand bg-surface" />
     </div>
   </div>
 </template>

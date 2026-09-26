@@ -6,7 +6,7 @@
  * reorder API + 失败回滚）。拖拽开始的业务副作用（关菜单、聚焦节点）
  * 由调用方在自己的 start 包装里处理。
  */
-import { computed, onBeforeUnmount, onMounted, ref, type Ref } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import type { KnowledgeDocumentTreeNode } from "@/services/knowledge-documents"
 import { reorderKnowledgeDocuments } from "@/services/knowledge-documents"
@@ -52,9 +52,15 @@ export const useTreeDrag = (options: {
   const treeDragSession = ref<TreeDragSession | null>(null)
   const treeDropTarget = ref<TreeDropTarget | null>(null)
   const treeDragBlockedReason = ref<string | null>(null)
-  /** 拖拽中指针位置（拖拽幽灵卡片跟随渲染用；对齐语雀：源行消失 + 幽灵跟指针）。
-   *  pointerType 随会话：触屏时幽灵偏移向上，避免手指盖住卡片 */
-  const treeDragPointer = ref<{ x: number; y: number; touch: boolean } | null>(null)
+  /** 拖拽中指针位置 + 幽灵吸附位（对齐语雀：幽灵即落点指示器——指针进入命中带时
+   *  幽灵吸附到插入点/组内空槽，未命中时跟指针。触屏时偏移向上避免手指遮挡） */
+  const treeDragPointer = ref<{
+    x: number
+    y: number
+    touch: boolean
+    /** 幽灵吸附坐标（文档流内插入点/组内空槽中点）；null = 未命中，幽灵跟指针 */
+    snap: { x: number; y: number } | null
+  } | null>(null)
   // 未过位移阈值的手势不暴露为「拖拽中」，避免行高亮/把手样式误亮
   const draggingNodeId = computed(() =>
     treeDragSession.value?.active ? treeDragSession.value.sourceNodeId : null,
@@ -465,6 +471,7 @@ export const useTreeDrag = (options: {
       x: event.clientX,
       y: event.clientY,
       touch: session.inputMode === "touch",
+      snap: treeDropTarget.value?.snap ?? null,
     }
 
     syncTreeAutoScroll(event.clientY)
@@ -476,7 +483,51 @@ export const useTreeDrag = (options: {
       return
     }
 
-    const nextDropTarget = resolveTreeDropTargetFromPointer(event.clientY, session.inputMode)
+    applyTreeDropResolution(session, sourceNode, event.clientY)
+  }
+
+  /** 计算幽灵吸附坐标（语雀形态：幽灵即指示器）。
+   *  - before/after：插入点 = 目标行与相邻行的行间中点，x 取目标行左缘缩进（随层级）
+   *  - inside：组内空槽中点（行组件渲染的空槽位置，取目标行底部 + 一半空槽高）
+   *  - append（根级末尾）：最后一行底部 + 空槽一半 */
+  const withSnapPosition = (target: TreeDropTarget): TreeDropTarget => {
+    const rows = getSortedTreeRows()
+    let snap: { x: number; y: number } | null = null
+
+    if (target.position === "inside" && target.nodeId) {
+      const row = rows.find((item) => item.nodeId === target.nodeId)
+      if (row) {
+        const rect = row.element.getBoundingClientRect()
+        snap = { x: rect.left + 16, y: rect.bottom + 15 }
+      }
+    } else if (target.parentId === null && target.position === "append") {
+      const lastRow = rows[rows.length - 1]
+      if (lastRow) {
+        const rect = lastRow.element.getBoundingClientRect()
+        snap = { x: rect.left + 16, y: rect.bottom + 15 }
+      }
+    } else if (target.nodeId) {
+      const row = rows.find((item) => item.nodeId === target.nodeId)
+      if (row) {
+        const rect = row.element.getBoundingClientRect()
+        const midY =
+          target.position === "after" ? rect.bottom + 1 : Math.max(rect.top - 1, rect.top)
+        snap = { x: rect.left + 16, y: target.position === "after" ? midY : rect.top - 1 }
+      }
+    }
+
+    return { ...target, snap }
+  }
+
+  /** 按当前指针位置解析并应用落点指示。pointermove 与树滚动（拖住不动滚轮滚，
+   *  行位置变化但无 pointermove，指示必须随 scroll 重算，否则松手落点与
+   *  视觉指示不一致）共用。 */
+  const applyTreeDropResolution = (
+    session: TreeDragSession,
+    sourceNode: KnowledgeDocumentTreeNode,
+    clientY: number,
+  ) => {
+    const nextDropTarget = resolveTreeDropTargetFromPointer(clientY, session.inputMode)
 
     if (!nextDropTarget) {
       treeDropTarget.value = null
@@ -501,8 +552,35 @@ export const useTreeDrag = (options: {
       clearTreeDragHoverExpand()
     }
 
-    treeDropTarget.value = nextDropTarget
+    treeDropTarget.value = withSnapPosition(nextDropTarget)
+    if (treeDragPointer.value) {
+      treeDragPointer.value.snap = treeDropTarget.value?.snap ?? null
+    }
   }
+
+  /** 树面板滚动时重算落点（拖拽会话激活且已有指针位置才需要） */
+  const handleTreeScrollDuringDrag = () => {
+    const session = treeDragSession.value
+    const pointer = treeDragPointer.value
+
+    if (!session?.active || !pointer || options.disabled()) {
+      return
+    }
+
+    const sourceNode = findTreeNode(treeNodes.value, session.sourceNodeId)
+
+    if (!sourceNode) {
+      resetTreeDragState()
+      return
+    }
+
+    applyTreeDropResolution(session, sourceNode, pointer.y)
+  }
+
+  watch(scrollRef, (el, prevEl) => {
+    prevEl?.removeEventListener("scroll", handleTreeScrollDuringDrag)
+    el?.addEventListener("scroll", handleTreeScrollDuringDrag, { passive: true })
+  })
 
   const cancelTreeDrag = () => {
     if (!treeDragSession.value || options.reordering.value) {
@@ -727,6 +805,7 @@ export const useTreeDrag = (options: {
 
   onBeforeUnmount(() => {
     detach()
+    scrollRef.value?.removeEventListener("scroll", handleTreeScrollDuringDrag)
     clearTreeDragHoverExpand()
     stopTreeAutoScroll()
   })

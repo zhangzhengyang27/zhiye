@@ -209,6 +209,22 @@ const treeDragGhostTitle = computed(() => {
   return findTreeNode(treeNodes.value, draggingNodeId.value)?.title.trim() ?? ""
 })
 
+/** 幽灵位置：命中带内有吸附坐标（吸附到插入点/空槽），否则跟指针；
+ *  触屏吸附位向上偏移避免手指遮挡 */
+const ghostStyle = computed(() => {
+  const pointer = treeDragPointer.value
+  if (!pointer) return { display: "none" }
+
+  if (pointer.snap) {
+    return { left: `${pointer.snap.x}px`, top: `${pointer.snap.y - 15}px` }
+  }
+
+  return {
+    left: `${pointer.x + 10}px`,
+    top: pointer.touch ? `${pointer.y - 52}px` : `${pointer.y + 14}px`,
+  }
+})
+
 const treeDragDisabled = computed(() => !canEdit.value || loadingTree.value || reorderingTree.value)
 
 /** 拖拽前的焦点节点：拖拽聚焦被拖行，结算后还原——否则焦点行与当前文档行双高亮 */
@@ -930,6 +946,7 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
                 <div v-else class="space-y-1.5">
                   <div
                     role="tree"
+                    :data-tree-drag-active="treeDragSession?.active ? 'true' : 'false'"
                     aria-label="知识库目录"
                     :aria-activedescendant="
                       focusedNodeId ? `knowledge-tree-node-${focusedNodeId}` : undefined
@@ -962,6 +979,17 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
                       @register-row="registerTreeRow"
                       @unregister-row="unregisterTreeRow"
                     />
+
+                    <!-- 拖到树底部空白区（追加到根级末尾）的落点指示：
+                         无可圈的目标行，用空槽框表达「追加到根级末尾」（语雀同形） -->
+                    <div
+                      v-if="
+                        treeDropTarget?.position === 'append' && treeDropTarget.parentId === null
+                      "
+                      class="pointer-events-none px-3 pt-0.5"
+                    >
+                      <div class="h-7 rounded-kb-md border-2 border-brand bg-surface" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1021,17 +1049,13 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
       </main>
     </div>
 
-    <!-- 拖拽幽灵卡片（对齐语雀：源行从列表消失，白色浮起卡片跟随指针） -->
+    <!-- 拖拽幽灵卡片（对齐语雀：幽灵即落点指示器——命中时吸附到插入点/组内空槽，
+         未命中时跟指针；源行从列表消失。触屏吸附位向上偏移避免手指遮挡） -->
     <Teleport to="body">
       <div
         v-if="treeDragSession?.active && treeDragPointer"
-        class="pointer-events-none fixed z-[var(--kb-z-dropdown)]"
-        :style="{
-          left: `${treeDragPointer.x + 10}px`,
-          top: treeDragPointer.touch
-            ? `${treeDragPointer.y - 52}px`
-            : `${treeDragPointer.y + 14}px`,
-        }"
+        class="pointer-events-none fixed z-[var(--kb-z-dropdown)] transition-all duration-100"
+        :style="ghostStyle"
       >
         <div
           class="max-w-52 truncate rounded-kb-lg border border-line bg-surface px-3 py-1.5 text-[13px] text-ink shadow-[var(--kb-surface-shadow)]"
@@ -1104,3 +1128,20 @@ provide(knowledgeWorkspaceContextKey, workspaceContext)
     />
   </KnowledgePageShell>
 </template>
+
+<style>
+/* 拖拽进行中抑制所有行的 hover 浮现按钮（⋯👁＋）：指针悬于被拖路径上的行时
+   CSS :hover 仍会触发按钮浮现，与语雀拖拽态不符（目标行只显示落点指示框）。
+   data 属性挂树容器，非 scoped 全局选择器（行组件的 data-knowledge-tree-actions
+   属性跨层命中）。 */
+[data-tree-drag-active="true"] [data-knowledge-tree-actions] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* 行本身也禁用指针事件：拖拽中指针下的行不再触发 :hover 灰底，
+   落点描边框内保持干净（命中解析走 getBoundingClientRect 不受影响；
+   点击在拖拽中本就不应响应）。 */
+[data-tree-drag-active="true"] [data-knowledge-tree-row] {
+  pointer-events: none !important;
+}
+</style>
