@@ -1,6 +1,8 @@
 <script setup lang="ts">
-/** 分区组件，负责知识库侧栏知识Bases内容组织与展示（对齐语雀：蓝色文件夹 + 行式列表 + 拖拽排序）。 */
-import { ref } from "vue"
+/** 分区组件，负责知识库侧栏知识Bases内容组织与展示（对齐语雀：蓝色文件夹 + 行式列表 + 拖拽排序）。
+ *  拖拽用 pointer 事件自绘（对齐语雀形态：幽灵卡片跟指针 + 落点行高亮），不用 HTML5 DnD——
+ *  原生 DnD 幽灵样式不可控、触屏不可用、自动化验证也无法派发。 */
+import { computed, onBeforeUnmount, ref } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
 import type { KnowledgeBaseItem } from "@/services/knowledge-base"
 
@@ -18,81 +20,153 @@ const emit = defineEmits<{
   reorder: [items: { id: string; sortOrder: number }[]]
 }>()
 
-const draggedKbId = ref<string | null>(null)
-const dragOverIndex = ref<number | null>(null)
+/** 拖拽激活的位移阈值（与文档树一致） */
+const DRAG_ACTIVATION_DISTANCE_PX = 6
 
-const getKnowledgeItemClass = (active: boolean, isDragging: boolean, isDragOver: boolean) => {
+interface DragSession {
+  pointerId: number
+  fromIndex: number
+  startX: number
+  startY: number
+  active: boolean
+  pointerType: string
+}
+
+const dragSession = ref<DragSession | null>(null)
+/** 优化后的列表快照（拖拽中源行从列表消失，列表实时收拢——对齐语雀） */
+const displayItems = computed(() => {
+  const session = dragSession.value
+  if (!session?.active) return props.knowledgeBases
+  return props.knowledgeBases.filter((_, index) => index !== session.fromIndex)
+})
+/** 插入线位置：0..n（插到第 n 个显示行之前），跟随指针实时更新 */
+const dragOverIndex = ref<number | null>(null)
+/** 拖拽中指针 y（插入线定位用） */
+const dragPointerY = ref(0)
+
+const getKnowledgeItemClass = (active: boolean) => {
   const base =
-    "group flex h-8 items-center gap-2.5 rounded-kb-md px-3 text-[14px] transition-colors duration-150 cursor-grab active:cursor-grabbing"
+    "group relative flex h-8 items-center gap-2.5 rounded-kb-md px-3 text-[14px] transition-colors duration-150 cursor-grab active:cursor-grabbing"
   if (active) {
     return `${base} bg-grey-400 font-medium text-ink dark:bg-grey-500`
-  }
-  if (isDragging) {
-    return `${base} opacity-40`
-  }
-  if (isDragOver) {
-    return `${base} bg-grey-300 text-ink dark:bg-grey-400`
   }
   return `${base} text-ink-secondary hover:bg-grey-300 hover:text-ink dark:hover:bg-grey-400`
 }
 
 const isKnowledgeBaseActive = (kbId: string) => props.activeKbId === kbId
 
-const handleDragStart = (index: number, event: DragEvent) => {
-  draggedKbId.value = props.knowledgeBases[index]?.id ?? null
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = "move"
-    event.dataTransfer.setData("text/plain", String(index))
+const handlePointerDown = (index: number, event: PointerEvent) => {
+  if (event.button !== 0) return
+  // 已有会话进行中（多点触控防重入）：后按的手指不开启新会话
+  if (dragSession.value) return
+
+  dragSession.value = {
+    pointerId: event.pointerId,
+    fromIndex: index,
+    startX: event.clientX,
+    startY: event.clientY,
+    active: false,
+    pointerType: event.pointerType,
   }
+
+  window.addEventListener("pointermove", handleWindowPointerMove)
+  window.addEventListener("pointerup", handleWindowPointerUp)
+  window.addEventListener("pointercancel", cancelDrag)
 }
 
-const handleDragOver = (index: number, event: DragEvent) => {
+const handleWindowPointerMove = (event: PointerEvent) => {
+  const session = dragSession.value
+  if (!session || event.pointerId !== session.pointerId) return
+
+  if (!session.active) {
+    const dx = event.clientX - session.startX
+    const dy = event.clientY - session.startY
+    if (Math.hypot(dx, dy) < DRAG_ACTIVATION_DISTANCE_PX) return
+    session.active = true
+  }
+
+  dragPointerY.value = event.clientY
+
+  // 插入线模型（对齐语雀）：指针在某显示行的上半 → 线在该行上方；下半 → 线在下方。
+  // dragOverIndex 即「源行移除后」的显示序列插入点（0..n），落盘直接按它 splice，
+  // 不做任何原列表索引换算——此前的 display→original +1 再 -1 双重补偿是
+  // 向下拖动落点提前一格的根因。
+  const rows = Array.from(document.querySelectorAll("div[data-kb-drag-row]"))
+  let lineIndex: number | null = null
+  for (const row of rows) {
+    const r = row.getBoundingClientRect()
+    if (event.clientY >= r.top && event.clientY <= r.bottom) {
+      const displayIndex = Number(row.getAttribute("data-kb-drag-display-index"))
+      const inLowerHalf = event.clientY > r.top + r.height / 2
+      lineIndex = displayIndex + (inLowerHalf ? 1 : 0)
+      break
+    }
+  }
+  dragOverIndex.value = lineIndex
+}
+
+/** 激活拖拽后的首次 click 一律拦截：pointerup 落在行内链接上会派发 click 造成误导航 */
+const suppressClickOnce = (event: Event) => {
+  event.stopPropagation()
   event.preventDefault()
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = "move"
-  }
-  dragOverIndex.value = index
 }
 
-const handleDragLeave = (event: DragEvent) => {
-  // dragleave 会冒泡自行内子元素（图标/文字）：只有真正离开本行容器才清高亮
-  const container = event.currentTarget as HTMLElement | null
+const handleWindowPointerUp = () => {
+  const session = dragSession.value
+  if (!session) return
 
-  if (container && event.relatedTarget instanceof Node && container.contains(event.relatedTarget)) {
+  const wasActive = session.active
+  const fromIndex = session.fromIndex
+  const insertLine = dragOverIndex.value
+
+  detachWindowListeners()
+  dragSession.value = null
+  dragOverIndex.value = null
+
+  if (!wasActive) return
+
+  // 拖拽激活后松手：吞掉紧随的 click（若 pointerup 恰好落在行内链接上会触发导航）
+  window.addEventListener("click", suppressClickOnce, { capture: true, once: true })
+
+  if (insertLine === null || insertLine === fromIndex) {
+    // 线停在源行原位（或未命中行）＝无变化
     return
   }
-
-  dragOverIndex.value = null
-}
-
-const handleDrop = (targetIndex: number, event: DragEvent) => {
-  event.preventDefault()
-  const draggedId = draggedKbId.value
-  draggedKbId.value = null
-  dragOverIndex.value = null
-
-  if (!draggedId) return
-
-  // 拖拽期间列表可能已刷新：按 id 重查当前索引，过期快照直接放弃
-  const fromIndex = props.knowledgeBases.findIndex((item) => item.id === draggedId)
-  if (fromIndex < 0 || fromIndex === targetIndex) return
 
   const items = [...props.knowledgeBases]
   const [moved] = items.splice(fromIndex, 1)
   if (!moved) return
-  items.splice(targetIndex, 0, moved)
+  // 移除源行后的数组即显示序列，插入线索引直接可用
+  items.splice(Math.max(0, Math.min(insertLine, items.length)), 0, moved)
 
-  const reorderItems = items.map((item, idx) => ({
-    id: item.id,
-    sortOrder: idx,
-  }))
-  emit("reorder", reorderItems)
+  emit(
+    "reorder",
+    items.map((item, idx) => ({ id: item.id, sortOrder: idx })),
+  )
 }
 
-const handleDragEnd = () => {
-  draggedKbId.value = null
+const cancelDrag = () => {
+  detachWindowListeners()
+  dragSession.value = null
   dragOverIndex.value = null
 }
+
+const detachWindowListeners = () => {
+  window.removeEventListener("pointermove", handleWindowPointerMove)
+  window.removeEventListener("pointerup", handleWindowPointerUp)
+  window.removeEventListener("pointercancel", cancelDrag)
+}
+
+onBeforeUnmount(() => {
+  detachWindowListeners()
+})
+
+defineExpose({
+  openByIndex: (index: number) => {
+    const item = props.knowledgeBases[index]
+    if (item) window.location.hash = ""
+  },
+})
 </script>
 
 <template>
@@ -147,24 +221,23 @@ const handleDragEnd = () => {
 
       <div v-else class="space-y-0.5">
         <div
-          v-for="(item, index) in props.knowledgeBases"
+          v-for="(item, displayIndex) in displayItems"
           :key="`menu-${item.id}`"
-          :draggable="true"
-          :class="
-            getKnowledgeItemClass(
-              isKnowledgeBaseActive(item.id),
-              draggedKbId === item.id,
-              dragOverIndex === index,
-            )
-          "
-          @dragstart="handleDragStart(index, $event)"
-          @dragover="handleDragOver(index, $event)"
-          @dragleave="handleDragLeave($event)"
-          @drop="handleDrop(index, $event)"
-          @dragend="handleDragEnd"
+          data-kb-drag-row
+          :data-kb-drag-display-index="displayIndex"
+          :class="getKnowledgeItemClass(isKnowledgeBaseActive(item.id))"
+          @pointerdown.prevent="handlePointerDown(displayIndex, $event)"
         >
+          <!-- 插入线：落在当前行上缘时显示 -->
+          <span
+            v-if="dragSession?.active && dragOverIndex === displayIndex"
+            class="pointer-events-none absolute inset-x-1 top-0 z-10 h-[2px] rounded-full bg-brand"
+          />
+          <!-- draggable=false：a 元素原生链接拖拽会触发 pointercancel，
+               导致 KB 列表的 pointer 自绘拖拽被取消而根本无法拖动 -->
           <RouterLink
             :to="{ name: 'knowledge-workspace-home', params: { kbId: item.id } }"
+            :draggable="false"
             class="flex min-w-0 flex-1 items-center gap-2.5"
             @click.stop
           >
@@ -200,6 +273,14 @@ const handleDragEnd = () => {
               >{{ item.name }}</span
             >
           </RouterLink>
+        </div>
+
+        <!-- 插入线：落在列表末尾（最后一行下方）时显示 -->
+        <div
+          v-if="dragSession?.active && dragOverIndex === displayItems.length"
+          class="pointer-events-none relative h-0"
+        >
+          <span class="absolute inset-x-1 top-[-1px] block h-[2px] rounded-full bg-brand" />
         </div>
       </div>
     </div>
