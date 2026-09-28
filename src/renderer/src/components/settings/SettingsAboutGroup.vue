@@ -3,17 +3,36 @@
  * 「关于」分组（语雀设置页的最后一个 group，`__("关于#space") + productName`）。
  *
  * 语雀此处另有「新版本可用」徽标与「安装并重启」按钮、以及 releaseNotes 更新日志列表，
- * 全部由升级器（updator）驱动；本仓无更新通道，故只保留版本行与四条链接（与语雀非
- * 升级态下的呈现一致）。四条链接的取址在 constants 里留空——不拿语雀地址凑数，空即置灰。
+ * 全部由升级器（updator）驱动。私测期实现为显式「检查更新」按钮：拉 GitHub Releases
+ * 最新版比对（主进程 update-check），发现新版引导前往 Releases 页下载——macOS 静默
+ * 自动更新要等 Developer ID 签名（docs/发布链路-2026-09-28.md 未完成事项）。非升级态的
+ * 版本行 + 四条链接与语雀呈现一致；链接取址在 constants 里留空——不拿语雀地址凑数。
  */
+import { ref } from "vue"
 import logoUrl from "@/assets/zhiye-logo.png"
 import { ABOUT_LINKS, PRODUCT_NAME } from "@/constants/desktop-settings"
 import { useDesktopSettings } from "@/composables/useDesktopSettings"
+import { isDesktopApp } from "@/services/desktop-bridge"
+import type { DesktopUpdateCheckResult } from "@/types/desktop-bridge"
 
 const { openExternal } = useDesktopSettings()
 
 /** 语雀显示为 `version(projectVersion)`，本仓无 projectVersion（构建号）概念。 */
 const version = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : ""
+
+const checking = ref(false)
+const checkResult = ref<DesktopUpdateCheckResult | null>(null)
+
+const handleCheckUpdates = async () => {
+  if (checking.value) return
+  checking.value = true
+  checkResult.value = null
+  try {
+    checkResult.value = (await window.xiaoyeDesktop?.checkForUpdates()) ?? null
+  } finally {
+    checking.value = false
+  }
+}
 </script>
 
 <template>
@@ -26,7 +45,33 @@ const version = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : ""
           <p class="kb-about-version-title">当前版本</p>
           <p class="kb-about-version">{{ version }}</p>
         </div>
+        <!-- 检查更新（仅桌面端）：语雀非升级态此处无按钮，私测期提供显式入口 -->
+        <el-button
+          v-if="isDesktopApp()"
+          class="kb-about-check-btn"
+          text
+          size="small"
+          :loading="checking"
+          @click="handleCheckUpdates"
+          >检查更新</el-button
+        >
       </div>
+
+      <!-- 检查结果行：最新 / 新版本（徽标对齐语雀升级态）/ 失败原因 -->
+      <p v-if="checkResult?.status === 'up-to-date'" class="kb-about-update-line">已是最新版本</p>
+      <div v-else-if="checkResult?.status === 'available'" class="kb-about-update-line">
+        <span class="kb-about-update-badge">新版本 v{{ checkResult.latestVersion }} 可用</span>
+        <button
+          type="button"
+          class="kb-about-update-download"
+          @click="checkResult.releaseUrl && openExternal(checkResult.releaseUrl)"
+        >
+          前往下载
+        </button>
+      </div>
+      <p v-else-if="checkResult?.status === 'error'" class="kb-about-update-line is-error">
+        {{ checkResult.message }}
+      </p>
 
       <div v-for="link in ABOUT_LINKS" :key="link.key" class="kb-about-term">
         <h2
@@ -62,6 +107,43 @@ const version = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : ""
 
 .kb-about-version-wrapper {
   margin-right: 8px;
+}
+
+.kb-about-check-btn {
+  margin-top: 10px;
+}
+
+.kb-about-update-line {
+  color: var(--kb-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 4px 0 0;
+  padding-left: 4px;
+}
+
+.kb-about-update-line.is-error {
+  color: var(--el-color-danger);
+}
+
+.kb-about-update-badge {
+  background: var(--kb-brand-light);
+  border-radius: 999px;
+  color: var(--kb-brand);
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  margin-right: 8px;
+  padding: 4px 10px;
+}
+
+.kb-about-update-download {
+  background: none;
+  border: none;
+  color: var(--kb-brand);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
 }
 
 .kb-about-version-title {

@@ -27,6 +27,16 @@ export interface OpenDocumentWindowResult {
   reason?: "invalid-path" | "limit"
 }
 
+/** 检查更新结果（与主进程 update-check.ts 的 DesktopUpdateCheckResult 同构）。 */
+export interface DesktopUpdateCheckResult {
+  status: "up-to-date" | "available" | "error"
+  currentVersion: string
+  latestVersion?: string
+  releaseUrl?: string
+  releaseNotes?: string
+  message?: string
+}
+
 /** 系统通知（macOS 通知中心）的发送结果。 */
 export interface DesktopNotifyResult {
   shown: boolean
@@ -107,6 +117,8 @@ export interface XiaoyeDesktopApi {
   onToast: (callback: (message: string) => void) => () => void
   /** 打开（或聚焦）偏好设置独立窗口。 */
   openSettingsWindow: () => Promise<{ opened: boolean }>
+  /** 检查更新（GitHub Releases 最新版比对），设置页「关于」分组用。 */
+  checkForUpdates: () => Promise<DesktopUpdateCheckResult>
   /** 订阅 knowledge:// 深链解析结果（站内路由路径），App.vue 订阅并跳转 */
   onDeepLink: (callback: (targetPath: string) => void) => void
   /** 开机自启真值在操作系统侧（系统设置里也可能被改），需向主进程读取。 */

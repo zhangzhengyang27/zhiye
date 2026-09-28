@@ -97,6 +97,8 @@ const desktopApi = {
     }),
   /** 打开（或聚焦）偏好设置独立窗口——侧栏入口用，与菜单/托盘走同一个入口函数。 */
   openSettingsWindow: () => ipcRenderer.invoke("xiaoye:open-settings-window"),
+  /** 检查更新（GitHub Releases 最新版比对），设置页「关于」分组与应用菜单共用逻辑。 */
+  checkForUpdates: () => ipcRenderer.invoke("xiaoye:check-for-updates"),
   /**
    * 订阅 knowledge:// 深链（主进程解析为站内路径后推送，App.vue 订阅并 router.push）。
    * 冷启动场景主窗 did-finish-load 后冲刷，本监听在渲染层 setup 注册，时序早于冲刷。

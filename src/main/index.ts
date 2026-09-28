@@ -54,6 +54,7 @@ import {
   teardownLoginWindow,
 } from "./login-window"
 import { registerSecureStoreIpc } from "./secure-store"
+import { checkForDesktopUpdate } from "./update-check"
 import { attachNavigationGuard } from "./window-navigation"
 import { DEEP_LINK_PROTOCOL, parseKnowledgeDeepLink } from "./deep-link"
 
@@ -353,17 +354,42 @@ const focusedContentWindow = (): BrowserWindow | null => {
   return win && !isLockWindow(win) ? win : null
 }
 
-/** 「检查更新」：自动更新链路（签名 + electron-updater）未接入前的占位提示。 */
+/** 「检查更新」：真检查 GitHub Releases，结果弹窗；发现新版引导前往下载。 */
 const checkForUpdatesMenuItem = (): MenuItemConstructorOptions => ({
   label: "检查更新",
-  click: () => {
-    void dialog.showMessageBox({
+  click: async () => {
+    const result = await checkForDesktopUpdate()
+    if (result.status === "error") {
+      void dialog.showMessageBox({
+        type: "warning",
+        title: "检查更新",
+        message: "检查更新失败",
+        detail: result.message,
+        buttons: ["好"],
+      })
+      return
+    }
+    if (result.status === "up-to-date") {
+      void dialog.showMessageBox({
+        type: "info",
+        title: "检查更新",
+        message: `当前已是最新版本 v${result.currentVersion}`,
+        buttons: ["好"],
+      })
+      return
+    }
+    const { response } = await dialog.showMessageBox({
       type: "info",
       title: "检查更新",
-      message: `当前为私测版 v${app.getVersion()}。`,
-      detail: "自动更新将在正式版接入，敬请期待。",
-      buttons: ["好"],
+      message: `发现新版本 v${result.latestVersion}（当前 v${result.currentVersion}）`,
+      detail: result.releaseNotes || "前往 GitHub Releases 页面下载安装包。",
+      buttons: ["取消", "前往下载"],
+      defaultId: 1,
+      cancelId: 0,
     })
+    if (response === 1 && result.releaseUrl) {
+      void shell.openExternal(result.releaseUrl)
+    }
   },
 })
 
@@ -1048,6 +1074,9 @@ const bootstrap = () => {
     platform: process.platform,
     appVersion: app.getVersion(),
   }))
+
+  // 设置页「关于」分组的检查更新按钮（与应用菜单同一检查逻辑）
+  ipcMain.handle("xiaoye:check-for-updates", () => checkForDesktopUpdate())
 
   // 文档「在新窗口打开」：校验路径后新开一个渲染窗口加载目标 SPA 路由
   ipcMain.handle("xiaoye:open-document-window", (_event, payload: { path?: unknown }) => {
