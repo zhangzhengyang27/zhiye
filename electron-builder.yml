@@ -9,6 +9,9 @@ directories:
 files:
   - out/**
 asar: true
+# 发布产物用 ASCII 文件名：中文产物名会在 GitHub Releases 上传时
+# 触发 Node http 客户端「Request path contains unescaped characters」
+artifactName: zhiye-${version}-${arch}.${ext}
 mac:
   category: public.app-category.productivity
   icon: build/icon.icns
