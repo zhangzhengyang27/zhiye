@@ -5,8 +5,10 @@
  * 双形态：Web 端维持「底色上浮卡片」的历史观感（改动前后像素口径不变）；
  * 独立登录窗（桌面端窗口化登录）内为扁平全幅版式——无卡片、居中大标，
  * 对齐语雀登录窗。窗口顶部拖拽带由 App.vue 统一渲染，这里不重复。
- * 品牌字用 text-on-brand：暗色品牌实心底按批 21 定档墨字（两向不同档）。
+ * 品牌标用 zhiye-logo.png（与锁屏页/侧栏/设置页同一资产）。
  */
+import zhiyeLogo from "@/assets/zhiye-logo.png"
+
 defineProps<{
   title: string
   subtitle?: string
@@ -45,15 +47,12 @@ const isLoginWindow = Boolean(window.xiaoyeDesktop?.isLoginWindow)
               : 'flex items-center gap-3'
           "
         >
-          <span
-            :class="
-              isLoginWindow
-                ? 'flex h-12 w-12 shrink-0 items-center justify-center rounded-kb-2xl bg-brand text-[20px] font-semibold text-on-brand'
-                : 'flex h-11 w-11 shrink-0 items-center justify-center rounded-kb-xl bg-brand text-[18px] font-semibold text-on-brand'
-            "
+          <img
+            :src="zhiyeLogo"
+            alt="知叶"
+            :class="isLoginWindow ? 'h-12 w-12 shrink-0' : 'h-11 w-11 shrink-0'"
             aria-hidden="true"
-            >语</span
-          >
+          />
           <div class="min-w-0">
             <h1 class="text-[22px] font-bold tracking-[-0.03em] text-ink">{{ title }}</h1>
             <p v-if="subtitle" class="mt-0.5 truncate text-[13px] text-ink-tertiary">
