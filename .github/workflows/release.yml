@@ -58,6 +58,9 @@ jobs:
         env:
           # electron-builder 读取 GH_TOKEN 上传产物到 GitHub Releases（草稿态，需到 Releases 页手动发布）
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 跳过代码签名（仓库未配置签名证书/公证，安装时需右键打开过 Gatekeeper）
+          # 仓库未配置签名证书/公证：不找真证书 + 显式 ad-hoc 重签。
+          # 缺 -c.mac.identity=- 时 electron-builder 跳过签名，Electron 残留的
+          # linker-signed ad-hoc 签名会因 bundle 被改动而校验断裂，
+          # Gatekeeper 直接报「已损坏，无法打开」（见 docs/发布链路-2026-09-28.md 坑 3）
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: pnpm ${{ matrix.script }} --publish always ${{ matrix.args }}
+        run: pnpm ${{ matrix.script }} --publish always ${{ matrix.args }} -c.mac.identity=-
