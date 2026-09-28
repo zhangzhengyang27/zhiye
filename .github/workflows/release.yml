@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Publish (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Apple Silicon（macos-latest 为 ARM64 runner）
+          - os: macos-latest
+            script: build:mac
+            args: --arm64
+            target: mac-arm64
+          # macOS Intel（macos-15-intel 为 Intel x64 runner）
+          - os: macos-15-intel
+            script: build:mac
+            args: --x64
+            target: mac-x64
+        # 产品决策「仅 macOS」（zhiye/docs/平台与运营形态决策-2026-09-24.md）；
+        # 如需 Windows，参照 MelodyAir 加一行 windows-latest + build:win 即可。
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build & publish to GitHub Releases
+        env:
+          # electron-builder 读取 GH_TOKEN 上传产物到 GitHub Releases（草稿态，需到 Releases 页手动发布）
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 跳过代码签名（仓库未配置签名证书/公证，安装时需右键打开过 Gatekeeper）
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: pnpm ${{ matrix.script }} --publish always ${{ matrix.args }}

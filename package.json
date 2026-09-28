@@ -1,7 +1,7 @@
 {
   "name": "zhiye",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "知叶 - 支持桌面端（Electron）与 Web 双端的 AI 知识库",
   "author": "xiaoye",
@@ -15,6 +15,7 @@
     "start": "electron-vite preview",
     "preview:web": "vite preview",
     "dist": "node scripts/build-icon-map.mjs && electron-vite build && electron-builder",
+    "build:mac": "pnpm build && electron-builder --mac",
     "typecheck": "vue-tsc -b",
     "lint": "eslint . --ext .vue,.js,.ts,.jsx,.tsx && node scripts/check-style-tokens.mjs",
     "lint:fix": "eslint . --ext .vue,.js,.ts,.jsx,.tsx --fix",

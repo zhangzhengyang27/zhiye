@@ -16,6 +16,14 @@ mac:
     - target: dmg
       arch:
         - arm64
+    - target: zip
+      arch:
+        - arm64
     - target: dir
       arch:
         - arm64
+# 发布目标（CI release.yml 传 --publish always 时上传产物；本地 dist 默认不发布）
+publish:
+  provider: github
+  owner: zhangzhengyang27
+  repo: zhiye
