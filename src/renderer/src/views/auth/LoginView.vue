@@ -43,7 +43,10 @@ const isEmailRegisterMode = computed(() => isEmailAccount(account.value))
 
 const LOGIN_STORAGE_KEYS = {
   account: "kb-drive:last-login-account",
-  remember: "kb-drive:remember-login",
+  // v2：旧 key（remember-login）在「记住账号」默认勾选时代写入的 "1" 非用户主动
+  // 选择，换 key 使历史存量失效——登录页默认不勾选、不预填，用户主动勾选并
+  // 登录一次后才会回填账号
+  remember: "kb-drive:remember-login-v2",
   trusted: "kb-drive:trusted-device",
 } as const
 
@@ -77,7 +80,8 @@ const restoreLocalPreference = () => {
     return
   }
 
-  rememberSession.value = window.localStorage.getItem(LOGIN_STORAGE_KEYS.remember) !== "0"
+  // 默认不勾选、不预填账号；仅当用户上次主动勾选「记住账号」登录过才回填
+  rememberSession.value = window.localStorage.getItem(LOGIN_STORAGE_KEYS.remember) === "1"
   trustedDevice.value = window.localStorage.getItem(LOGIN_STORAGE_KEYS.trusted) !== "0"
 
   if (rememberSession.value) {
