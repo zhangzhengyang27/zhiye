@@ -2,11 +2,12 @@
 /**
  * 文档「操作与信息」面板内容（2026-09-25 语雀真机取证对齐）。
  *
- * 真机形态：下划线式双 tab（操作与信息/样式设置）+ 知识网络图标卡 +
- * 文档信息卡（点击开统计详情）+ 单列操作列表卡（在浏览器打开/进入阅读模式/
- * 另存为模板/查看历史版本/导出…/复制…/移动…/删除红字），「导出…/复制…」
- * 为可展开子菜单。此前自创的 19 宫格快捷操作、内容大纲卡、文档概况卡已按
- * 真机移除——大纲走编辑器侧栏（顶栏「目录」），统计走「统计详情」对话框。
+ * 真机形态：tab 行在面板头部（视图层经 DocSidePanelShell 的 #title 插槽渲染，
+ * 本组件只承载 tab 内容）+ 知识网络图标卡 + 文档信息卡（点击开统计详情）+
+ * 单列操作列表卡（在浏览器打开/进入阅读模式/另存为模板/查看历史版本/导出…/
+ * 复制…/移动…/删除红字），「导出…/复制…」为可展开子菜单。此前自创的
+ * 19 宫格快捷操作、文档概况卡已按真机移除；内容大纲不做成卡——语雀阅读态
+ * 右侧自动展开的是大纲栏（Lake TOC），大纲卡属重复建设。
  * 语雀的「文档设置」行本产品无对应文档级设置弹层，不造假渲染。
  */
 import { computed, ref } from "vue"
@@ -18,7 +19,8 @@ export interface DocEditorStyle {
   paragraphSpacing: "default" | "relax"
 }
 
-type DocumentSidePanelTab = "info" | "style"
+/** 面板双 tab：tab 行渲染在壳头部，状态经 prop/emit 与视图层同步 */
+export type DocumentInfoTab = "info" | "style"
 
 /** 导出子菜单项：与文档导出工具链对齐 */
 type ExportAction =
@@ -33,6 +35,10 @@ const props = withDefaults(
     updatedAtLabel?: string
     /** 当前文档是否为模板（「另存为模板」行随之切换为「取消模板」） */
     isTemplate?: boolean
+    /** 当前是否处于阅读模式（动作行随之切换为「退出阅读模式」） */
+    reading?: boolean
+    /** 当前 tab（tab 行渲染在壳头部，状态提升在视图层） */
+    activeTab?: DocumentInfoTab
   }>(),
   {
     docStyle: undefined,
@@ -40,6 +46,8 @@ const props = withDefaults(
     creatorLabel: "",
     updatedAtLabel: "",
     isTemplate: false,
+    reading: false,
+    activeTab: "info",
   },
 )
 
@@ -47,6 +55,7 @@ const emit = defineEmits<{
   "open-stats": []
   "open-knowledge-network": []
   "enter-reading": []
+  "update:active-tab": [tab: DocumentInfoTab]
   "open-history": []
   "open-in-browser": []
   "copy-link": []
@@ -62,8 +71,7 @@ const emit = defineEmits<{
   "update:doc-width-mode": [mode: "standard" | "wide"]
 }>()
 
-/** tab 面板自持：样式设置此前经视图中转会把侧栏整组关掉（实际不可用） */
-const activeTab = ref<DocumentSidePanelTab>("info")
+/** tab 行渲染在壳头部（视图层 #title 插槽），本组件按 activeTab prop 切换内容 */
 
 /** 展开的子菜单（导出…/复制…；同刻只展开一个） */
 const expandedMenu = ref<"export" | "copy" | null>(null)
@@ -109,42 +117,6 @@ const runCopyAction = (key: CopyItemEmit) => {
 
 <template>
   <div class="min-h-full bg-surface-soft px-4 py-4">
-    <!-- 下划线式 tab（对齐语雀真机：无边框容器、选中黑字加粗+黑色下划线） -->
-    <div class="flex items-center gap-6 border-b border-line px-1">
-      <button
-        type="button"
-        class="relative py-2.5 text-[13px] transition"
-        :class="
-          activeTab === 'info'
-            ? 'font-semibold text-ink'
-            : 'text-ink-tertiary hover:text-ink-secondary'
-        "
-        @click="activeTab = 'info'"
-      >
-        操作与信息
-        <span
-          v-if="activeTab === 'info'"
-          class="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-ink"
-        />
-      </button>
-      <button
-        type="button"
-        class="relative py-2.5 text-[13px] transition"
-        :class="
-          activeTab === 'style'
-            ? 'font-semibold text-ink'
-            : 'text-ink-tertiary hover:text-ink-secondary'
-        "
-        @click="activeTab = 'style'"
-      >
-        样式设置
-        <span
-          v-if="activeTab === 'style'"
-          class="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-ink"
-        />
-      </button>
-    </div>
-
     <!-- 样式设置 tab（对齐语雀：页面尺寸双卡 + 正文大小 + 段间距） -->
     <template v-if="activeTab === 'style'">
       <section class="mt-4 rounded-kb-3xl bg-surface p-4 shadow-[var(--kb-surface-shadow)]">
@@ -267,7 +239,9 @@ const runCopyAction = (key: CopyItemEmit) => {
           @click="emit('enter-reading')"
         >
           <Icon icon="i-lucide-book-open" class="h-[18px] w-[18px] shrink-0 text-ink-secondary" />
-          <span class="text-[14px] text-ink">进入阅读模式</span>
+          <span class="text-[14px] text-ink">{{
+            props.reading ? "退出阅读模式" : "进入阅读模式"
+          }}</span>
         </button>
         <button
           type="button"

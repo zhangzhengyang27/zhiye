@@ -200,13 +200,8 @@ const handleConfirmTrash = async () => {
 
 <template>
   <section class="kb-section-shell p-4">
-    <div class="flex flex-wrap items-center justify-between gap-3 px-2 pt-2">
-      <div>
-        <h2 class="text-base font-semibold text-ink">文档管理</h2>
-        <p class="mt-1 text-[13px] leading-5 text-ink-tertiary">
-          平铺查看知识库内全部文档，快速定位与清理。
-        </p>
-      </div>
+    <!-- 标题与描述由设置页页头承担，卡内只留工具行 -->
+    <div class="flex flex-wrap items-center justify-end gap-3 px-2 pt-2">
       <div class="flex items-center gap-2">
         <span class="rounded-full bg-fill-muted px-3 py-1 text-xs font-medium text-ink-tertiary">
           {{ filteredDocs.length }} 个

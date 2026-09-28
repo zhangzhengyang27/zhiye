@@ -617,10 +617,10 @@ export const rollbackKnowledgeDocumentVersion = (
   )
 
 /**
- * 记录文档访问行为。
+ * 记录文档访问行为。counted=false 表示落在去重窗口内，本次不累加阅读数。
  */
 export const recordKnowledgeDocumentView = (id: string, token?: string | null) =>
-  requestKbDriveApi(
+  requestKbDriveApi<{ counted: boolean }>(
     `/knowledge/documents/${id}/view`,
     {
       method: "POST",

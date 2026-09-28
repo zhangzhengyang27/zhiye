@@ -159,14 +159,29 @@ const handleTimeoutChange = (value: string) => {
 
         <div v-if="props.modelValue.provider === KNOWLEDGE_BOARD_AI_PROVIDERS.deepseek">
           <label class="mb-1.5 block text-[12px] font-medium text-ink-tertiary">模型</label>
+          <!-- 官方别名会自动指向最新底层模型；filterable + allow-create 允许直接
+               输入新模型名，官方上线新别名时无需等前端发版 -->
           <el-select
             :model-value="props.modelValue.model"
-            :options="KNOWLEDGE_BOARD_AI_DEEPSEEK_MODELS"
+            filterable
+            allow-create
+            default-first-option
             :offset="6"
             :show-arrow="false"
             :suffix-icon="ChevronDown"
+            placeholder="deepseek-chat"
             @update:model-value="patchProfile({ model: String($event || '') })"
-          />
+          >
+            <el-option
+              v-for="option in KNOWLEDGE_BOARD_AI_DEEPSEEK_MODELS"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
+          <p class="mt-1.5 text-[11px] leading-4 text-ink-quaternary">
+            别名自动指向 DeepSeek 最新版本；也可以直接输入其他模型名。
+          </p>
         </div>
 
         <div v-else>

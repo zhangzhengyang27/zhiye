@@ -15,6 +15,7 @@ export interface DocCommentReplyItem {
   id: string
   content: string
   authorName: string
+  authorUserId: string
   createdAtText: string
 }
 
@@ -23,6 +24,7 @@ export interface DocCommentItem {
   content: string
   authorName: string
   authorAvatar: string | null
+  authorUserId: string
   createdAtText: string
   resolved: boolean
   quote: string | null

@@ -84,7 +84,7 @@ import DocSidePanelShell from "@/components/editor/DocSidePanelShell.vue"
 import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
 import { useDialogBehavior } from "@/composables/use-dialog-behavior"
 import MentionMemberPicker from "./MentionMemberPicker.vue"
-import type { DocEditorStyle } from "@/components/editor/DocumentInfoPanel.vue"
+import type { DocEditorStyle, DocumentInfoTab } from "@/components/editor/DocumentInfoPanel.vue"
 import type { YuqueEditorRef } from "yuque-editor-core/editor"
 import { escapeHtml } from "@/utils/enhanced-rich-blocks"
 import { findTreeNode } from "@/components/knowledge/tree-utils"
@@ -106,10 +106,29 @@ const docTocOpen = ref(false)
 const syncDocTocOpen = () => {
   docTocOpen.value = lakeEditorRef.value?.tocOpen ?? false
 }
-/** 延迟一拍读回：内核切换类名在命令后下一帧可见 */
-const handleTocToggle = () => {
-  lakeEditorRef.value?.toggleToc?.()
+/** 确定性开合（非 toggle）：以 .ne-editor 实时 DOM 类为准（expose 的 tocOpen 镜像
+ *  在 toggle 后经 rAF/timeout 回读，存在滞后窗口），已是目标态则不动。
+ *  仅编辑态 Lake 实例有效（阅读态走 viewer，大纲栏由 viewer 自管，这里为无害空操作） */
+const setDocTocOpen = (open: boolean) => {
+  const editor = lakeEditorRef.value
+  if (!editor?.toggleToc) {
+    return false
+  }
+  const domOpen = document.querySelector(".ne-editor")?.classList.contains("ne-normal-toc") ?? false
+  if (domOpen !== open) {
+    editor.toggleToc()
+  }
   window.setTimeout(syncDocTocOpen, 120)
+  return true
+}
+/** 大纲栏与右侧面板互斥：编辑态 TOC 与阅读态 viewer 大纲栏都停靠窗右缘，
+ *  与 in-flow 面板并存会整块叠压（编辑器收窄后已开的 TOC 不重排）；
+ *  阅读态 viewer 大纲栏的隐藏经模板 kb-reading-toc-suppressed 类走 CSS */
+const handleTocToggle = () => {
+  closeAllSidePanels()
+  setDocTocOpen(
+    !(document.querySelector(".ne-editor")?.classList.contains("ne-normal-toc") ?? false),
+  )
 }
 
 /** 对齐语雀桌面端工具栏的可见项，保留常用格式化工具。 */
@@ -300,7 +319,11 @@ const deletingVersionId = ref<string | null>(null)
 type VersionSelection = { kind: "version"; id: string } | { kind: "local"; at: number } | null
 const versionSelection = ref<VersionSelection>(null)
 const versionPreview = ref<{ loading: boolean; scheme: string; value: string } | null>(null)
-const historyPageRef = ref<{ openSaveForm?: () => void; closeSaveForm?: () => void } | null>(null)
+const historyPageRef = ref<{
+  openSaveForm?: () => void
+  closeSaveForm?: () => void
+  failSaveForm?: () => void
+} | null>(null)
 /** 「移动…」对话框：与目录树移动复用同一组件，作用于当前文档 */
 const moveDialogRef = ref<{ open: (node: KnowledgeDocumentTreeNode) => void } | null>(null)
 const openMoveDialog = () => {
@@ -641,6 +664,7 @@ const toCommentItems = (records: CommentRecord[]): DocCommentItem[] =>
       content: record.content,
       authorName: record.user?.displayName || record.user?.name || "用户",
       authorAvatar: record.user?.avatar ?? null,
+      authorUserId: record.user?.id ?? "",
       createdAtText: formatCommentTime(record.createdAt),
       resolved: record.resolved,
       quote: isHighlightAnchor(record.position)
@@ -650,6 +674,7 @@ const toCommentItems = (records: CommentRecord[]): DocCommentItem[] =>
         id: reply.id,
         content: reply.content,
         authorName: reply.user?.displayName || reply.user?.name || "用户",
+        authorUserId: reply.user?.id ?? "",
         createdAtText: formatCommentTime(reply.createdAt),
       })),
     }))
@@ -857,17 +882,14 @@ const readingCommentDraft = ref("")
 const readingCommentsAnchor = ref<HTMLElement | null>(null)
 
 const enterReadingMode = () => {
+  // 面板收起与大纲栏展开由 isReadingMode watcher 确定性驱动（直接以 preview=1
+  // 加载的路径不经过本函数，走 onMounted 同一套），toggle 语义会造成不对称
   void router.replace({ query: { ...route.query, preview: "1" } })
-  // 对齐语雀阅读态：大纲侧栏自动展开（退出时对称收起；Lake toggleTocView 为开关语义）
-  lakeEditorRef.value?.toggleToc?.()
-  window.setTimeout(syncDocTocOpen, 120)
 }
 
 const exitReadingMode = () => {
   // query 值置 undefined 时 vue-router 会移除该键
   void router.replace({ query: { ...route.query, preview: undefined } })
-  lakeEditorRef.value?.toggleToc?.()
-  window.setTimeout(syncDocTocOpen, 120)
 }
 
 const scrollToReadingComments = () => {
@@ -916,19 +938,61 @@ const handleReadingCommentKeydown = (event: KeyboardEvent | Event) => {
   void submitReadingComment()
 }
 
-/** 文内评论（无锚点普通评论）：发布后刷新评论列表 */
+/** 阅读尾楼中楼回复：内联输入框挂在被回复的评论/回复行下方（不抢占顶部主输入框）。
+ *  后端评论树只嵌一层，parentId 恒为顶层评论 id；回复「某条回复」时在内容前
+ *  带「回复 @某人：」标明对象（对齐语雀楼中楼的 @ 口径） */
+const readingReplyTo = ref<{
+  parentId: string
+  anchorId: string
+  authorName: string
+  prefix: string
+} | null>(null)
+const readingReplyDraft = ref("")
+
+const cancelReadingReply = () => {
+  readingReplyTo.value = null
+  readingReplyDraft.value = ""
+}
+
+const beginReadingReply = (target: {
+  parentId: string
+  anchorId: string
+  authorName: string
+  isReplyTarget?: boolean
+}) => {
+  readingReplyTo.value = {
+    parentId: target.parentId,
+    anchorId: target.anchorId,
+    authorName: target.authorName,
+    prefix: target.isReplyTarget ? `回复 @${target.authorName}：` : "",
+  }
+  readingReplyDraft.value = ""
+  void nextTick(() => {
+    document.querySelector<HTMLTextAreaElement>("[data-reading-reply-composer] textarea")?.focus()
+  })
+}
+
 const submitReadingComment = async () => {
-  const content = readingCommentDraft.value.trim()
+  const replyTo = readingReplyTo.value
+  const content = (replyTo ? readingReplyDraft.value : readingCommentDraft.value).trim()
   if (!docId.value || !content || submittingComment.value) {
     return
   }
 
   submittingComment.value = true
   try {
-    await createComment(docId.value, { content })
-    readingCommentDraft.value = ""
+    if (replyTo) {
+      await createComment(docId.value, {
+        content: `${replyTo.prefix}${content}`,
+        parentId: replyTo.parentId,
+      })
+      cancelReadingReply()
+    } else {
+      await createComment(docId.value, { content })
+      readingCommentDraft.value = ""
+    }
     await reloadDocComments()
-    showToastMessage("评论已发布。", "success")
+    showToastMessage(replyTo ? "回复已发布。" : "评论已发布。", "success")
   } catch (error) {
     logger.warn("KnowledgeDocEditorView", "submit reading comment failed:", error)
     showToastMessage(error instanceof Error ? error.message : "评论发布失败，请稍后重试。", "error")
@@ -937,11 +1001,32 @@ const submitReadingComment = async () => {
   }
 }
 
-watch(isReadingMode, (reading) => {
-  // 阅读态不提供侧栏面板入口；进入时收起避免残留，并拉取点赞信息供文末互动区
+/** 阅读尾删除自己的评论/回复（与讨论面板同一确认收口） */
+const removeReadingComment = (commentId: string) => {
+  confirmDialog.value = {
+    open: true,
+    message: "确认删除这条评论吗？",
+    onConfirm: async () => {
+      try {
+        await deleteCommentApi(commentId)
+        await reloadDocComments()
+        showToastMessage("评论已删除。", "success")
+      } catch (error) {
+        showToastMessage(error instanceof Error ? error.message : "删除评论失败", "error")
+      }
+    },
+  }
+}
+
+watch(isReadingMode, (reading, prev) => {
+  // 语雀真机：进入阅读态收起面板（viewer 自带的大纲栏自动展开，无需干预），
+  // 退出对称收起。不带 immediate（初载由 onMounted 驱动）——面板开合函数
+  // 定义在 setup 后段，immediate 会在 setup 期撞 TDZ
   if (reading) {
     closeAllSidePanels()
     void loadLikeInfo()
+  } else if (prev === true) {
+    closeAllSidePanels()
   }
 })
 const workspaceName = computed(() => workspaceContext.knowledgeBase.value?.name || "知识库")
@@ -1307,7 +1392,8 @@ const handleSaveAsVersion = async (name: string) => {
     showToastMessage(`已存为版本「${name}」。`, "success")
     await loadVersions()
   } catch (error) {
-    historyPageRef.value?.closeSaveForm?.()
+    // 失败只复位提交态：表单与已输入的版本名保留，改后可直接重试
+    historyPageRef.value?.failSaveForm?.()
     showToastMessage(error instanceof Error ? error.message : "保存版本失败。", "error")
   }
 }
@@ -1405,7 +1491,14 @@ const loadDocument = async () => {
 
     normalizeDocument(document)
     void loadCollaborators()
-    recordKnowledgeDocumentView(targetDocId).catch(() => undefined)
+    recordKnowledgeDocumentView(targetDocId)
+      .then((result) => {
+        // 后端去重窗口外才计数：本地同步 +1 让本次阅读立即生效（过期的旧响应丢弃）
+        if (seq === documentLoadSeq && result.counted) {
+          docViewCount.value += 1
+        }
+      })
+      .catch(() => undefined)
     checkKnowledgeFavorite(targetDocId)
       .then((result) => {
         if (seq === documentLoadSeq) {
@@ -2197,6 +2290,8 @@ const handleSaveShortcut = (event: KeyboardEvent) => {
 
 const commentsPanelOpen = ref(false)
 const aiPanelOpen = ref(false)
+/** 信息面板 tab：tab 行在壳头部（真机形态），状态提升到视图层供头部与面板共用 */
+const infoPanelTab = ref<DocumentInfoTab>("info")
 
 const closeSidePanels = (nextTab: DocSidePanelTab | null = null) => {
   // 历史记录已全页化：随统一收口一并关闭（进阅读态、切文档、开其它面板时）
@@ -2209,6 +2304,9 @@ const closeSidePanels = (nextTab: DocSidePanelTab | null = null) => {
 }
 
 const openSidePanel = async (tab: DocSidePanelTab) => {
+  if (tab === "info") {
+    infoPanelTab.value = "info"
+  }
   closeSidePanels(tab)
 
   if (tab === "comments") {
@@ -2224,6 +2322,8 @@ const switchSidePanel = async (tab: DocSidePanelTab | null) => {
     return
   }
 
+  // 右侧互斥：面板打开时收起 Lake 大纲栏（绝对定位停靠窗右缘，并存即叠压）
+  setDocTocOpen(false)
   await openSidePanel(tab)
 }
 
@@ -2486,6 +2586,12 @@ const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 onMounted(() => {
   window.addEventListener("keydown", handleSaveShortcut)
   window.addEventListener("keydown", handlePresentShortcut)
+  // 直达阅读态（目录树「阅读模式」按钮 / preview=1 URL / 无编辑权限读者）：
+  // 与 watcher 同一套初始化——收起面板 + 拉取点赞信息；viewer 大纲栏由 Lake 自展
+  if (isReadingMode.value) {
+    closeAllSidePanels()
+    void loadLikeInfo()
+  }
   window.addEventListener("beforeunload", handleBeforeUnload)
   window.addEventListener("online", handleOnline)
   window.addEventListener("offline", handleOffline)
@@ -2807,8 +2913,14 @@ onBeforeUnmount(() => {
       v-if="!loading && !errorMessage"
       class="relative min-h-0 flex flex-1 overflow-hidden bg-surface"
     >
-      <!-- 阅读态：本层为滚动容器（正文自适应高度 + 文末互动区同流滚动）；编辑态 contents 保持原布局 -->
-      <div :class="isReadingMode ? 'min-h-0 w-full flex-1 overflow-y-auto' : 'contents'">
+      <!-- 阅读态：本层为滚动容器（正文自适应高度 + 文末互动区同流滚动）；编辑态 contents 保持原布局。
+           面板打开时抑制 viewer 大纲栏（互斥，见样式块说明） -->
+      <div
+        :class="[
+          isReadingMode ? 'min-h-0 w-full flex-1 overflow-y-auto' : 'contents',
+          { 'kb-reading-toc-suppressed': isReadingMode && Boolean(activeSidePanel) },
+        ]"
+      >
         <!-- 阅读态标题兜底：doc-hero-title 宿主节点在工具栏之后，阅读态无工具栏故静态渲染 -->
         <div v-if="isReadingMode" class="w-full px-8 pt-6 sm:px-12 lg:px-[72px]">
           <h1 class="doc-hero-title">{{ title || "无标题文档" }}</h1>
@@ -2958,7 +3070,8 @@ onBeforeUnmount(() => {
           <section class="mt-5">
             <h2 class="text-[15px] font-semibold text-ink">全部评论 ({{ commentItems.length }})</h2>
 
-            <!-- 评论输入：盒面交给 el-textarea 默认档，外层只留间距（避免套盒） -->
+            <!-- 评论输入：盒面交给 el-textarea 默认档，外层只留间距（避免套盒）；
+                 回复走各评论行下方的内联输入框，不占用顶部主输入框 -->
             <div class="mt-3">
               <el-input
                 v-model="readingCommentDraft"
@@ -3020,6 +3133,62 @@ onBeforeUnmount(() => {
                   >
                     {{ item.content }}
                   </p>
+                  <div class="mt-1 flex items-center gap-3">
+                    <button
+                      type="button"
+                      class="text-[11px] text-ink-quaternary transition hover:text-brand"
+                      @click="
+                        beginReadingReply({
+                          parentId: item.id,
+                          anchorId: item.id,
+                          authorName: item.authorName,
+                        })
+                      "
+                    >
+                      回复
+                    </button>
+                    <button
+                      v-if="item.authorUserId === authStore.user?.id"
+                      type="button"
+                      class="text-[11px] text-ink-quaternary transition hover:text-error"
+                      @click="removeReadingComment(item.id)"
+                    >
+                      删除
+                    </button>
+                  </div>
+                  <!-- 楼中楼回复内联输入框：挂在被回复的行下方，⌘Enter 或点发布提交 -->
+                  <div
+                    v-if="readingReplyTo?.anchorId === item.id"
+                    data-reading-reply-composer
+                    class="mt-2 rounded-kb-md bg-muted px-3 py-2"
+                  >
+                    <el-input
+                      v-model="readingReplyDraft"
+                      type="textarea"
+                      :rows="2"
+                      resize="none"
+                      :placeholder="`回复 @${readingReplyTo.authorName}：`"
+                      class="resize-none overflow-hidden"
+                      @keydown="handleReadingCommentKeydown"
+                    />
+                    <div class="mt-1.5 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        class="inline-flex h-7 items-center rounded-kb-md border border-line-input bg-surface px-3 text-[12px] text-ink-secondary transition hover:border-brand-lighter hover:text-brand"
+                        @click="cancelReadingReply"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="button"
+                        class="inline-flex h-7 items-center rounded-kb-md bg-brand px-3 text-[12px] font-medium text-on-brand! transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-55"
+                        :disabled="!readingReplyDraft.trim() || submittingComment"
+                        @click="submitReadingComment"
+                      >
+                        {{ submittingComment ? "发布中…" : "发布" }}
+                      </button>
+                    </div>
+                  </div>
                   <div
                     v-if="item.replies.length > 0"
                     class="mt-2 space-y-2 border-l-2 border-line pl-3"
@@ -3036,6 +3205,63 @@ onBeforeUnmount(() => {
                       >
                         {{ reply.content }}
                       </p>
+                      <div class="mt-0.5 flex items-center gap-3">
+                        <button
+                          type="button"
+                          class="text-[11px] text-ink-quaternary transition hover:text-brand"
+                          @click="
+                            beginReadingReply({
+                              parentId: item.id,
+                              anchorId: reply.id,
+                              authorName: reply.authorName,
+                              isReplyTarget: true,
+                            })
+                          "
+                        >
+                          回复
+                        </button>
+                        <button
+                          v-if="reply.authorUserId === authStore.user?.id"
+                          type="button"
+                          class="text-[11px] text-ink-quaternary transition hover:text-error"
+                          @click="removeReadingComment(reply.id)"
+                        >
+                          删除
+                        </button>
+                      </div>
+                      <!-- 回复某条楼中楼：输入框仍挂在该回复行下方，提交归入同一顶层评论 -->
+                      <div
+                        v-if="readingReplyTo?.anchorId === reply.id"
+                        data-reading-reply-composer
+                        class="mt-1.5 rounded-kb-md bg-muted px-3 py-2"
+                      >
+                        <el-input
+                          v-model="readingReplyDraft"
+                          type="textarea"
+                          :rows="2"
+                          resize="none"
+                          :placeholder="`回复 @${readingReplyTo.authorName}：`"
+                          class="resize-none overflow-hidden"
+                          @keydown="handleReadingCommentKeydown"
+                        />
+                        <div class="mt-1.5 flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            class="inline-flex h-7 items-center rounded-kb-md border border-line-input bg-surface px-3 text-[12px] text-ink-secondary transition hover:border-brand-lighter hover:text-brand"
+                            @click="cancelReadingReply"
+                          >
+                            取消
+                          </button>
+                          <button
+                            type="button"
+                            class="inline-flex h-7 items-center rounded-kb-md bg-brand px-3 text-[12px] font-medium text-on-brand! transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-55"
+                            :disabled="!readingReplyDraft.trim() || submittingComment"
+                            @click="submitReadingComment"
+                          >
+                            {{ submittingComment ? "发布中…" : "发布" }}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3086,6 +3312,44 @@ onBeforeUnmount(() => {
         :width="sidePanelMeta.width"
         @close="closeSidePanels(null)"
       >
+        <!-- 「操作与信息」tab 行占用壳头部（真机形态：下划线双 tab 即面板头），
+             避免与面板内容里的同名 tab 叠成双标题 -->
+        <template v-if="showInfoPanel" #title>
+          <div class="flex items-center gap-6">
+            <button
+              type="button"
+              class="relative py-3 text-[13px] transition"
+              :class="
+                infoPanelTab === 'info'
+                  ? 'font-semibold text-ink'
+                  : 'text-ink-tertiary hover:text-ink-secondary'
+              "
+              @click="infoPanelTab = 'info'"
+            >
+              操作与信息
+              <span
+                v-if="infoPanelTab === 'info'"
+                class="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-ink"
+              />
+            </button>
+            <button
+              type="button"
+              class="relative py-3 text-[13px] transition"
+              :class="
+                infoPanelTab === 'style'
+                  ? 'font-semibold text-ink'
+                  : 'text-ink-tertiary hover:text-ink-secondary'
+              "
+              @click="infoPanelTab = 'style'"
+            >
+              样式设置
+              <span
+                v-if="infoPanelTab === 'style'"
+                class="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-ink"
+              />
+            </button>
+          </div>
+        </template>
         <DocumentCommentsPanel
           v-if="commentsPanelOpen"
           :comments="commentItems"
@@ -3121,10 +3385,13 @@ onBeforeUnmount(() => {
           :creator-label="docCreatorLabel"
           :updated-at-label="snapshot?.updatedAt ? formatShortDate(snapshot.updatedAt) : ''"
           :is-template="docType === 'template'"
+          :reading="isReadingMode"
+          :active-tab="infoPanelTab"
           @open-stats="showStatsDialog = true"
           @update:doc-style="handleDocStyleUpdate"
           @update:doc-width-mode="handleDocWidthModeChange"
-          @enter-reading="enterReadingMode"
+          @enter-reading="isReadingMode ? exitReadingMode() : enterReadingMode()"
+          @update:active-tab="infoPanelTab = $event"
           @copy-link="copyCurrentDocumentLink"
           @open-history="openVersions"
           @open-knowledge-network="openKnowledgeNetwork"
@@ -3331,6 +3598,33 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+/* 阅读态 viewer 大纲栏（Lake 自展，绝对定位停靠窗右缘）与右侧面板互斥：
+   面板打开时整组隐藏、关闭即还原。ne-toc-view 不会随面板打开收窄重排，
+   不抑制就会整块叠压在操作与信息/讨论/AI 面板上（用户实测翻车点）。
+   Lake 元素无 scope id，须全局样式 + !important 压过内核内联（坑 6/13 同链路） */
+.kb-reading-toc-suppressed .ne-toc-view,
+.kb-reading-toc-suppressed .ne-toc-sidebar {
+  display: none !important;
+}
+
+/* 阅读态 viewer 正文内边距：Lake viewer 固定布局自带排版（字号/字重）但
+   不带水平内边距，正文从容器边顶格铺满全宽，与阅读态大标题（px-8/12/72）
+   完全错位——此处按同一响应式档位补齐，保证标题与正文同轴。
+   !important 防 Lake 懒注入样式后到压过（坑 6/13 同链路） */
+.yuque-doc-editor .ne-viewer-body {
+  padding: 0 32px !important;
+}
+@media (min-width: 640px) {
+  .yuque-doc-editor .ne-viewer-body {
+    padding: 0 48px !important;
+  }
+}
+@media (min-width: 1024px) {
+  .yuque-doc-editor .ne-viewer-body {
+    padding: 0 72px !important;
+  }
+}
+
 /* 编辑器页懒注入的 antd.css reset `button, input { overflow: visible }`（unlayered）
    会打翻 Tailwind @layer 的 truncate（目录列头 KB 名等 button.truncate 文字溢出）。
    同为 unlayered 的对抗规则 + !important 压回（坑 6/13 同链路） */

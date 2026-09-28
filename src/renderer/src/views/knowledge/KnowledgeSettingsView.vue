@@ -56,17 +56,48 @@ type SettingsSection = "summary" | "docs" | "members" | "history" | "settings" |
 const activeSection = ref<SettingsSection>("summary")
 
 const sectionItems = [
-  { key: "summary" as SettingsSection, label: "概要", icon: "ph:squares-four" },
-  { key: "docs" as SettingsSection, label: "文档", icon: "ph:files" },
-  { key: "members" as SettingsSection, label: "成员", icon: "ph:users-three" },
-  { key: "history" as SettingsSection, label: "目录历史", icon: "ph:clock-counter-clockwise" },
-  { key: "settings" as SettingsSection, label: "设置", icon: "ph:gear" },
-  { key: "more" as SettingsSection, label: "更多设置", icon: "ph:sliders-horizontal" },
+  {
+    key: "summary" as SettingsSection,
+    label: "概要",
+    icon: "ph:squares-four",
+    description: "知识库的内容量、协作成员与基础信息一览。",
+  },
+  {
+    key: "docs" as SettingsSection,
+    label: "文档",
+    icon: "ph:files",
+    description: "平铺查看知识库内全部文档，快速定位与清理。",
+  },
+  {
+    key: "members" as SettingsSection,
+    label: "成员",
+    icon: "ph:users-three",
+    description: "添加成员、调整角色、移除协作者，保持协作秩序。",
+  },
+  {
+    key: "history" as SettingsSection,
+    label: "目录历史",
+    icon: "ph:clock-counter-clockwise",
+    description: "目录结构的定期快照，可对比并恢复到任一时点。",
+  },
+  {
+    key: "settings" as SettingsSection,
+    label: "设置",
+    icon: "ph:gear",
+    description: "名称、简介、封面与访问可见性。",
+  },
+  {
+    key: "more" as SettingsSection,
+    label: "更多设置",
+    icon: "ph:sliders-horizontal",
+    description: "评论、自动发布与新建行为等知识库级默认项。",
+  },
 ]
 
-const sectionTitle = computed(
-  () => sectionItems.find((item) => item.key === activeSection.value)?.label ?? "概要",
-)
+const sectionMeta = computed(() => {
+  const item = sectionItems.find((entry) => entry.key === activeSection.value)
+  return { label: item?.label ?? "概要", description: item?.description ?? "" }
+})
 
 /**
  * 「返回」退出设置页。独立设置窗（/kb-settings/:kbId，只含设置功能的窗口）
@@ -78,10 +109,6 @@ const closeSettings = () => {
     name: "knowledge-workspace-home",
     params: { kbId: workspaceContext.kbId.value },
   })
-}
-
-const goTrash = () => {
-  void router.push({ name: "knowledge-trash" })
 }
 
 const { showToastMessage } = useTransientToast()
@@ -708,33 +735,30 @@ onMounted(() => {
           <Icon :icon="item.icon" :width="15" :height="15" class="shrink-0 text-ink-tertiary" />
           <span class="truncate">{{ item.label }}</span>
         </button>
-
-        <button
-          type="button"
-          class="flex h-8 w-full items-center gap-2 rounded-[8px] px-2.5 text-left text-[13px] text-ink-secondary transition hover:bg-grey-200 hover:text-ink"
-          @click="goTrash"
-        >
-          <Icon icon="ph:trash" :width="15" :height="15" class="shrink-0 text-ink-tertiary" />
-          <span class="truncate">回收站</span>
-        </button>
       </nav>
     </aside>
 
     <div class="min-w-0 flex-1 overflow-y-auto">
       <div class="p-6">
-        <h2 class="text-[16px] font-semibold text-ink">{{ sectionTitle }}</h2>
+        <!-- 页头模式（全分区统一）：标题 + 定位描述 + 分隔线，卡内不再重复标题 -->
+        <header class="border-b border-line pb-5">
+          <h2 class="text-[17px] font-semibold text-ink">{{ sectionMeta.label }}</h2>
+          <p class="mt-1 text-[13px] leading-5 text-ink-tertiary">
+            {{ sectionMeta.description }}
+          </p>
+        </header>
 
         <!-- 概要：统计卡 + 成员概览 + 知识库信息（对齐语雀概要页结构） -->
-        <div v-if="activeSection === 'summary'" class="mt-4">
+        <div v-if="activeSection === 'summary'" class="mt-6">
           <div class="grid grid-cols-3 gap-3">
             <div
               v-for="stat in summaryStats"
               :key="stat.key"
-              class="rounded-[12px] border border-line bg-surface-soft px-4 py-3.5"
+              class="rounded-[12px] border border-line bg-surface-soft px-5 py-4"
             >
               <p class="text-[12px] text-ink-quaternary">{{ stat.label }}</p>
               <p
-                class="mt-1 text-[22px] font-semibold leading-7 tabular-nums tracking-[-0.02em] text-ink"
+                class="mt-1.5 text-[24px] font-semibold leading-8 tabular-nums tracking-[-0.02em] text-ink"
               >
                 {{ stat.value }}
               </p>
@@ -743,7 +767,14 @@ onMounted(() => {
 
           <div class="mt-5 rounded-[12px] border border-line bg-surface-soft p-4">
             <div class="flex items-center justify-between gap-3">
-              <h3 class="text-[14px] font-semibold text-ink">成员</h3>
+              <div class="flex items-center gap-2">
+                <h3 class="text-[14px] font-semibold text-ink">成员</h3>
+                <span
+                  v-if="!loading"
+                  class="rounded-full bg-fill-muted px-2 py-0.5 text-[11px] font-medium text-ink-tertiary"
+                  >{{ members.length }}</span
+                >
+              </div>
               <button
                 type="button"
                 class="text-[12px] text-brand transition hover:text-brand-hover"
@@ -794,16 +825,17 @@ onMounted(() => {
 
           <div class="mt-5 rounded-[12px] border border-line bg-surface-soft p-4">
             <h3 class="text-[14px] font-semibold text-ink">知识库信息</h3>
-            <dl class="mt-3 space-y-2.5 text-[13px]">
-              <div class="flex gap-3">
-                <dt class="w-16 shrink-0 text-ink-quaternary">创建者</dt>
-                <dd class="min-w-0 truncate text-ink-secondary">
+            <!-- 两列字段网格（label 上 value 下），描述占整行——替代挤压的 label 行式排布 -->
+            <dl class="mt-3.5 grid grid-cols-2 gap-x-8 gap-y-4 text-[13px]">
+              <div>
+                <dt class="text-[12px] text-ink-quaternary">创建者</dt>
+                <dd class="mt-0.5 min-w-0 truncate text-ink-secondary">
                   {{ workspaceContext.knowledgeBase.value?.creator?.displayName || "—" }}
                 </dd>
               </div>
-              <div class="flex gap-3">
-                <dt class="w-16 shrink-0 text-ink-quaternary">创建时间</dt>
-                <dd class="min-w-0 truncate text-ink-secondary">
+              <div>
+                <dt class="text-[12px] text-ink-quaternary">创建时间</dt>
+                <dd class="mt-0.5 min-w-0 truncate text-ink-secondary">
                   {{
                     workspaceContext.knowledgeBase.value?.createdAt
                       ? formatDateTime(workspaceContext.knowledgeBase.value.createdAt)
@@ -811,15 +843,15 @@ onMounted(() => {
                   }}
                 </dd>
               </div>
-              <div class="flex gap-3">
-                <dt class="w-16 shrink-0 text-ink-quaternary">可见性</dt>
-                <dd class="min-w-0 truncate text-ink-secondary">
+              <div>
+                <dt class="text-[12px] text-ink-quaternary">可见性</dt>
+                <dd class="mt-0.5 min-w-0 truncate text-ink-secondary">
                   {{ visibility === "public" ? "公开" : "私有" }}
                 </dd>
               </div>
-              <div class="flex gap-3">
-                <dt class="w-16 shrink-0 text-ink-quaternary">描述</dt>
-                <dd class="min-w-0 flex-1 text-ink-secondary">
+              <div class="col-span-2">
+                <dt class="text-[12px] text-ink-quaternary">描述</dt>
+                <dd class="mt-0.5 whitespace-pre-wrap break-words text-ink-secondary">
                   {{ workspaceContext.knowledgeBase.value?.description || "暂无描述" }}
                 </dd>
               </div>
@@ -827,7 +859,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-else-if="activeSection === 'docs'" class="mt-4">
+        <div v-else-if="activeSection === 'docs'" class="mt-6">
           <!-- 默认展开级别设置依赖 knowledgeBase（B4 #16），未加载完前不渲染卡片 -->
           <KnowledgeSettingsDocsCard
             v-if="workspaceContext.knowledgeBase.value"
@@ -840,7 +872,7 @@ onMounted(() => {
         </div>
 
         <!-- 目录历史（B2c 对齐语雀目录管理 → 查看历史）：左快照列表 + 右树预览 + 恢复 -->
-        <div v-else-if="activeSection === 'history'" class="mt-4">
+        <div v-else-if="activeSection === 'history'" class="mt-6">
           <div class="flex min-h-[360px] gap-4">
             <!-- 左：快照列表 -->
             <div class="w-64 shrink-0 space-y-1 overflow-y-auto">
@@ -931,7 +963,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-else-if="activeSection === 'members'" class="mt-4">
+        <div v-else-if="activeSection === 'members'" class="mt-6">
           <KnowledgeSettingsMembersCard
             :loading="loading"
             :members="members"
@@ -946,7 +978,7 @@ onMounted(() => {
         </div>
 
         <!-- 更多设置（对齐语雀「更多设置」页）：文档设置 / 高级选项 / 知识库设置 -->
-        <div v-else-if="activeSection === 'more'" class="mt-4 space-y-5">
+        <div v-else-if="activeSection === 'more'" class="mt-6 space-y-5">
           <div class="rounded-[12px] border border-line bg-surface-soft p-4">
             <h3 class="text-[14px] font-semibold text-ink">文档设置</h3>
             <el-radio-group
@@ -1036,7 +1068,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div v-else-if="activeSection === 'settings'" class="mt-4">
+        <div v-else-if="activeSection === 'settings'" class="mt-6">
           <KnowledgeSettingsInfoCard
             v-if="canManage && workspaceContext.knowledgeBase.value"
             :knowledge-base="workspaceContext.knowledgeBase.value"

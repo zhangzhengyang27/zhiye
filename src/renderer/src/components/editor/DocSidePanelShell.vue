@@ -75,12 +75,15 @@ onBeforeUnmount(() => {
       :style="{ width: `${width}px` }"
     >
       <header class="flex shrink-0 items-center gap-2 border-b border-line pl-4 pr-2">
-        <h2 class="min-w-0 truncate py-3 text-[15px] font-semibold text-ink">{{ title }}</h2>
-        <span
-          v-if="count !== undefined"
-          class="shrink-0 rounded-full bg-fill-muted px-2 py-0.5 text-[11px] font-medium text-ink-tertiary"
-          >{{ count }}</span
-        >
+        <!-- title 插槽：信息面板用下划线双 tab 占据头部（真机形态），其余面板走默认标题 -->
+        <slot name="title">
+          <h2 class="min-w-0 truncate py-3 text-[15px] font-semibold text-ink">{{ title }}</h2>
+          <span
+            v-if="count !== undefined"
+            class="shrink-0 rounded-full bg-fill-muted px-2 py-0.5 text-[11px] font-medium text-ink-tertiary"
+            >{{ count }}</span
+          >
+        </slot>
         <div class="ml-auto flex shrink-0 items-center gap-1.5">
           <slot name="actions" />
           <button

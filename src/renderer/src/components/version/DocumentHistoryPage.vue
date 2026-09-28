@@ -10,9 +10,11 @@
  * 「对比」下拉选另一条记录后交由父级打开 VersionCompareDialog（diff 能力复用既有对话框）。
  */
 import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import { useDialogBehavior } from "@/composables/use-dialog-behavior"
 import { hasOpenDialog } from "@/composables/dialog-stack"
 import { isImeComposing } from "@/utils/keyboard"
 import { renderKnowledgeDocumentBody } from "@/utils/knowledge-markdown"
+import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
 import type { KnowledgeDocumentVersionItem } from "@/services/knowledge-documents"
 import type { DocumentLocalSnapshot } from "@/utils/document-local-cache"
 
@@ -231,6 +233,18 @@ const submitSaveAsVersion = () => {
   emit("save-as-version", name)
 }
 
+/** 版本名输入的 Enter 提交：输入法组词中的 Enter 是确认候选，不提交 */
+const handleSaveNameKeydown = (event: KeyboardEvent | Event) => {
+  if (!(event instanceof KeyboardEvent)) {
+    return
+  }
+  if (event.key !== "Enter" || isImeComposing(event)) {
+    return
+  }
+  event.preventDefault()
+  submitSaveAsVersion()
+}
+
 const openSaveForm = () => {
   saveOpen.value = true
 }
@@ -242,7 +256,14 @@ const closeSaveForm = () => {
   saveSubmitting.value = false
 }
 
-defineExpose({ openSaveForm, closeSaveForm })
+/** 保存失败由父级触发：只复位提交态，保留表单与已输入的名称供改后重试 */
+const failSaveForm = () => {
+  saveSubmitting.value = false
+}
+
+const saveDialog = useDialogBehavior({ open: () => saveOpen.value })
+
+defineExpose({ openSaveForm, closeSaveForm, failSaveForm })
 </script>
 
 <template>
@@ -283,33 +304,41 @@ defineExpose({ openSaveForm, closeSaveForm })
       </div>
     </header>
 
-    <!-- 保存为版本：行内展开表单 -->
-    <div v-if="saveOpen" class="flex shrink-0 items-center gap-2 border-b border-line px-5 py-2.5">
-      <span class="text-[13px] text-ink-secondary">版本名称</span>
+    <!-- 保存为版本：对话框（版本名输入 + 说明；Esc/取消关闭，Enter 提交） -->
+    <el-dialog
+      v-bind="saveDialog.elDialogBindings"
+      :model-value="saveOpen"
+      class="max-w-[440px]"
+      @update:model-value="(value: boolean) => !value && closeSaveForm()"
+    >
+      <template #header>
+        <KbDialogHeader
+          eyebrow="版本"
+          title="保存为版本"
+          description="以当前文档内容创建一条版本记录，之后可在列表中随时恢复或与其他版本对比。"
+          @close="closeSaveForm()"
+        />
+      </template>
+      <p class="text-[13px] font-medium text-ink">版本名称</p>
       <el-input
         v-model="saveName"
-        size="small"
-        class="max-w-xs"
+        class="mt-2"
         maxlength="40"
-        placeholder="输入版本名称"
+        show-word-limit
+        placeholder="例如：定稿 v1 / 评审前备份"
         data-autofocus
-        @keydown.enter="submitSaveAsVersion"
+        @keydown="handleSaveNameKeydown"
       />
-      <el-button size="small" class="shrink-0" @click="saveOpen = false"
-        ><span class="truncate">取消</span></el-button
-      >
-      <el-button
-        type="primary"
-        size="small"
-        class="shrink-0"
-        :loading="saveSubmitting"
-        @click="submitSaveAsVersion"
-        ><template #loading
-          ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
-        /></template>
-        <span class="truncate">保存</span>
-      </el-button>
-    </div>
+      <template #footer>
+        <el-button @click="closeSaveForm()"><span class="truncate">取消</span></el-button>
+        <el-button type="primary" :loading="saveSubmitting" @click="submitSaveAsVersion"
+          ><template #loading
+            ><UiIcon icon="i-lucide-loader-circle" class="shrink-0 animate-spin"
+          /></template>
+          <span class="truncate">保存</span>
+        </el-button>
+      </template>
+    </el-dialog>
 
     <div class="flex min-h-0 flex-1">
       <!-- 左栏：tab + 过滤 + 记录列表 -->
@@ -379,44 +408,47 @@ defineExpose({ openSaveForm, closeSaveForm })
                   <span class="min-w-0 flex-1 truncate text-[13px] text-ink">
                     {{ row.versionName || row.timeText }}
                   </span>
+                  <!-- 版本行悬停时 pill 让位给操作盘（同位替换不跳动）；本地行无操作常驻 pill -->
                   <span
-                    class="shrink-0 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-ink-tertiary"
+                    class="shrink-0 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-ink-tertiary transition"
+                    :class="row.kind === 'version' ? 'group-hover:invisible' : ''"
                     >{{ row.statusLabel }}</span
                   >
+                  <!-- 行悬停操作盘：对比/删除收进同一块带边托盘，钉在行右侧垂直居中 -->
+                  <span
+                    v-if="row.kind === 'version'"
+                    class="absolute right-2.5 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded-kb-md border border-line bg-surface p-0.5 shadow-[var(--kb-surface-shadow)] group-hover:flex"
+                  >
+                    <button
+                      type="button"
+                      class="flex h-6 w-6 items-center justify-center rounded-kb-sm text-ink-tertiary transition hover:bg-fill-muted hover:text-brand"
+                      title="与当前版本对比"
+                      @click.stop="emit('compare-version', row.id)"
+                    >
+                      <UiIcon icon="i-lucide-git-compare" class="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      class="flex h-6 w-6 items-center justify-center rounded-kb-sm text-ink-tertiary transition hover:bg-fill-muted hover:text-error"
+                      title="删除此版本"
+                      :disabled="deletingVersionId === row.id"
+                      @click.stop="emit('delete-version', row.id)"
+                    >
+                      <UiIcon
+                        :icon="
+                          deletingVersionId === row.id
+                            ? 'i-lucide-loader-circle'
+                            : 'i-lucide-trash-2'
+                        "
+                        :class="deletingVersionId === row.id ? 'animate-spin' : ''"
+                        class="h-3.5 w-3.5"
+                      />
+                    </button>
+                  </span>
                 </span>
                 <span class="mt-0.5 flex items-center gap-2 text-[12px] text-ink-quaternary">
                   <span class="truncate">{{ row.author }}</span>
                   <span v-if="row.versionName" class="truncate">{{ row.timeText }}</span>
-                </span>
-
-                <!-- 行悬停操作：对比/删除（版本行） -->
-                <span
-                  v-if="row.kind === 'version'"
-                  class="absolute inset-y-0 right-2 hidden items-center gap-0.5 group-hover:flex"
-                >
-                  <button
-                    type="button"
-                    class="rounded-kb-md bg-surface p-1 text-ink-tertiary shadow-[var(--kb-surface-shadow)] transition hover:text-brand"
-                    title="与当前版本对比"
-                    @click.stop="emit('compare-version', row.id)"
-                  >
-                    <UiIcon icon="i-lucide-git-compare" class="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded-kb-md bg-surface p-1 text-ink-tertiary shadow-[var(--kb-surface-shadow)] transition hover:text-error"
-                    title="删除此版本"
-                    :disabled="deletingVersionId === row.id"
-                    @click.stop="emit('delete-version', row.id)"
-                  >
-                    <UiIcon
-                      :icon="
-                        deletingVersionId === row.id ? 'i-lucide-loader-circle' : 'i-lucide-trash-2'
-                      "
-                      :class="deletingVersionId === row.id ? 'animate-spin' : ''"
-                      class="h-3.5 w-3.5"
-                    />
-                  </button>
                 </span>
               </button>
             </li>

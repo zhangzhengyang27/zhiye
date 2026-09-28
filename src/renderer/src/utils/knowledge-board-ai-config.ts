@@ -22,14 +22,16 @@ export const KNOWLEDGE_BOARD_AI_DEFAULT_TIMEOUT_MS = 45_000
 export const KNOWLEDGE_BOARD_AI_DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 /** DeepSeek 提供方的默认模型。 */
 export const KNOWLEDGE_BOARD_AI_DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
-/** 当前内置支持的 DeepSeek 模型候选列表。 */
+/** 当前内置支持的 DeepSeek 模型候选列表：官方仅暴露两个稳定别名（自动指向最新底层
+ *  模型，当前为 V3.2），标签标注语义避免「chat=旧模型」的观感；表单同时允许手动
+ *  输入任意模型名，官方上线新别名时无需等前端发版。 */
 export const KNOWLEDGE_BOARD_AI_DEEPSEEK_MODELS = [
   {
-    label: "deepseek-chat",
+    label: "deepseek-chat（V3.2 非推理）",
     value: "deepseek-chat",
   },
   {
-    label: "deepseek-reasoner",
+    label: "deepseek-reasoner（V3.2 深度思考）",
     value: "deepseek-reasoner",
   },
 ]

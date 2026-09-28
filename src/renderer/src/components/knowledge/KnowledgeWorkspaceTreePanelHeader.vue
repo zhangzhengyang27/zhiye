@@ -242,16 +242,8 @@ defineExpose({
           <Icon icon="ph:house-simple" :width="15" :height="15" class="shrink-0" />
           <span>首页</span>
         </button>
-        <!-- 对齐语雀真机：行尾动作仅在该行激活时显示（首页行=设置⋯；目录行=展开/收起） -->
-        <button
-          v-if="props.isHome"
-          type="button"
-          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-kb-md text-ink-tertiary transition hover:bg-grey-200 hover:text-ink"
-          title="知识库设置"
-          @click="emit('open-settings')"
-        >
-          <Icon icon="ph:dots-three-bold" :width="14" :height="14" />
-        </button>
+        <!-- 对齐语雀真机：行尾动作仅在该行激活时显示（目录行=展开/收起；首页行不放
+             行尾动作，知识库设置入口在首页概要头部与 ⌘K 命令面板） -->
       </div>
       <div
         class="relative flex items-center gap-1 rounded-kb-md"

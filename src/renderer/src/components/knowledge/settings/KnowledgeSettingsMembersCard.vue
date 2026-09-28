@@ -48,20 +48,8 @@ const getRoleLabel = (role: string) => {
 
 <template>
   <div class="kb-section-card p-6">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div class="flex items-start gap-4">
-        <span
-          class="flex h-12 w-12 items-center justify-center rounded-[18px] bg-brand-faint text-brand"
-        >
-          <Icon icon="ph:users-three" :width="22" :height="22" />
-        </span>
-        <div>
-          <h2 class="text-lg font-semibold text-ink">成员管理</h2>
-          <p class="mt-1 text-sm leading-6 text-ink-tertiary">
-            添加成员、调整角色、移除协作者，保持工作区的协作秩序。
-          </p>
-        </div>
-      </div>
+    <!-- 标题与描述由设置页页头承担，卡内只留主操作 -->
+    <div class="flex items-center justify-end">
       <el-button
         v-if="props.canManage"
         type="primary"
