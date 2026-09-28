@@ -11,6 +11,8 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AiModelConfigForm: typeof import('./src/components/settings/AiModelConfigForm.vue')['default']
+    AiModelConfigManager: typeof import('./src/components/settings/AiModelConfigManager.vue')['default']
     AppBadge: typeof import('./src/components/common/AppBadge.vue')['default']
     AppButton: typeof import('./src/components/common/AppButton.vue')['default']
     AppCard: typeof import('./src/components/common/AppCard.vue')['default']
@@ -28,8 +30,6 @@ declare module 'vue' {
     AppUiButton: typeof import('./src/components/common/AppUiButton.vue')['default']
     AuthShell: typeof import('./src/components/auth/AuthShell.vue')['default']
     AvatarCropDialog: typeof import('./src/components/auth/AvatarCropDialog.vue')['default']
-    BoardAiConfigForm: typeof import('./src/components/board/BoardAiConfigForm.vue')['default']
-    BoardAiConfigManager: typeof import('./src/components/board/BoardAiConfigManager.vue')['default']
     BoardAiPanel: typeof import('./src/components/board/BoardAiPanel.vue')['default']
     ConfirmDialog: typeof import('./src/components/common/ConfirmDialog.vue')['default']
     DocHeaderCollaboratorsPopper: typeof import('./src/components/editor/DocHeaderCollaboratorsPopper.vue')['default']
@@ -122,6 +122,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsAboutGroup: typeof import('./src/components/settings/SettingsAboutGroup.vue')['default']
+    SettingsAiModelGroup: typeof import('./src/components/settings/SettingsAiModelGroup.vue')['default']
     SettingsProxyGroup: typeof import('./src/components/settings/SettingsProxyGroup.vue')['default']
     SettingsShortcutGroup: typeof import('./src/components/settings/SettingsShortcutGroup.vue')['default']
     SettingsShortcutInput: typeof import('./src/components/settings/SettingsShortcutInput.vue')['default']

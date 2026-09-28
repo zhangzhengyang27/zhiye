@@ -1,8 +1,8 @@
 <script setup lang="ts">
-/** 负责维护多份画板 AI 配置，并协调新增、切换与删除流程。 */
+/** 负责维护多份 AI 模型配置，并协调新增、切换与删除流程。 */
 import { computed } from "vue"
 import Icon from "@/components/common/UiIcon.vue"
-import BoardAiConfigForm from "@/components/board/BoardAiConfigForm.vue"
+import AiModelConfigForm from "@/components/settings/AiModelConfigForm.vue"
 import type {
   KnowledgeBoardAiConfigCollection,
   KnowledgeBoardAiProviderProfile,
@@ -93,7 +93,7 @@ const removeActiveProfile = () => {
         <div>
           <p class="text-[14px] font-semibold text-ink">配置列表</p>
           <p class="mt-1 text-[13px] text-ink-tertiary">
-            支持保存多个模型配置，并在画板中切换当前使用的配置。
+            支持保存多个模型配置，画板 AI、文档 AI 与 AI 写作共用当前启用的配置。
           </p>
         </div>
         <el-button plain class="py-2" @click="addProfile"
@@ -147,7 +147,7 @@ const removeActiveProfile = () => {
       </div>
     </section>
 
-    <BoardAiConfigForm :model-value="activeProfile" @update:model-value="patchActiveProfile" />
+    <AiModelConfigForm :model-value="activeProfile" @update:model-value="patchActiveProfile" />
 
     <p class="text-[12px] leading-6 text-ink-quaternary">
       API Key 不以明文写入本地存储。桌面端由操作系统密钥链（macOS Keychain / Windows DPAPI / Linux

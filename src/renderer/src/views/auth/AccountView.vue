@@ -106,7 +106,10 @@ onBeforeUnmount(() => {
 })
 
 const goBack = () => {
-  if (window.history.length > 1) {
+  // 判据用 vue-router 写入的 history.state.back（应用内导航才有值）：
+  // history.length 在新标签直输 URL 时也 > 1（about:blank 初始项），back 会退出应用
+  const routerState = window.history.state as { back?: string } | null
+  if (routerState?.back) {
     router.back()
     return
   }

@@ -17,7 +17,8 @@
  * - boards：画板视图（KnowledgeFilterToolbar 搜索框）
  * - share-dialog：分享弹层·密码开启态（ShareCreateForm 访问密码输入）
  * - share-view：分享访问页密码门（ShareView type=password）
- * - board-config：模型配置弹层（BoardAiConfigForm 5 处，含 number/min/max/step）
+ * - settings-ai-model：AI 模型配置分组（AiModelConfigForm 5 处，含 number/min/max/step；
+ *   2026-09-28 起原画板「模型配置」弹层迁入 /settings）
  * - shortcut-panel：快捷键速查面板（EditorShortcutPanel 搜索框 pl-9）
  *
  * 输出：output/visual/ep-direct/t5/{before|after}/{page}-{light|dark}.png
@@ -244,51 +245,17 @@ const capturePass = async (mode) => {
     await page.waitForTimeout(800)
     await shot(page, `share-view-${mode}`)
 
-    // 12. board-config：模型配置弹层（BoardAiConfigForm 5 处，含 type=number）
-    const tree = await apiRequest(
-      `/knowledge/documents/tree?kbId=${encodeURIComponent(contentKb.id)}`,
-      {
-        token,
-        errorMessage: "读取文档树失败",
-      },
-    )
-    const board = flattenTree(Array.isArray(tree) ? tree : []).find(
-      (node) => node.type === "doc" && node.title === "T5 直用改造画板",
-    )
-    if (!board) {
-      await apiRequest("/knowledge/documents", {
-        method: "POST",
-        token,
-        body: {
-          kbId: contentKb.id,
-          title: "T5 直用改造画板",
-          type: "doc",
-          editorType: "board",
-          status: "draft",
-          parentId: null,
-          content: {
-            scheme: "application/vnd.excalidraw+json",
-            value: {
-              type: "excalidraw",
-              version: 2,
-              source: "xiaoye",
-              elements: [],
-              appState: { viewBackgroundColor: "#fcfbf8", zoom: { value: 1 } },
-              files: {},
-            },
-          },
-        },
-        errorMessage: "创建画板文档失败",
-      })
-    }
-    await page.goto(url(`/knowledge/${contentKb.id}/board/${board?.id ?? ""}`), {
-      waitUntil: "domcontentloaded",
-    })
-    await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 20000 })
-    await page.getByRole("button", { name: "模型配置", exact: true }).click()
+    // 12. settings-ai-model：AI 模型配置分组（AiModelConfigForm 5 处，含 type=number；
+    //     2026-09-28 起原画板「模型配置」弹层迁入 /settings）
+    await page.goto(url("/settings"), { waitUntil: "domcontentloaded" })
     await page.getByText("当前配置", { exact: true }).first().waitFor({ timeout: 15000 })
     await page.waitForTimeout(1200)
-    await shot(page, `board-config-${mode}`)
+    await page
+      .locator('[data-testid="settings-ai-model"]')
+      .scrollIntoViewIfNeeded()
+      .catch(() => {})
+    await page.waitForTimeout(400)
+    await shot(page, `settings-ai-model-${mode}`)
 
     // 13. shortcut-panel：编辑器快捷键速查面板（EditorShortcutPanel pl-9）
     await page.goto(url("/test"), { waitUntil: "domcontentloaded" })

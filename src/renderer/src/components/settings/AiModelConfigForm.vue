@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** 负责编辑单个画板 AI 配置项，并校验服务商、模型与密钥输入。 */
+/** 负责编辑单个 AI 模型配置项，并校验服务商、模型与密钥输入。 */
 import { computed, onMounted, ref } from "vue"
 import { ChevronDown } from "lucide-vue-next"
 import {
@@ -180,7 +180,8 @@ const handleTimeoutChange = (value: string) => {
             />
           </el-select>
           <p class="mt-1.5 text-[11px] leading-4 text-ink-quaternary">
-            别名自动指向 DeepSeek 最新版本；也可以直接输入其他模型名。
+            deepseek-chat 与 deepseek-reasoner
+            为官方兼容别名，自动路由到最新模型；也可以直接输入其他模型名。
           </p>
         </div>
 

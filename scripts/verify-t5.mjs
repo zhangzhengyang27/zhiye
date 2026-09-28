@@ -597,48 +597,25 @@ const capturePass = async (mode) => {
     await page.keyboard.press("Escape")
     await page.waitForTimeout(400)
 
-    // ============ C：number/min/max/step 直传（board 模型配置） ============
-    const tree = await import("./lib/knowledge-smoke-utils.mjs").then((m) =>
-      m.apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, {
-        token,
-        errorMessage: "读树失败",
-      }),
+    // ============ C：number/min/max/step 直传（AI 模型配置表单） ============
+    // 2026-09-28 起配置表单挂在 /settings 的「AI 模型」分组（原画板「模型配置」弹层迁入）
+    await page.goto(url("/settings"), { waitUntil: "domcontentloaded" })
+    await page.getByText("当前配置", { exact: true }).first().waitFor({ timeout: 15000 })
+    await page.waitForTimeout(600)
+    const apiKeyInput = page
+      .locator('[data-testid="settings-ai-model"] input[type="password"]')
+      .first()
+    const timeoutInput = page
+      .locator('[data-testid="settings-ai-model"] input[type="number"]')
+      .first()
+    check(
+      `${prefix} AI 配置表单：API Key type=password + 超时 type=number（min/max/step attrs 直传原生）`,
+      (await apiKeyInput.count()) === 1 &&
+        (await timeoutInput.getAttribute("min")) === "5000" &&
+        (await timeoutInput.getAttribute("max")) === "120000" &&
+        (await timeoutInput.getAttribute("step")) === "1000",
+      `min=${await timeoutInput.getAttribute("min")} step=${await timeoutInput.getAttribute("step")}`,
     )
-    const flatten = (nodes) => {
-      const out = []
-      const walk = (list) => {
-        for (const node of list ?? []) {
-          out.push(node)
-          if (node.children?.length) walk(node.children)
-        }
-      }
-      walk(nodes)
-      return out
-    }
-    const board = flatten(Array.isArray(tree) ? tree : []).find(
-      (node) => node.title === "T5 直用改造画板",
-    )
-    if (board) {
-      await page.goto(url(`/knowledge/${kb.id}/board/${board.id}`), {
-        waitUntil: "domcontentloaded",
-      })
-      await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 30000 })
-      await page.getByRole("button", { name: "模型配置", exact: true }).click()
-      await page.getByText("当前配置", { exact: true }).first().waitFor({ timeout: 15000 })
-      await page.waitForTimeout(600)
-      const apiKeyInput = page.locator('.el-dialog input[type="password"]').first()
-      const timeoutInput = page.locator('.el-dialog input[type="number"]').first()
-      check(
-        `${prefix} board 配置：API Key type=password + 超时 type=number（min/max/step attrs 直传原生）`,
-        (await apiKeyInput.count()) === 1 &&
-          (await timeoutInput.getAttribute("min")) === "5000" &&
-          (await timeoutInput.getAttribute("max")) === "120000" &&
-          (await timeoutInput.getAttribute("step")) === "1000",
-        `min=${await timeoutInput.getAttribute("min")} step=${await timeoutInput.getAttribute("step")}`,
-      )
-      await page.keyboard.press("Escape")
-      await page.waitForTimeout(400)
-    }
 
     // ============ C：命令面板键盘路径不回归（自建 input，不受全局委托/校准影响） ============
     await page.goto(url(`/knowledge/${kb.id}/doc/${doc.id}`), { waitUntil: "domcontentloaded" })

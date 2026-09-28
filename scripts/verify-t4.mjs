@@ -260,70 +260,54 @@ const capturePass = async (mode) => {
       typeCls.slice(0, 60),
     )
 
-    // ============ A/B/C-3：board 屏（el-card） ============
-    const tree = await import("./lib/knowledge-smoke-utils.mjs").then((m) =>
-      m.apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, {
-        token,
-        errorMessage: "读树失败",
-      }),
-    )
-    const board = m2flatten(Array.isArray(tree) ? tree : []).find(
-      (n) => n.title === "T4 直用改造画板",
-    )
-    if (board) {
-      await page.goto(url(`/knowledge/${kb.id}/board/${board.id}`), {
-        waitUntil: "domcontentloaded",
-      })
-      await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 20000 })
-      await page.getByRole("button", { name: "模型配置", exact: true }).click()
-      await page.getByText("当前配置").first().waitFor({ timeout: 15000 })
-      await page.waitForTimeout(600)
+    // ============ A/B/C-3：AI 模型配置表单（el-card） ============
+    // 2026-09-28 起模型配置收进 /settings 的「AI 模型」分组（原画板「模型配置」
+    // 弹层迁入），同一批 AiModelConfigForm el-card 改在设置页上断言
+    await page.goto(url("/settings"), { waitUntil: "domcontentloaded" })
+    await page.getByText("当前配置").first().waitFor({ timeout: 15000 })
+    await page.waitForTimeout(600)
 
-      const card = page.locator(".el-card").first()
-      const cardClass = (await card.getAttribute("class")) ?? ""
-      check(
-        `${prefix} card：EP 原生根 + 调用方 class（rounded-kb-3xl）落根`,
-        cardClass.includes("el-card") && cardClass.includes("rounded-kb-3xl"),
-        cardClass.slice(0, 70),
-      )
-      const cardStyles = await computedOf(card, [
-        "border-radius",
-        "background-color",
-        "border-top-color",
-      ])
-      const surfaceRgb = await tokenRgb(page, "--kb-surface-bg")
-      const borderRgb = await tokenRgb(page, "--kb-border")
-      check(
-        `${prefix} card：surface 底 + kb-border 描边（EP 工厂值桥接同值零声明）`,
-        cardStyles["background-color"] === surfaceRgb &&
-          cardStyles["border-top-color"] === borderRgb,
-        JSON.stringify(cardStyles),
-      )
-      const body = card.locator(".el-card__body")
-      const bodyStyles = await computedOf(body, ["padding"])
-      check(
-        `${prefix} card body：padding 16px 20px（壳 px-5 py-4，EP 全边 20px 已中和）`,
-        bodyStyles.padding === "16px 20px",
-        bodyStyles.padding,
-      )
-      // 覆盖契约探针：rounded-[8px] 需先移除调用方 rounded-[22px]（同层顺序决胜）
-      await card.evaluate((el) => {
-        el.classList.remove("rounded-[22px]")
-        el.classList.add("rounded-[8px]")
-      })
-      const cardProbed = await computedOf(card, ["border-radius"])
-      await card.evaluate((el) => {
-        el.classList.remove("rounded-[8px]")
-        el.classList.add("rounded-[22px]")
-      })
-      check(
-        `${prefix} card 覆盖契约：rounded-[8px] → 8px`,
-        parseFloat(cardProbed["border-radius"]) === 8,
-        cardProbed["border-radius"],
-      )
-      await page.keyboard.press("Escape")
-      await page.waitForTimeout(400)
-    }
+    const card = page.locator('[data-testid="settings-ai-model"] .el-card').first()
+    const cardClass = (await card.getAttribute("class")) ?? ""
+    check(
+      `${prefix} card：EP 原生根 + 调用方 class（rounded-kb-3xl）落根`,
+      cardClass.includes("el-card") && cardClass.includes("rounded-kb-3xl"),
+      cardClass.slice(0, 70),
+    )
+    const cardStyles = await computedOf(card, [
+      "border-radius",
+      "background-color",
+      "border-top-color",
+    ])
+    const surfaceRgb = await tokenRgb(page, "--kb-surface-bg")
+    const borderRgb = await tokenRgb(page, "--kb-border")
+    check(
+      `${prefix} card：surface 底 + kb-border 描边（EP 工厂值桥接同值零声明）`,
+      cardStyles["background-color"] === surfaceRgb && cardStyles["border-top-color"] === borderRgb,
+      JSON.stringify(cardStyles),
+    )
+    const body = card.locator(".el-card__body")
+    const bodyStyles = await computedOf(body, ["padding"])
+    check(
+      `${prefix} card body：padding 16px 20px（壳 px-5 py-4，EP 全边 20px 已中和）`,
+      bodyStyles.padding === "16px 20px",
+      bodyStyles.padding,
+    )
+    // 覆盖契约探针：rounded-[8px] 需先移除调用方 rounded-[22px]（同层顺序决胜）
+    await card.evaluate((el) => {
+      el.classList.remove("rounded-[22px]")
+      el.classList.add("rounded-[8px]")
+    })
+    const cardProbed = await computedOf(card, ["border-radius"])
+    await card.evaluate((el) => {
+      el.classList.remove("rounded-[8px]")
+      el.classList.add("rounded-[22px]")
+    })
+    check(
+      `${prefix} card 覆盖契约：rounded-[8px] → 8px`,
+      parseFloat(cardProbed["border-radius"]) === 8,
+      cardProbed["border-radius"],
+    )
 
     // ============ A/B/C-4：trash 屏（el-tabs） ============
     await page.goto(url("/knowledge/trash"), { waitUntil: "domcontentloaded" })
@@ -526,19 +510,6 @@ const capturePass = async (mode) => {
     await browser.close().catch(() => {})
     return false
   }
-}
-
-/** 扁平化树节点（避免顶部静态 import apiRequest/flattenTree 造成循环依赖） */
-const m2flatten = (nodes) => {
-  const out = []
-  const walk = (list) => {
-    for (const node of list ?? []) {
-      out.push(node)
-      if (node.children?.length) walk(node.children)
-    }
-  }
-  walk(nodes)
-  return out
 }
 
 const light = await capturePass("light")

@@ -15,8 +15,9 @@
  *    blur(10px) + Task 3.1 底色 + z 400 + aria-label（:title 喂 EP role=dialog）。
  * B. 覆盖契约：widthClass 七档逐档 computed 宽度（max-w-sm 384 / md 448 / lg 512 /
  *    xl 576 / 2xl 672 / 6xl 1152 / [400px] 400）+ eyebrow 角标（编辑器/分享设置/
- *    协作/AI 模型）+ description（KbDialogHeader 共享片段）+ closeOnOverlay=false /
+ *    协作）+ description（KbDialogHeader 共享片段）+ closeOnOverlay=false /
  *    showCloseButton=false 场景（盘点 = 0 处，无场景，记档不适用）。
+ *    （board-ai-config 弹层 2026-09-28 迁入设置页「AI 模型」分组，其 B13 段退役。）
  * C. 行为收编（T1 清单，T9 内脏下复验）：
  *    - data-autofocus 全场景（4 处）：move-node 原生 input / doc-create、create-kb、
  *      add-member 的 el-input（宏任务聚焦晚于 EP 容器聚焦）；password 弹层无标记 →
@@ -923,64 +924,10 @@ const capturePass = async (mode) => {
     )
     await closeByEsc(page)
 
-    // ===== B：board-ai-config（2xl 档 + eyebrow「AI 模型」+ 动态 description） =====
-    const findBoard = async () => {
-      const boardTree = await apiRequest(
-        `/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`,
-        { token },
-      )
-      return flat(boardTree).find((node) => node.type === "doc" && node.title === "T9 直用改造画板")
-    }
-    let board = await findBoard()
-    if (!board) {
-      await apiRequest("/knowledge/documents", {
-        method: "POST",
-        token,
-        body: {
-          kbId: kb.id,
-          title: "T9 直用改造画板",
-          type: "doc",
-          editorType: "board",
-          status: "draft",
-          parentId: null,
-          content: {
-            scheme: "application/vnd.excalidraw+json",
-            value: {
-              type: "excalidraw",
-              version: 2,
-              source: "xiaoye",
-              elements: [],
-              appState: { viewBackgroundColor: "#fcfbf8", zoom: { value: 1 } },
-              files: {},
-            },
-          },
-        },
-      })
-      board = await findBoard()
-    }
-    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), {
-      waitUntil: "domcontentloaded",
-    })
-    await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 30000 })
-    await page.waitForTimeout(1200)
-    await page.getByRole("button", { name: "模型配置", exact: true }).click()
-    const boardDialog = visibleDialog(page)
-    await boardDialog.waitFor({ state: "visible", timeout: 15000 })
-    await page.waitForTimeout(600)
-    const boardWidth = await computedOf(boardDialog, ["width"])
-    const boardDescriptionOk = await boardDialog
-      .getByText("用于当前账号在本浏览器内发起画板 AI 生成")
-      .isVisible()
-    const boardEyebrowOk = await boardDialog
-      .locator(".el-dialog__header")
-      .getByText("AI 模型", { exact: true })
-      .isVisible()
-    check(
-      `${prefix} B13 widthClass=2xl（board-ai-config）：computed width 672px + eyebrow「AI 模型」+ 动态 description`,
-      boardWidth.width === "672px" && boardDescriptionOk && boardEyebrowOk,
-      boardWidth.width,
-    )
-    await closeByEsc(page)
+    // ===== B：board-ai-config 弹层段（B13）已退役 =====
+    // 2026-09-28 模型配置弹层迁入 /settings 的「AI 模型」分组（SettingsAiModelGroup），
+    // 弹层宽度 672 / eyebrow「AI 模型」/ 动态 description 断言随之作废；分组渲染契约
+    // 由 verify-desktop-settings.mjs 的「AI 模型分组渲染」检查承接。
 
     await browser.close()
     return true

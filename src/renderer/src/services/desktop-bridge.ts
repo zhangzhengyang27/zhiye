@@ -68,26 +68,16 @@ export const resolveApiBaseUrl = (): string => {
   return (import.meta.env.VITE_ELEMENTS_API_BASE_URL?.trim() || "/api").replace(/\/+$/, "")
 }
 
-/** 偏好设置新窗口的特性串，与主进程 SETTINGS_WINDOW_SIZE 同尺寸。 */
-const SETTINGS_WINDOW_FEATURES = "width=830,height=768,menubar=no,toolbar=no,location=no"
-
 /**
- * 打开偏好设置——桌面端与 Web 端共用这一个入口。
+ * 打开偏好设置——桌面端专用（2026-09-28 起，Web 端不再走这里）。
  *
  * 桌面端交给主进程开**独立窗口**（语雀是在主窗口内整页替换，本仓按产品决定改开新窗，
- * 于是设置页想要窄不再需要临时放宽主窗口最小宽那套补丁）；Web 端开新窗口/标签，
- * 被拦截时退回当前页导航，至少不能点了没反应。
+ * 于是设置页想要窄不再需要临时放宽主窗口最小宽那套补丁）。Web 端曾照搬弹独立窗/标签，
+ * 实测返回交互别扭（关窗 ≠ 用户语义的「返回」），已改为主窗口内路由跳转——入口在
+ * KnowledgeSidebarMenu（菜单）与 App.vue（⌘, 兜底）各自 router.push，不再经过本函数。
  */
 export const openSettingsWindow = (): void => {
-  if (isDesktopApp()) {
-    void window.xiaoyeDesktop?.openSettingsWindow()
-    return
-  }
-
-  const opened = window.open("/settings", "kb-settings", SETTINGS_WINDOW_FEATURES)
-  if (!opened) {
-    window.location.assign("/settings")
-  }
+  void window.xiaoyeDesktop?.openSettingsWindow()
 }
 
 /**

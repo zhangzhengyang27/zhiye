@@ -16,7 +16,8 @@
  * - password：账号页「修改密码」→ AccountView 内联弹层（max-w-[400px]）
  * - avatar-crop：账号页上传头像 → AvatarCropDialog（max-w-2xl，description）
  * - add-member：设置页成员页签「添加成员」→ KnowledgeSettingsAddMemberDialog（max-w-xl，description + data-autofocus）
- * - board-ai-config：画板页「模型配置」→ 模型配置弹层（max-w-2xl，eyebrow「AI 模型」+ description）
+ * - settings-ai-model：偏好设置「AI 模型」分组（2026-09-28 起原画板「模型配置」弹层
+ *   迁入 /settings，分组截图替代原 board-ai-config 弹层截图）
  *
  * 输出：output/visual/ep-direct/t9/{before|after|after2}/{page}-{light|dark}.png
  * 用法：node scripts/visual-capture-t9.mjs before   （或 after / after2）
@@ -328,61 +329,17 @@ const capturePass = async (mode) => {
     await shot(page, `avatar-crop-${mode}`)
     await closeDialogByEsc(page)
 
-    // ============ 13. board-ai-config（画板页「模型配置」） ============
-    const findBoard = async () => {
-      const boardTree = await apiRequest(
-        `/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`,
-        {
-          token,
-          errorMessage: "读取文档树失败",
-        },
-      )
-      return (Array.isArray(boardTree) ? boardTree : [])
-        .flatMap(function walk(node) {
-          return [node, ...(node.children ?? []).flatMap(walk)]
-        })
-        .find((node) => node.type === "doc" && node.title === "T9 直用改造画板")
-    }
-    let board = await findBoard()
-    if (!board) {
-      await apiRequest("/knowledge/documents", {
-        method: "POST",
-        token,
-        body: {
-          kbId: kb.id,
-          title: "T9 直用改造画板",
-          type: "doc",
-          editorType: "board",
-          status: "draft",
-          parentId: null,
-          content: {
-            scheme: "application/vnd.excalidraw+json",
-            value: {
-              type: "excalidraw",
-              version: 2,
-              source: "xiaoye",
-              elements: [],
-              appState: { viewBackgroundColor: "#fcfbf8", zoom: { value: 1 } },
-              files: {},
-            },
-          },
-        },
-        errorMessage: "创建画板文档失败",
-      })
-      board = await findBoard()
-      logStep(prefix, "画板文档已创建")
-    } else {
-      logStep(prefix, "画板文档已存在（复用）")
-    }
-    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), {
-      waitUntil: "domcontentloaded",
-    })
-    await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 30000 })
+    // ============ 13. settings-ai-model（2026-09-28 起画板「模型配置」弹层迁入
+    // /settings「AI 模型」分组，弹层截图由分组截图替代） ============
+    await page.goto(url("/settings"), { waitUntil: "domcontentloaded" })
+    await page.getByText("当前配置", { exact: true }).first().waitFor({ timeout: 15000 })
     await page.waitForTimeout(1200)
-    await page.getByRole("button", { name: "模型配置", exact: true }).click()
-    await waitDialog(page, "模型配置")
-    await shot(page, `board-ai-config-${mode}`)
-    await closeDialogByEsc(page)
+    await page
+      .locator('[data-testid="settings-ai-model"]')
+      .scrollIntoViewIfNeeded()
+      .catch(() => {})
+    await page.waitForTimeout(400)
+    await shot(page, `settings-ai-model-${mode}`)
 
     await browser.close()
     return true

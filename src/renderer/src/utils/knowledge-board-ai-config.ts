@@ -21,17 +21,27 @@ export const KNOWLEDGE_BOARD_AI_DEFAULT_TIMEOUT_MS = 45_000
 /** DeepSeek 提供方的默认基础地址。 */
 export const KNOWLEDGE_BOARD_AI_DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 /** DeepSeek 提供方的默认模型。 */
-export const KNOWLEDGE_BOARD_AI_DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
-/** 当前内置支持的 DeepSeek 模型候选列表：官方仅暴露两个稳定别名（自动指向最新底层
- *  模型，当前为 V3.2），标签标注语义避免「chat=旧模型」的观感；表单同时允许手动
- *  输入任意模型名，官方上线新别名时无需等前端发版。 */
+export const KNOWLEDGE_BOARD_AI_DEFAULT_DEEPSEEK_MODEL = "deepseek-flash"
+/** 当前内置支持的 DeepSeek 模型候选列表（2026-09-28 对齐官方定价页）：主力为
+ *  deepseek-flash（V4.1-Flash，默认思考模式、支持视觉）与 deepseek-v4-pro（V4-Pro）；
+ *  旧别名 deepseek-chat、deepseek-reasoner 未退役——官方仍受理并自动路由到新模型
+ *  （实测 deepseek-chat 已由 Flash 服务），保留候选以兼容存量配置。表单同时允许
+ *  手动输入任意模型名，官方上线新别名时无需等前端发版。 */
 export const KNOWLEDGE_BOARD_AI_DEEPSEEK_MODELS = [
   {
-    label: "deepseek-chat（V3.2 非推理）",
+    label: "deepseek-flash（V4.1 Flash，推荐）",
+    value: "deepseek-flash",
+  },
+  {
+    label: "deepseek-v4-pro（V4.1 Pro）",
+    value: "deepseek-v4-pro",
+  },
+  {
+    label: "deepseek-chat（兼容别名）",
     value: "deepseek-chat",
   },
   {
-    label: "deepseek-reasoner（V3.2 深度思考）",
+    label: "deepseek-reasoner（兼容别名）",
     value: "deepseek-reasoner",
   },
 ]

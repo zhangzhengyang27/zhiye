@@ -4,12 +4,13 @@
  *
  * 覆盖四件全部调用文件所在屏（AppBadge 9 文件 14 处 / AppCard 1 文件 2 处 /
  * AppTabs 1 处 / AppShell 2 处；BoardAiPanel:152 的 badge 依赖 AI 生成结果
- * （resultKind 运行时才有值），静态不可达，已记档——其映射与 BoardAiConfigForm
- * 的 badge 完全同构，后者由 board 屏覆盖）：
+ * （resultKind 运行时才有值），静态不可达，已记档——其映射与 AiModelConfigForm
+ * 的 badge 完全同构，后者由 settings-ai-model 屏覆盖）：
  * - share：分享弹层（ShareLinksList 1 + ShareLinkRow 4 + ShareStatsGrid 1 = 6 处
  *   代码调用点、渲染 11+ 个 badge 实例（StatsGrid v-for），覆盖 neutral soft /
  *   neutral subtle / success subtle / warning subtle 全部变体）
- * - board：模型配置弹层（BoardAiConfigForm 2 处 AppCard + 1 处 badge warning subtle）
+ * - settings-ai-model：AI 模型配置分组（AiModelConfigForm 2 处 el-card + 1 处 badge
+ *   warning subtle；2026-09-28 起原画板「模型配置」弹层迁入 /settings）
  * - versions：历史版本面板（DocumentVersionsPanel 2 + DocumentVersionRow 1 处 badge）
  * - settings-docs：知识库设置·文档（KnowledgeSettingsDocsCard 2 处 badge，含 published success）
  * - info：文档信息面板（DocumentInfoQuickActionsCard 1 处 badge，调用方 className 覆盖案例）
@@ -198,48 +199,17 @@ const capturePass = async (mode) => {
     await page.waitForTimeout(800)
     await shot(page, `trash-${mode}`)
 
-    // 7. board：模型配置弹层（2 处 AppCard + 1 处 badge warning subtle）
-    const tree = await apiRequest(`/knowledge/documents/tree?kbId=${encodeURIComponent(kb.id)}`, {
-      token,
-      errorMessage: "读取文档树失败",
-    })
-    const board = flattenTree(Array.isArray(tree) ? tree : []).find(
-      (node) => node.type === "doc" && node.title === "T4 直用改造画板",
-    )
-    if (!board) {
-      await apiRequest("/knowledge/documents", {
-        method: "POST",
-        token,
-        body: {
-          kbId: kb.id,
-          title: "T4 直用改造画板",
-          type: "doc",
-          editorType: "board",
-          status: "draft",
-          parentId: null,
-          content: {
-            scheme: "application/vnd.excalidraw+json",
-            value: {
-              type: "excalidraw",
-              version: 2,
-              source: "xiaoye",
-              elements: [],
-              appState: { viewBackgroundColor: "#fcfbf8", zoom: { value: 1 } },
-              files: {},
-            },
-          },
-        },
-        errorMessage: "创建画板文档失败",
-      })
-    }
-    await page.goto(url(`/knowledge/${kb.id}/board/${board?.id ?? ""}`), {
-      waitUntil: "domcontentloaded",
-    })
-    await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 20000 })
-    await page.getByRole("button", { name: "模型配置", exact: true }).click()
+    // 7. settings-ai-model：AI 模型配置分组（2 处 el-card + 1 处 badge warning subtle；
+    //    2026-09-28 起原画板「模型配置」弹层迁入 /settings）
+    await page.goto(url("/settings"), { waitUntil: "domcontentloaded" })
     await page.getByText("当前配置").first().waitFor({ timeout: 15000 })
     await page.waitForTimeout(1200)
-    await shot(page, `board-${mode}`)
+    await page
+      .locator('[data-testid="settings-ai-model"]')
+      .scrollIntoViewIfNeeded()
+      .catch(() => {})
+    await page.waitForTimeout(400)
+    await shot(page, `settings-ai-model-${mode}`)
 
     // 8. account：账号设置页（AppShell 调用点）
     await page.goto(url("/account"), { waitUntil: "domcontentloaded" })

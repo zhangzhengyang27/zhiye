@@ -5,7 +5,8 @@
  * 按删除事故前的编译缓存（_compiled-from-cache/views__knowledge__KnowledgeBoardEditorView.vue.compiled.js）
  * 重建原架构：getKnowledgeDocument 加载 → resolveKnowledgeBoardDocument 规范化（含旧版画板迁移）
  * → ExcalidrawBoardSurface 渲染；变更防抖自动保存 + Cmd/Ctrl+S 手动保存 + 路由离开/更新/卸载三路落盘；
- * AI 生成面板（生成草稿 → 替换/追加）与模型配置弹层（按账号加密存浏览器本地）。
+ * AI 生成面板（生成草稿 → 替换/追加）；模型配置统一在偏好设置页「AI 模型」分组维护
+ * （useAiModelConfig 共享状态），画板内只读当前模型摘要并保留设置跳转入口。
  * 素材库（board-library）条目与二进制资源随画布 libraryChange 同步上传/落库。
  *
  * 与编译缓存的三处对齐差异（均为任务显式要求）：
@@ -13,14 +14,12 @@
  * 2. 加载错误态补「重试」入口（对齐 DataTable 视图）；
  * 3. canEdit 优先取文档级 myDocPermissions.canEdit（含协作者升权，B2f），缺省回落工作区权限。
  */
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from "vue-router"
 import Icon from "@/components/common/UiIcon.vue"
-import KbDialogHeader from "@/components/common/KbDialogHeader.vue"
-import BoardAiConfigManager from "@/components/board/BoardAiConfigManager.vue"
 import BoardAiPanel from "@/components/board/BoardAiPanel.vue"
 import ExcalidrawBoardSurface from "@/components/board/ExcalidrawBoardSurface.vue"
-import { useDialogBehavior } from "@/composables/use-dialog-behavior"
+import { useAiModelConfig } from "@/composables/use-ai-model-config"
 import { useTransientToast } from "@/composables/use-transient-toast"
 import { getApiErrorMessage } from "@/services/http-client"
 import { generateKnowledgeBoardAi } from "@/services/knowledge-board-ai"
@@ -56,16 +55,6 @@ import {
   buildKnowledgeBoardSceneFromAiResult,
   replaceKnowledgeBoardWithGeneratedScene,
 } from "@/utils/knowledge-board-ai"
-import {
-  cloneKnowledgeBoardAiConfigCollection,
-  createKnowledgeBoardAiConfigCollection,
-  getKnowledgeBoardAiActiveProfile,
-  getKnowledgeBoardAiStorageKey,
-  normalizeKnowledgeBoardAiConfigCollection,
-  persistKnowledgeBoardAiStoredConfig,
-  readKnowledgeBoardAiStoredConfig,
-  resolveKnowledgeBoardAiConfigSummary,
-} from "@/utils/knowledge-board-ai-config"
 import { getKnowledgeBoardAiSystemPrompt } from "@/utils/knowledge-board-ai-prompts"
 import { createKnowledgeBoardDocument } from "@/utils/knowledge-board"
 import {
@@ -118,10 +107,6 @@ const saveTimer = ref<number | null>(null)
 const boardResetToken = ref(0)
 
 const aiPanelOpen = ref(false)
-const aiConfigDialogOpen = ref(false)
-const aiConfigDialog = useDialogBehavior({
-  open: () => aiConfigDialogOpen.value,
-})
 const aiLoading = ref(false)
 const aiPrompt = ref("")
 const aiMode = ref<KnowledgeBoardAiMode>("auto")
@@ -130,11 +115,6 @@ const aiSummary = ref("")
 const aiWarnings = ref<string[]>([])
 const aiResultKind = ref<KnowledgeBoardAiKind | null>(null)
 const aiGeneratedBoard = ref<KnowledgeBoardDocument | null>(null)
-const aiConfigCollection = ref(createKnowledgeBoardAiConfigCollection())
-const aiConfigCollectionDraft = ref(createKnowledgeBoardAiConfigCollection())
-const aiConfigHydrated = ref(false)
-const aiConfigPersisting = ref(false)
-const aiConfigPersistSuspended = ref(false)
 
 const boardLibraryItems = ref<KnowledgeBoardLibraryItem[]>([])
 const boardLibrarySaveTimer = ref<number | null>(null)
@@ -148,11 +128,9 @@ const boardLibraryAssetUploadTasks = new Map<string, Promise<void>>()
 const isMigratedBoard = computed(() => migratedFromLegacy.value)
 const isDirty = computed(() => serializedState.value !== snapshot.value)
 
-const aiConfigStorageKey = computed(() => getKnowledgeBoardAiStorageKey(authStore.user?.id))
-const aiActiveProfile = computed(() => getKnowledgeBoardAiActiveProfile(aiConfigCollection.value))
-const aiConfigSummary = computed(() => {
-  return `${aiActiveProfile.value.name} · ${resolveKnowledgeBoardAiConfigSummary(aiActiveProfile.value)}`
-})
+// 模型配置：统一收在偏好设置页「AI 模型」分组编辑，画板只读激活 profile
+const { activeProfile: aiActiveProfile, summary: aiConfigSummary } = useAiModelConfig()
+
 const aiSystemPromptPreview = computed(() => getKnowledgeBoardAiSystemPrompt(aiMode.value))
 
 const saveStatusLabel = computed(() => {
@@ -511,89 +489,21 @@ const closeAiPanel = () => {
   aiPanelOpen.value = false
 }
 
-const openAiConfigDialog = () => {
-  aiConfigCollectionDraft.value = cloneKnowledgeBoardAiConfigCollection(aiConfigCollection.value)
-  aiConfigDialogOpen.value = true
-}
-
-const closeAiConfigDialog = () => {
-  aiConfigDialogOpen.value = false
-}
-
-const resolveAiConfigPersistError = (error: unknown) => {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message.trim()
-  }
-  return "模型配置保存失败，请稍后重试。"
-}
-
-const persistAiConfigCollection = async (
-  collection: ReturnType<typeof createKnowledgeBoardAiConfigCollection>,
-) => {
-  aiConfigPersisting.value = true
-  try {
-    await persistKnowledgeBoardAiStoredConfig(
-      aiConfigStorageKey.value,
-      collection,
-      authStore.user?.id,
-    )
-    return true
-  } catch (error) {
-    showToastMessage(resolveAiConfigPersistError(error), "error")
-    return false
-  } finally {
-    aiConfigPersisting.value = false
-  }
-}
-
-const commitAiConfigDialog = async (options?: { silent?: boolean }) => {
-  const nextCollection = normalizeKnowledgeBoardAiConfigCollection(aiConfigCollectionDraft.value)
-  const persisted = await persistAiConfigCollection(nextCollection)
-  if (!persisted) {
-    return
-  }
-  // 挂起 deep watch：草稿回写正式集合的动作本身不再触发一次持久化
-  aiConfigPersistSuspended.value = true
-  aiConfigCollection.value = nextCollection
-  aiConfigCollectionDraft.value = cloneKnowledgeBoardAiConfigCollection(nextCollection)
-  await nextTick()
-  aiConfigPersistSuspended.value = false
-  aiConfigDialogOpen.value = false
-  if (!options?.silent) {
-    showToastMessage("模型配置已保存到当前浏览器。", "success")
-  }
-}
-
-const cancelAiConfigDialog = () => {
-  aiConfigCollectionDraft.value = cloneKnowledgeBoardAiConfigCollection(aiConfigCollection.value)
-  closeAiConfigDialog()
-}
-
-// 关闭（×/遮罩/Esc）即按浏览器存储静默提交草稿；打开分支供编程式复用
-const handleAiConfigDialogOpenChange = async (nextOpen: boolean) => {
-  if (nextOpen) {
-    aiConfigCollectionDraft.value = cloneKnowledgeBoardAiConfigCollection(aiConfigCollection.value)
-    aiConfigDialogOpen.value = true
-    return
-  }
-  if (!aiConfigDialogOpen.value) {
-    return
-  }
-  await commitAiConfigDialog({
-    silent: true,
-  })
+/** 模型配置已统一收进偏好设置页「AI 模型」分组，画板头部仅保留跳转入口。 */
+const openModelSettings = () => {
+  void router.push({ name: "settings" })
 }
 
 const validateAiProviderConfig = () => {
   const config = aiActiveProfile.value
   if (!config.apiKey.trim()) {
-    return "请先通过顶部“模型配置”填写模型服务的 API Key。"
+    return "请先在「偏好设置 → AI 模型」填写模型服务的 API Key。"
   }
   if (!config.baseUrl.trim()) {
-    return "请先通过顶部“模型配置”填写 Base URL。"
+    return "请先在「偏好设置 → AI 模型」填写 Base URL。"
   }
   if (!config.model.trim()) {
-    return "请先通过顶部“模型配置”填写模型名称。"
+    return "请先在「偏好设置 → AI 模型」填写模型名称。"
   }
   if (
     !Number.isFinite(config.timeoutMs) ||
@@ -730,47 +640,12 @@ watch(
 )
 
 watch(
-  () => aiConfigStorageKey.value,
-  (storageKey) => {
-    aiConfigHydrated.value = false
-    void (async () => {
-      aiConfigPersistSuspended.value = true
-      const storedConfig = await readKnowledgeBoardAiStoredConfig(storageKey, authStore.user?.id)
-      aiConfigCollection.value = normalizeKnowledgeBoardAiConfigCollection(storedConfig)
-      aiConfigCollectionDraft.value = cloneKnowledgeBoardAiConfigCollection(
-        aiConfigCollection.value,
-      )
-      await nextTick()
-      aiConfigHydrated.value = true
-      aiConfigPersistSuspended.value = false
-    })()
-  },
-  { immediate: true },
-)
-
-watch(
   () => authStore.user?.id,
   () => {
     clearBoardLibrarySaveTimer()
     void loadBoardLibrary()
   },
   { immediate: true },
-)
-
-// 配置集合任何改动（含弹层草稿回写以外路径）都即时持久化到浏览器存储
-watch(
-  () => aiConfigCollection.value,
-  (collection) => {
-    if (!aiConfigHydrated.value || aiConfigPersistSuspended.value) {
-      return
-    }
-    void persistKnowledgeBoardAiStoredConfig(
-      aiConfigStorageKey.value,
-      collection,
-      authStore.user?.id,
-    ).catch(() => undefined)
-  },
-  { deep: true },
 )
 
 watch(title, () => {
@@ -906,12 +781,11 @@ onMounted(() => {
             <el-button
               plain
               class="py-2"
-              :disabled="loading || saving || autoSaving || !canEdit"
-              :title="`当前模型：${aiConfigSummary}`"
-              @click="openAiConfigDialog"
+              :title="`当前模型：${aiConfigSummary}（点击前往偏好设置修改）`"
+              @click="openModelSettings"
             >
               <Icon icon="ph:sliders-horizontal" :width="16" :height="16" />
-              <span class="truncate">模型配置</span>
+              <span class="truncate">模型设置</span>
             </el-button>
             <el-button
               type="primary"
@@ -978,42 +852,5 @@ onMounted(() => {
         </main>
       </div>
     </template>
-
-    <!-- 模型配置弹层：T9 起直用 el-dialog + useDialogBehavior（AppDialog 已解散）；
-         关闭（×/遮罩/Esc）即按浏览器存储静默提交草稿（handleAiConfigDialogOpenChange） -->
-    <el-dialog
-      v-bind="aiConfigDialog.elDialogBindings"
-      class="max-w-2xl"
-      :model-value="aiConfigDialogOpen"
-      title="模型配置"
-      close-on-click-modal
-      close-on-press-escape
-      @update:model-value="(value) => !value && handleAiConfigDialogOpenChange(false)"
-    >
-      <template #header>
-        <KbDialogHeader
-          title="模型配置"
-          eyebrow="AI 模型"
-          :description="`用于当前账号在本浏览器内发起画板 AI 生成。当前模型：${aiConfigSummary}`"
-          @close="handleAiConfigDialogOpenChange(false)"
-        />
-      </template>
-      <BoardAiConfigManager v-model="aiConfigCollectionDraft" />
-      <template #footer>
-        <div class="flex flex-wrap items-center justify-end gap-3">
-          <el-button plain class="py-2" @click="cancelAiConfigDialog">
-            <span class="truncate">取消</span>
-          </el-button>
-          <button
-            type="button"
-            :disabled="aiConfigPersisting"
-            class="inline-flex min-h-10 items-center justify-center rounded-kb-xl bg-brand px-4 py-2 text-sm font-medium text-on-brand shadow-[var(--kb-glow-brand-faint)] transition hover:bg-brand-hover focus:outline-none focus:ring-4 focus:ring-brand-light disabled:cursor-not-allowed disabled:bg-brand-light disabled:text-white/90"
-            @click="commitAiConfigDialog()"
-          >
-            {{ aiConfigPersisting ? "保存中…" : "完成" }}
-          </button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>

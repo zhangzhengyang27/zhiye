@@ -209,22 +209,20 @@ const handleShare = async () => {
 }
 
 const openSettings = () => {
-  // 对齐语雀：更多设置在新窗口打开**只含设置功能**的独立窗口（无工作台外壳）
-  const path = `/kb-settings/${workspaceContext.kbId.value}`
+  // 桌面端对齐语雀：更多设置在新窗口打开**只含设置功能**的独立窗口（无工作台外壳）；
+  // Web 端（2026-09-28，同偏好设置的形态决策）在主窗口内路由打开工作台内嵌设置页，
+  // 不再 window.open 弹标签——独立视图无返回钮，弹出去只能关标签才能「返回」
   const desktopOpener = window.xiaoyeDesktop?.openDocumentInNewWindow
 
   if (desktopOpener) {
-    desktopOpener(path)
+    desktopOpener(`/kb-settings/${workspaceContext.kbId.value}`)
     return
   }
 
-  const opened = window.open(resolveWebBaseUrl() + path, "_blank")
-  if (!opened) {
-    router.push({
-      name: "knowledge-settings",
-      params: { kbId: workspaceContext.kbId.value },
-    })
-  }
+  void router.push({
+    name: "knowledge-settings",
+    params: { kbId: workspaceContext.kbId.value },
+  })
 }
 
 // ==================== ⋯ 菜单命令分发（重命名 / 更多设置 / 删除） ====================

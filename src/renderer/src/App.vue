@@ -8,7 +8,6 @@ import { useThemeMode } from "./composables/useThemeMode"
 import { useInAppShortcuts, IN_APP_COMMAND_EVENT } from "./composables/use-in-app-shortcuts"
 import { isImeComposing } from "./utils/keyboard"
 import { AUTH_UNAUTHORIZED_EVENT } from "./services/auth-events"
-import { openSettingsWindow } from "./services/desktop-bridge"
 import { useAuthStore } from "./stores/auth"
 
 // 初始化主题（读取持久化偏好，决定 <html> 是否带 .dark）
@@ -108,11 +107,11 @@ if (isLoginWindow) {
 let unsubscribeTrayCommand: (() => void) | null = null
 let unsubscribeMenuCommand: (() => void) | null = null
 
-/** Web 端没有原生菜单，⌘,/Ctrl+, 由渲染层兜底；同样开新窗口，不占用当前页。 */
+/** Web 端没有原生菜单，⌘,/Ctrl+, 由渲染层兜底：主窗口内路由打开设置页（标准页面导航）。 */
 const handlePreferencesKeydown = (event: KeyboardEvent) => {
   if ((event.metaKey || event.ctrlKey) && event.key === "," && !isImeComposing(event)) {
     event.preventDefault()
-    openSettingsWindow()
+    void router.push({ name: "settings" })
   }
 }
 

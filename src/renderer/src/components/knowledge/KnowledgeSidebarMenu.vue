@@ -15,7 +15,7 @@ import {
   updateKnowledgeBaseSortOrder,
   type KnowledgeBaseItem,
 } from "@/services/knowledge-base"
-import { openSettingsWindow } from "@/services/desktop-bridge"
+import { isDesktopApp, openSettingsWindow } from "@/services/desktop-bridge"
 import { openFeedbackMailto } from "@/constants/desktop-settings"
 import { IN_APP_COMMAND_EVENT } from "@/composables/use-in-app-shortcuts"
 import { useAuthStore } from "@/stores/auth"
@@ -274,9 +274,13 @@ const handleOpenAccount = async () => {
   await router.push({ name: "account" })
 }
 
-/** 偏好设置入口（与菜单/托盘同一个函数：桌面端开独立窗口，Web 端开新窗口） */
+/** 偏好设置入口：桌面端开独立窗口，Web 端在主窗口内路由打开（标准页面导航） */
 const handleOpenSettings = () => {
-  openSettingsWindow()
+  if (isDesktopApp()) {
+    openSettingsWindow()
+    return
+  }
+  void router.push({ name: "settings" })
 }
 
 /** 应用内快捷键由 use-in-app-shortcuts 广播，落到本组件已有的命令面板/新建意图上 */

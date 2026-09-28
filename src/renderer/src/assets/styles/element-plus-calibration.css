@@ -549,7 +549,7 @@ html.dark .el-segmented.el-segmented .el-segmented__item {
    10 处中 5 处零覆盖类直用默认（VersionCompare×2、MembersCard、DocCreate 仅 mt-1.5、
    Trash 仅 min-w-45 定宽下限）；覆盖案例 = SearchToolbar（h-8 px-2 text-xs 紧凑筛选档，
    原带的 rounded-xl py-1 已收）、FilterToolbar（min-w-45 + transition duration-200）、AddMemberDialog（仅
-   w-full 撑满）。BoardAiConfigForm 与 AddMemberDialog 原先的 bg-surface 已在批 12 收掉
+   w-full 撑满）。AiModelConfigForm 与 AddMemberDialog 原先的 bg-surface 已在批 12 收掉
    （容器需要对比度时改容器，不让控件自带底色）。宽度刻意不设默认值：
    基线容器是普通 div——块级上下文撑满父宽、flex 上下文收缩到内容（min-w-* 兜底）；
    EP 默认 width:100% 由中和段交还，调用方需要定宽时显式传宽度类（与迁移前传法一致）。
@@ -611,6 +611,26 @@ html.dark .el-segmented.el-segmented .el-segmented__item {
   color: revert-layer;
   position: revert-layer;
   transform: revert-layer;
+}
+
+/* filterable 例外（2026-09-28，首个 filterable 调用点 = 设置页 AI 模型分组的模型
+   选择器）：展开输入态下 selection 同时含 input-wrapper（flex:1 撑满）与 placeholder
+   （width:100%）——static 让二者 wrap 换行垂直堆叠，触发器被撑成两行（wrapper 34px
+   内 selection 溢出到 51px）。恢复 EP 的 absolute 叠放（同 EP 原生 absolute + top 50%
+   + translateY 半程居中），仅命中 wrapper 带 is-filterable 的实例，非 filterable
+   调用点维持 static flex 居中不受影响；显式声明不走 revert-layer */
+.el-select.el-select .el-select__wrapper.is-filterable .el-select__placeholder.el-select__placeholder {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* filterable 内嵌输入件不吃全局 focus-visible 双线：style.css 的 :focus-visible 2px
+   brand outline 会打在展开时的 .el-select__input 上（点击展开即聚焦），与根上的
+   focus-within brand 描边（utilities 段例外规则）叠成「空绿框」——焦点环语义由根
+   承担，内嵌 input 恒无 outline（EP 原生即 outline:none，此处对齐同值） */
+.el-select .el-select__input:focus-visible {
+  outline: none;
 }
 
 /* ---- el-select popper（T6；EP 值来源 theme-chalk/el-select.css 的 __popper/__dropdown
@@ -774,7 +794,7 @@ html.dark .el-select__popper .el-select-dropdown__item {
 }
 
 /* ---- el-card（T4；EP 值来源 theme-chalk/el-card.css） ----
-   直改 2 处（BoardAiConfigForm 两张卡，均只用默认插槽，header/footer 0 处）。
+   直改 2 处（AiModelConfigForm 两张卡，均只用默认插槽，header/footer 0 处）。
    壳根（rounded-2xl border border-line bg-surface shadow-[var(--kb-card-shadow)]）
    与 EP 工厂值的逐属性对照：
    - border: 1px solid var(--el-card-border-color)=--el-border-color-light=

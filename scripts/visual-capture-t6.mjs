@@ -12,7 +12,8 @@
  *   默认态必须覆盖「根目录」回显；弹层内含真实子目录时展开态展示目录项）
  * - version-compare：版本对比弹层（VersionCompareDialog 版本 1/版本 2 双 select，
  *   初始预选最新两版 + placeholder 分支）
- * - board-config：模型配置弹层（BoardAiConfigForm 服务商 + DeepSeek 模型 2 处 bg-surface）
+ * - settings-ai-model：AI 模型配置分组（AiModelConfigForm 服务商 + DeepSeek 模型 2 处
+ *   bg-surface；2026-09-28 起原画板「模型配置」弹层迁入 /settings）
  *
  * 输出：output/visual/ep-direct/t6/{before|after}/{page}-{light|dark}.png
  * 用法：node scripts/visual-capture-t6.mjs before   （或 after）
@@ -134,7 +135,7 @@ const capturePass = async (mode) => {
     })
     await ensureTwoVersions(doc.id, token, prefix)
 
-    // 确保画板文档存在（board-config 屏 + 树节点/画板卡数据两轮对称；
+    // 确保画板文档存在（树节点/画板卡数据两轮对称，与 settings-ai-model 屏无关；
     // ⚠️ 必须 be 在所有截图之前 ensure：before 首轮树里没有画板会造成
     // 「截图顺序数据漂移」，before/after 树内容不同 → pixdiff 大面积假 major）
     const findBoard = async () => {
@@ -281,19 +282,19 @@ const capturePass = async (mode) => {
     await closeSelect(page)
     await closeDialog(page)
 
-    // 9. board-config：模型配置弹层（BoardAiConfigForm 服务商 + 模型 2 处 select；
-    //    画板已在数据准备阶段 ensure）
-    await page.goto(url(`/knowledge/${contentKb.id}/board/${board?.id ?? ""}`), {
-      waitUntil: "domcontentloaded",
-    })
-    await page.getByRole("button", { name: "模型配置", exact: true }).waitFor({ timeout: 30000 })
-    await page.getByRole("button", { name: "模型配置", exact: true }).click()
+    // 9. settings-ai-model：AI 模型配置分组（AiModelConfigForm 服务商 + 模型 2 处
+    //    select；2026-09-28 起原画板「模型配置」弹层迁入 /settings。选择器必须
+    //    收敛在分组内——设置页还有主题/自动锁定延迟等无关 el-select）
+    await page.goto(url("/settings"), { waitUntil: "domcontentloaded" })
     await page.getByText("当前配置", { exact: true }).first().waitFor({ timeout: 15000 })
     await page.waitForTimeout(1200)
-    await shot(page, `board-config-${mode}`)
-    const configSelects = page.locator(".el-select")
+    const aiGroup = page.locator('[data-testid="settings-ai-model"]')
+    await aiGroup.scrollIntoViewIfNeeded().catch(() => {})
+    await page.waitForTimeout(400)
+    await shot(page, `settings-ai-model-${mode}`)
+    const configSelects = aiGroup.locator(".el-select")
     await openSelect(page, configSelects.nth(0))
-    await shot(page, `board-config-expanded-provider-${mode}`)
+    await shot(page, `settings-ai-model-expanded-provider-${mode}`)
     await closeSelect(page)
     const modelVisible = await configSelects
       .nth(1)
@@ -301,7 +302,7 @@ const capturePass = async (mode) => {
       .catch(() => false)
     if (modelVisible) {
       await openSelect(page, configSelects.nth(1))
-      await shot(page, `board-config-expanded-model-${mode}`)
+      await shot(page, `settings-ai-model-expanded-model-${mode}`)
       await closeSelect(page)
     } else {
       logStep(prefix, "模型 select 未渲染（provider 非 deepseek），跳过模型展开态")

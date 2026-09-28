@@ -33,7 +33,12 @@ const FAKE_DESKTOP_BRIDGE = `
     window.xiaoyeDesktop = {
       isDesktop: true,
       platform: "darwin",
-      getServerBaseUrl: () => "",
+      // 主窗口标识：useDesktopSettings 的启动回灌（全局快捷键/代理下发主进程）
+      // 以 desktop.isMainWindow 为守卫，缺它整段跳过
+      isMainWindow: true,
+      // 桌面分支下渲染层用该地址直连后端（resolveServerOriginUrl 首选 bridge 值）；
+      // 空串会回落 preview origin 且丢失登录态被踢回登录页，必须给真实后端
+      getServerBaseUrl: () => "http://127.0.0.1:3200",
       getWebBaseUrl: () => "",
       getConfig: () => {
         record("getConfig")
@@ -43,6 +48,8 @@ const FAKE_DESKTOP_BRIDGE = `
       notify: () => Promise.resolve({ shown: true }),
       onTrayCommand: () => () => {},
       onSettingOpen: () => () => {},
+      // App.vue 挂载即订阅（preload 已实现该成员，桩同步补齐防 not-a-function）
+      onInAppMenu: () => () => {},
       getOpenAtLogin: () => {
         record("getOpenAtLogin")
         return Promise.resolve(true)
@@ -67,6 +74,12 @@ const FAKE_DESKTOP_BRIDGE = `
         record("openExternal", url)
         return Promise.resolve(true)
       },
+      // lock 族（#27）：desktopAvailable 只看 bridge 对象存在，桩必须提供 getLockState
+      // 否则设置页 refresh 抛 not-a-function；返回未启用态走「启用锁定」表单分支
+      getLockState: () => {
+        record("getLockState")
+        return Promise.resolve({ hasPassword: false, autoLockOnBlur: false, autoLockDelayMinutes: 1, locked: false })
+      },
     }
   })()
 `
@@ -74,7 +87,7 @@ const FAKE_DESKTOP_BRIDGE = `
 const PREFIX = "[settings]"
 const OUTPUT_DIR = path.resolve("output/desktop-settings")
 const STORAGE = { theme: "vueuse-color-scheme", shortcuts: "custom-short-cut", proxy: "proxy" }
-const PALETTE_PLACEHOLDER = "搜索内容，按 Enter 跳转"
+const PALETTE_PLACEHOLDER = "搜索内容，或输入 > 唤醒更多"
 
 let checks = 0
 
@@ -146,19 +159,24 @@ const run = async () => {
     await readAccessToken(page)
 
     // ---------------- 入口 ----------------
+    // 2026-09-28 起 Web 端偏好设置不再弹独立窗：菜单/⌘, 均为主窗口路由跳转
     await page.getByRole("button", { name: /^更多/ }).click()
     await page.getByRole("button", { name: /偏好设置/ }).click()
     await page.waitForURL("**/settings")
-    await check("侧栏「更多 → 偏好设置」进入 /settings", async () => {
+    await check("侧栏「更多 → 偏好设置」主窗口路由进入 /settings", async () => {
       assert.equal(new URL(page.url()).pathname, "/settings")
     })
 
-    await page.goto(new URL("/knowledge", smokeConfig.baseUrl).toString(), {
-      waitUntil: "networkidle",
+    // 从设置页返回：有历史则原路返回（进入前是 /knowledge）
+    await page.locator(".kb-settings-back").click()
+    await page.waitForURL("**/knowledge")
+    await check("设置页「＜」原路返回进入前的页面", async () => {
+      assert.equal(new URL(page.url()).pathname, "/knowledge")
     })
+
     await page.keyboard.press("Meta+Comma")
     await page.waitForURL("**/settings")
-    await check("Web 端 ⌘, 由渲染层兜底打开设置页", async () => {
+    await check("Web 端 ⌘, 兜底路由打开设置页", async () => {
       assert.equal(new URL(page.url()).pathname, "/settings")
     })
 
@@ -168,7 +186,7 @@ const run = async () => {
     const titles = await page.$$eval(".kb-settings-group > h2, .kb-proxy-wrapper > h2", (nodes) =>
       nodes.map((node) => node.textContent.trim()),
     )
-    await check("8 个分组按语雀 render 顺序渲染（Web 端不出「其他设置」）", async () => {
+    await check("9 个分组按语雀 render 顺序渲染（Web 端不出「其他设置」）", async () => {
       assert.deepEqual(titles, [
         "颜色主题",
         "语言和时间",
@@ -177,8 +195,20 @@ const run = async () => {
         "桌面端锁定",
         "代理设置",
         "加入内测版体验计划",
-        "关于知识库",
+        // 自有差异组（2026-09-28 起，画板「模型配置」弹层迁入），语雀无此分组
+        "AI 模型",
+        "关于知叶",
       ])
+    })
+
+    await check("AI 模型分组渲染：描述 + 配置列表 + 表单件齐备", async () => {
+      const group = page.locator('[data-testid="settings-ai-model"]')
+      assert.equal((await group.locator("h2").textContent())?.trim(), "AI 模型")
+      assert.equal(await group.getByText("配置列表").count(), 1)
+      assert.equal(await group.getByRole("button", { name: "新增配置" }).count(), 1)
+      // 默认一条配置卡片且处于启用态；API Key 输入件为密码框
+      assert.equal(await group.getByText("当前使用", { exact: true }).count(), 1)
+      assert.ok((await group.locator("input[type=password]").count()) >= 1)
     })
 
     const m = await collectMetrics(page)
@@ -221,7 +251,7 @@ const run = async () => {
     )
     await check("快捷键 6 行文案与语雀一致（仅产品名替换）", async () => {
       assert.deepEqual(labels, [
-        "打开知识库主窗口",
+        "打开知叶主窗口",
         "全局唤起小记新建窗口",
         "新建文档",
         "全局搜索",
@@ -335,11 +365,11 @@ const run = async () => {
     await page.context().addInitScript(FAKE_DESKTOP_BRIDGE)
     await goSettings(page)
 
-    await check("桩 bridge 下 9 个分组齐了（macOS 才有的「其他设置」出现）", async () => {
+    await check("桩 bridge 下 10 个分组齐了（macOS 才有的「其他设置」出现）", async () => {
       const all = await page.$$eval(".kb-settings-group > h2, .kb-proxy-wrapper > h2", (nodes) =>
         nodes.map((node) => node.textContent.trim()),
       )
-      assert.deepEqual(all.slice(5, 8), ["代理设置", "其他设置", "加入内测版体验计划"])
+      assert.deepEqual(all.slice(5, 9), ["代理设置", "其他设置", "加入内测版体验计划", "AI 模型"])
     })
 
     await page.click(".kb-proxy-wrapper .el-switch")
@@ -397,14 +427,17 @@ const run = async () => {
       assert.equal((await readStorageJson(page, STORAGE.proxy)).mode, "PAC")
     })
 
-    await check("桌面端可编辑全部 6 行快捷键，且全局族逐条下发主进程注册", async () => {
-      assert.equal(await page.$$eval(".kb-shortcut-input.is-disabled", (nodes) => nodes.length), 2)
+    await check("桌面端可编辑 6 行快捷键中的 5 行，且全局族逐条下发主进程注册", async () => {
+      // 仅「打开AI独立框」恒禁用（unavailable，本仓无对应能力）；「锁定桌面端」
+      // 在 #27 实现后已可编辑，不再置灰
+      assert.equal(await page.$$eval(".kb-shortcut-input.is-disabled", (nodes) => nodes.length), 1)
       const calls = await page.evaluate(() => window.__bridgeCalls)
       const registered = calls
         .filter(([name]) => name === "setGlobalShortcut")
         .map(([, payload]) => payload.key)
-      // 启动回灌各注册一次（语雀同款：主进程只持 globalShortcut 族）
-      assert.deepEqual(registered.sort(), ["openMainWindow", "openMiniWindow"])
+      // 启动回灌各注册一次（语雀同款：主进程只持 globalShortcut 族；
+      // #27 起锁定行升级为 globalShortcut 族，回灌含 lockWindow）
+      assert.deepEqual(registered.sort(), ["lockWindow", "openMainWindow", "openMiniWindow"])
     })
 
     await check("开机自启按系统真值回显（启动时向主进程取）", async () => {
@@ -422,10 +455,10 @@ const run = async () => {
       assert.equal(await readStorageJson(page, "tray_status"), false)
     })
 
-    // ---------------- 缺能力三组 + 关于 ----------------
+    // ---------------- 缺能力组 + 关于 ----------------
     // 自启与「仅桌面端可用」的禁用断言已在上面（真 Web 上下文）验过；
-    // 此处已在桩 bridge 的桌面态，只查与平台无关的三组缺能力标注
-    await check("语言/锁定/内测三组按原样呈现且禁用，并带缺失说明", async () => {
+    // 此处已在桩 bridge 的桌面态，只查与平台无关的缺能力标注与锁定组形态
+    await check("语言/内测照原样禁用；锁定组在桩桌面态渲染未启用表单", async () => {
       assert.equal(
         await page
           .locator('[data-testid="change-language"] .el-select__wrapper.is-disabled')
@@ -433,8 +466,10 @@ const run = async () => {
         1,
       )
       assert.equal(await page.locator('[data-testid="change-beta"].is-disabled').count(), 1)
-      assert.equal(await page.getByRole("button", { name: "开启锁定" }).isDisabled(), true)
-      assert.ok((await page.getByText("锁屏窗口与锁定密码尚未实现").count()) >= 1)
+      // #27 后锁定组在桌面态（桩提供 bridge 即视为桌面）渲染设/改/清表单；
+      // 桩 getLockState 返回未启用 → 「应用锁定模式：未启用」+ 「启用锁定」主按钮
+      assert.ok((await page.getByText("应用锁定模式：未启用").count()) >= 1)
+      assert.equal(await page.getByRole("button", { name: "启用锁定" }).count(), 1)
       assert.ok((await page.getByText("尚未接入更新通道").count()) >= 1)
       assert.ok((await page.getByText("界面文案尚未接入多语言").count()) >= 1)
     })
@@ -449,7 +484,7 @@ const run = async () => {
     }))
     await check("关于组：版本号来自构建常量 + 四条链接（无地址即置灰）+ logo 60px", async () => {
       assert.match(about.version, /^\d+\.\d+\.\d+$/)
-      assert.deepEqual(about.links, ["更新日志", "常见问题", "问题反馈", "知识库服务协议"])
+      assert.deepEqual(about.links, ["更新日志", "常见问题", "问题反馈", "知叶服务协议"])
       assert.equal(about.disabled, 4)
       assert.equal(about.logoWidth, "60px")
     })

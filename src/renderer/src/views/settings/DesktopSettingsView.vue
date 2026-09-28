@@ -4,20 +4,23 @@
  *
  * 结构依据 `yuque-source/build/renderer/76858.js`（设置页组件本体）与
  * `build/renderer/app.js`（setting-module 骨架）：单列、整页滚动、**没有左侧导航**，
- * 只有 h1「偏好设置」+ 纵向堆叠的 9 个分组，顺序与语雀 render() 一致。
+ * 只有 h1「偏好设置」+ 纵向堆叠的分组，顺序与语雀 render() 一致。
  * 度量全部落在本文件末尾的非 scoped 样式块（对齐语雀的 CSS module 写法）。
  *
  * 与语雀的既定偏差（2026-09-19 拍板）：
  * - 「语言和时间」「加入内测版体验计划」依赖本仓没有的能力（无 i18n、无更新通道），
  *   条目按原样呈现但禁用并标注；「桌面端锁定」#27 已实现（锁定窗 /lock + 密码快照）；
  * - 文案里的产品名由「语雀」换成「知识库」；
- * - Web 端（无 Electron 主进程）下开机自启、代理、状态栏图标、全局快捷键族与锁定不可用。
+ * - Web 端（无 Electron 主进程）下开机自启、代理、状态栏图标、全局快捷键族与锁定不可用；
+ * - 自有差异组「AI 模型」（2026-09-28 新增，置于内测版之后、关于之前）：语雀没有
+ *   对应分组，承载画板 AI / 文档 AI / AI 写作共用的模型配置（原画板内弹层迁入）。
  */
 import { computed, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import SettingsShortcutGroup from "@/components/settings/SettingsShortcutGroup.vue"
 import SettingsProxyGroup from "@/components/settings/SettingsProxyGroup.vue"
 import SettingsAboutGroup from "@/components/settings/SettingsAboutGroup.vue"
+import SettingsAiModelGroup from "@/components/settings/SettingsAiModelGroup.vue"
 import {
   BETA_HELP_URL,
   COLOR_THEME_OPTIONS,
@@ -184,7 +187,27 @@ onMounted(() => {
 })
 
 /** 返回：对齐 account 页的返回语义（回知识库列表页），按钮形态也是 account 页的「＜」 */
+/**
+ * 「＜」返回语义按端分流（2026-09-28 二次调整：Web 端入口已改为主窗口路由打开，
+ * 不再弹独立窗）：
+ * - 桌面端独立设置窗：返回 = 关窗（window.close()），焦点回主窗口；
+ * - Web 端：设置页就是主窗口里的普通路由页，返回 = 标准导航——应用内导航而来
+ *   （vue-router 在 history.state.back 记了来源）则原路返回，新标签直输 URL 的
+ *   兜底回知识库列表。不判断 history.length：新标签的 about:blank 初始项会让
+ *   back() 退出应用。
+ */
+const isDesktopSettingsWindow = () => Boolean(window.xiaoyeDesktop)
+
 const handleBack = () => {
+  if (isDesktopSettingsWindow()) {
+    window.close()
+    return
+  }
+  const routerState = window.history.state as { back?: string } | null
+  if (routerState?.back) {
+    router.back()
+    return
+  }
   void router.push({ name: "knowledge" })
 }
 
@@ -194,6 +217,9 @@ const isMac = computed(() => window.xiaoyeDesktop?.platform === "darwin")
 const autoLoginLabel = `电脑开机时，自动启动${PRODUCT_NAME}`
 const trayLabel = `在状态栏中显示${PRODUCT_NAME}图标，快速新建小记`
 const betaLabel = "开启后，可接受内测版更新推送，第一时间体验最新功能和问题修复"
+
+/** 返回钮提示：桌面独立窗语义是关窗，Web 端就是标准的「返回」 */
+const backTitle = computed(() => (isDesktopSettingsWindow() ? "关闭设置窗口" : "返回"))
 </script>
 
 <template>
@@ -201,7 +227,7 @@ const betaLabel = "开启后，可接受内测版更新推送，第一时间体�
     <div class="kb-settings-title">
       <!-- 返回钮（D1 巡检批补齐）：形态对齐 account 页页头的「＜」，定位见样式块；
            标题块是拖窗区，按钮在样式里显式 no-drag -->
-      <button class="kb-settings-back" type="button" title="返回" @click="handleBack">
+      <button class="kb-settings-back" type="button" :title="backTitle" @click="handleBack">
         <Icon icon="ph:caret-left" :width="15" :height="15" />
       </button>
       <h1>偏好设置</h1>
@@ -430,6 +456,9 @@ const betaLabel = "开启后，可接受内测版更新推送，第一时间体�
         </div>
       </div>
 
+      <!-- 8.5 AI 模型（自有差异组，语雀无此分组）：原画板「模型配置」弹层迁入统一管理 -->
+      <SettingsAiModelGroup />
+
       <!-- 9. 关于 -->
       <SettingsAboutGroup />
     </div>
@@ -621,6 +650,23 @@ const betaLabel = "开启后，可接受内测版更新推送，第一时间体�
 
 /* 失焦自动锁定行有独立上边距，紧邻行不叠加（首个 .kb-settings-lock-auto 前是 actions） */
 .kb-settings-lock-auto + .kb-settings-lock-auto {
+  margin-top: 12px;
+}
+
+/* ---- AI 模型（自有差异组，SettingsAiModelGroup） ---- */
+/* item 基类的 32px 行高会串进内嵌配置卡片（内部文字自带 12-14px 档），
+   用更高特异度收敛回正常行距；卡片内间距由组件自身的 Tailwind 类负责 */
+.kb-settings-group .kb-settings-item.kb-settings-ai-item {
+  line-height: 1.6;
+}
+
+.kb-settings-ai-desc {
+  font-size: 12px;
+  line-height: 18px;
+  margin: 0 0 16px;
+}
+
+.kb-settings-ai-error {
   margin-top: 12px;
 }
 </style>
