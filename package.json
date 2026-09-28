@@ -1,7 +1,7 @@
 {
   "name": "zhiye",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "知叶 - 支持桌面端（Electron）与 Web 双端的 AI 知识库",
   "author": "xiaoye",
