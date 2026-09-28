@@ -64,8 +64,16 @@ const APP_PROTOCOL_HOST = "bundle"
 const RENDERER_DIST = path.join(import.meta.dirname, "../renderer")
 /** 渲染层入口文件。 */
 const RENDERER_INDEX = path.join(RENDERER_DIST, "index.html")
-/** 后端默认地址：本地 xiaoye-server。 */
-const DEFAULT_SERVER_BASE_URL = "http://localhost:3200"
+/**
+ * 后端默认地址：打包版连线上自托管后端（私测期开箱即用，2026-09-28 部署），
+ * dev 连本地 xiaoye-server。环境变量 XIAOYE_SERVER_URL 与 config.json
+ * serverBaseUrl 均可覆盖（优先级更高）。
+ */
+const DEFAULT_SERVER_BASE_URL = app.isPackaged
+  ? "https://knowledge-api.zhangzhengyang.com"
+  : "http://localhost:3200"
+/** 网页版站点地址（分享链接指向）：打包版指向线上 Web 端，dev 缺省与后端同源。 */
+const DEFAULT_WEB_BASE_URL = app.isPackaged ? "https://knowledge-web.zhangzhengyang.com" : ""
 
 /** 托盘实例（模块级持有，防止被 GC 后图标消失）。 */
 let tray: Tray | null = null
@@ -159,12 +167,12 @@ const resolveServerBaseUrl = (): string => {
 }
 
 /**
- * 解析网页版站点地址（分享链接用）：环境变量 > 配置文件 > 与后端同源。
+ * 解析网页版站点地址（分享链接用）：环境变量 > 配置文件 > 打包默认线上 Web 端 / dev 与后端同源。
  */
 const resolveWebBaseUrl = (serverBaseUrl: string): string => {
   const fromEnv = process.env.XIAOYE_WEB_URL?.trim()
   const fromFile = readDesktopConfig().webBaseUrl?.trim()
-  const candidate = normalizeOrigin(fromEnv || fromFile || serverBaseUrl)
+  const candidate = normalizeOrigin(fromEnv || fromFile || DEFAULT_WEB_BASE_URL || serverBaseUrl)
 
   if (isValidHttpOrigin(candidate)) {
     return candidate
