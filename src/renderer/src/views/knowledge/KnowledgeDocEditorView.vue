@@ -2583,9 +2583,15 @@ const handleBeforeUnload = (event: BeforeUnloadEvent) => {
   event.returnValue = ""
 }
 
+/** 应用菜单「查看文档历史」：与顶栏历史按钮同一落点，打开「版本」侧栏面板 */
+const handleMenuDocHistory = () => {
+  void openSidePanel("versions")
+}
+
 onMounted(() => {
   window.addEventListener("keydown", handleSaveShortcut)
   window.addEventListener("keydown", handlePresentShortcut)
+  window.addEventListener("xiaoye:open-doc-history", handleMenuDocHistory)
   // 直达阅读态（目录树「阅读模式」按钮 / preview=1 URL / 无编辑权限读者）：
   // 与 watcher 同一套初始化——收起面板 + 拉取点赞信息；viewer 大纲栏由 Lake 自展
   if (isReadingMode.value) {
@@ -2623,6 +2629,7 @@ onBeforeUnmount(() => {
   editorInstance.value = null
   window.removeEventListener("keydown", handleSaveShortcut)
   window.removeEventListener("keydown", handlePresentShortcut)
+  window.removeEventListener("xiaoye:open-doc-history", handleMenuDocHistory)
   window.removeEventListener("beforeunload", handleBeforeUnload)
   window.removeEventListener("online", handleOnline)
   window.removeEventListener("offline", handleOffline)

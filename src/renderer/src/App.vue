@@ -5,7 +5,7 @@ import { RouterView, useRouter } from "vue-router"
 import zhCn from "element-plus/es/locale/lang/zh-cn"
 import { Z_EP_PROVIDER_BASE } from "./constants/z-index"
 import { useThemeMode } from "./composables/useThemeMode"
-import { useInAppShortcuts } from "./composables/use-in-app-shortcuts"
+import { useInAppShortcuts, IN_APP_COMMAND_EVENT } from "./composables/use-in-app-shortcuts"
 import { isImeComposing } from "./utils/keyboard"
 import { AUTH_UNAUTHORIZED_EVENT } from "./services/auth-events"
 import { openSettingsWindow } from "./services/desktop-bridge"
@@ -106,6 +106,7 @@ if (isLoginWindow) {
  * （双保险：任何来源的导航命令都不能把 /lock 换成真实内容页）。
  */
 let unsubscribeTrayCommand: (() => void) | null = null
+let unsubscribeMenuCommand: (() => void) | null = null
 
 /** Web 端没有原生菜单，⌘,/Ctrl+, 由渲染层兜底；同样开新窗口，不占用当前页。 */
 const handlePreferencesKeydown = (event: KeyboardEvent) => {
@@ -147,6 +148,31 @@ onMounted(() => {
       void router.push("/knowledge/notes")
     }
   })
+
+  // 原生应用菜单命令（语雀式中文菜单：历史前进后退、在当页查找、查看文档历史、搜索）
+  unsubscribeMenuCommand = window.xiaoyeDesktop.onInAppMenu((command) => {
+    const routeName = router.currentRoute.value.name
+    // 与托盘命令同口径：偏好设置窗与锁定窗不响应菜单命令
+    if (routeName === "settings" || routeName === "desktop-lock") {
+      return
+    }
+
+    if (command === "navigate-back") {
+      router.go(-1)
+    } else if (command === "navigate-forward") {
+      router.go(1)
+    } else if (command === "open-search") {
+      // 复用应用内命令总线，命令面板由侧栏承接（⌘J 同一落点）
+      window.dispatchEvent(new CustomEvent(IN_APP_COMMAND_EVENT, { detail: "open-search" }))
+    } else if (command === "find-in-page") {
+      // Lake 编辑器工具栏搜索按钮（与 verify-editor-search 同一入口）；非编辑器页无此按钮，静默忽略
+      const searchButton = document.querySelector<HTMLElement>(".ne-ui-toolbar-search")
+      searchButton?.click()
+    } else if (command === "doc-history") {
+      // 编辑器视图监听并打开「版本」侧栏面板；非编辑器页无监听方，静默忽略
+      window.dispatchEvent(new CustomEvent("xiaoye:open-doc-history"))
+    }
+  })
 })
 
 onBeforeUnmount(() => {
@@ -154,6 +180,8 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", handlePreferencesKeydown)
   unsubscribeTrayCommand?.()
   unsubscribeTrayCommand = null
+  unsubscribeMenuCommand?.()
+  unsubscribeMenuCommand = null
 })
 </script>
 

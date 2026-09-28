@@ -10,6 +10,7 @@
 import {
   app,
   BrowserWindow,
+  dialog,
   Menu,
   Tray,
   nativeImage,
@@ -79,6 +80,8 @@ interface DesktopConfig {
   serverBaseUrl?: string
   /** 网页版站点地址（分享链接指向的 Web 端部署地址），缺省与 serverBaseUrl 同源。 */
   webBaseUrl?: string
+  /** 硬件加速已关闭（应用菜单「关闭硬件加速」写入，重启生效）。 */
+  disableHardwareAcceleration?: boolean
 }
 
 // 必须在 app ready 之前注册特权协议：
@@ -102,6 +105,18 @@ const readDesktopConfig = (): DesktopConfig => {
   } catch {
     return {}
   }
+}
+
+/** 写回用户配置文件（保留未涉及字段）。 */
+const writeDesktopConfig = (patch: Partial<DesktopConfig>) => {
+  const configPath = path.join(app.getPath("userData"), "config.json")
+  const next = { ...readDesktopConfig(), ...patch }
+  fs.writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`, "utf-8")
+}
+
+// 硬件加速开关必须在 app ready 前决定；语雀同款「关闭硬件加速」兜底 GPU 崩溃场景
+if (readDesktopConfig().disableHardwareAcceleration) {
+  app.disableHardwareAcceleration()
 }
 
 /**
@@ -313,11 +328,11 @@ const registerAppProtocol = (serverBaseUrl: string) => {
 }
 
 /**
- * 「偏好设置」菜单项（语雀桌面端把它放在 Application 菜单第 2 项与托盘菜单，
+ * 「设置…」菜单项（语雀桌面端把它放在 Application 菜单第 2 项与托盘菜单，
  * accelerator 均为 ⌘,；渲染层无齿轮入口，Windows 下靠托盘、Web 端靠侧栏「更多」）。
  */
 const preferencesMenuItem = (): MenuItemConstructorOptions => ({
-  label: "偏好设置",
+  label: "设置…",
   accelerator: "CommandOrControl+,",
   click: () => openSettingsWindow(),
 })
@@ -332,37 +347,207 @@ const lockMenuItem = (): MenuItemConstructorOptions => ({
   click: () => lockNow(),
 })
 
+/** 当前聚焦的内容窗（菜单动作的作用对象）；锁定窗除外。 */
+const focusedContentWindow = (): BrowserWindow | null => {
+  const win = BrowserWindow.getFocusedWindow()
+  return win && !isLockWindow(win) ? win : null
+}
+
+/** 「检查更新」：自动更新链路（签名 + electron-updater）未接入前的占位提示。 */
+const checkForUpdatesMenuItem = (): MenuItemConstructorOptions => ({
+  label: "检查更新",
+  click: () => {
+    void dialog.showMessageBox({
+      type: "info",
+      title: "检查更新",
+      message: `当前为私测版 v${app.getVersion()}。`,
+      detail: "自动更新将在正式版接入，敬请期待。",
+      buttons: ["好"],
+    })
+  },
+})
+
+/** 「关闭/开启硬件加速」：写入 config.json 后重启生效（GPU 崩溃兜底，语雀同款）。 */
+const hardwareAccelerationMenuItem = (): MenuItemConstructorOptions => {
+  const disabled = readDesktopConfig().disableHardwareAcceleration === true
+  return {
+    label: disabled ? "开启硬件加速" : "关闭硬件加速",
+    click: () => {
+      const next = !disabled
+      void dialog
+        .showMessageBox({
+          type: "question",
+          title: next ? "开启硬件加速" : "关闭硬件加速",
+          message: next
+            ? "开启硬件加速需要重启应用，是否现在重启？"
+            : "关闭硬件加速可绕过 GPU 渲染异常（界面会用软件渲染，性能略降），需要重启应用。是否现在重启？",
+          buttons: ["稍后", "现在重启"],
+          defaultId: 1,
+          cancelId: 0,
+        })
+        .then(({ response }) => {
+          if (response !== 1) return
+          writeDesktopConfig({ disableHardwareAcceleration: next })
+          app.relaunch()
+          app.exit(0)
+        })
+    },
+  }
+}
+
+/** 「清理应用缓存」：清 HTTP 缓存（不影响登录会话与本地数据）。 */
+const clearCacheMenuItem = (): MenuItemConstructorOptions => ({
+  label: "清理应用缓存",
+  click: async () => {
+    for (const win of BrowserWindow.getAllWindows()) {
+      await win.webContents.session.clearCache()
+    }
+    void dialog.showMessageBox({
+      type: "info",
+      title: "清理应用缓存",
+      message: "应用缓存已清理。",
+      buttons: ["好"],
+    })
+  },
+})
+
+/** 「在当页查找」：广播给渲染层，由编辑器工具栏搜索按钮承接（Lake 内置 search）。 */
+const findInPageMenuItem = (): MenuItemConstructorOptions => ({
+  label: "在当页查找",
+  click: () => broadcastToRenderer("xiaoye:in-app-menu", "find-in-page"),
+})
+
+/** 「查看文档历史」：广播给渲染层，编辑器视图打开「版本」侧栏面板。 */
+const docHistoryMenuItem = (): MenuItemConstructorOptions => ({
+  label: "查看文档历史",
+  click: () => broadcastToRenderer("xiaoye:in-app-menu", "doc-history"),
+})
+
 /**
- * 构建基础应用菜单（macOS 必需，其他平台提供常规编辑/视图快捷键）。
+ * 构建应用菜单（菜单栏结构对齐语雀桌面端 2026-09-28 实测）：
+ * 知叶（关于/设置…/检查更新/关闭硬件加速/锁定桌面端/清理应用缓存/退出）+
+ * 编辑（撤销/恢复/剪复贴/在当页查找/查看文档历史/表情与符号）+
+ * 历史（主页/前进/后退）+ 窗口（最小化/缩放/隐藏/关闭/最大化窗口/窗口置顶/搜索）+
+ * 帮助（问题反馈/帮助文档/快捷键）。
  *
- * macOS 首菜单不能用 `role: "appMenu"`——role 是整块模板，无法在「关于」之后
- * 插入「偏好设置」，因此按 macOS 标准顺序手写（关于 / 偏好设置 / 服务 / 隐藏 / 退出）。
+ * 各 role 只取行为，label 一律手写中文（Electron 的 role 默认 label 是英文，
+ * 系统不会按语言本地化）。语雀应用菜单没有 服务/隐藏 段、菜单栏没有
+ * 文件/显示 菜单，照实测省略；窗口菜单的平铺/移动等系统注入段不受模板控制。
  */
 const buildAppMenu = () => {
   const applicationMenu: MenuItemConstructorOptions = {
     label: app.name,
     submenu: [
-      { role: "about" },
+      { role: "about", label: `关于${app.name}` },
       { type: "separator" },
       preferencesMenuItem(),
+      checkForUpdatesMenuItem(),
+      hardwareAccelerationMenuItem(),
+      { type: "separator" },
       lockMenuItem(),
+      clearCacheMenuItem(),
+      { role: "quit", label: "退出" },
+    ],
+  }
+
+  const editMenu: MenuItemConstructorOptions = {
+    label: "编辑",
+    submenu: [
+      { role: "undo", label: "撤销" },
+      { role: "redo", label: "恢复" },
       { type: "separator" },
-      { role: "services" },
+      { role: "cut", label: "剪切" },
+      { role: "copy", label: "复制" },
+      { role: "paste", label: "粘贴" },
+      { role: "pasteAndMatchStyle", label: "粘贴并匹配样式" },
+      { role: "selectAll", label: "全选" },
       { type: "separator" },
-      { role: "hide" },
-      { role: "hideOthers" },
-      { role: "unhide" },
+      findInPageMenuItem(),
+      docHistoryMenuItem(),
+    ],
+  }
+
+  const historyMenu: MenuItemConstructorOptions = {
+    label: "历史",
+    submenu: [
+      {
+        label: "主页",
+        click: () => broadcastToRenderer("xiaoye:tray-command", "navigate-start"),
+      },
+      {
+        label: "前进",
+        click: () => broadcastToRenderer("xiaoye:in-app-menu", "navigate-forward"),
+      },
+      {
+        label: "后退",
+        click: () => broadcastToRenderer("xiaoye:in-app-menu", "navigate-back"),
+      },
+    ],
+  }
+
+  const windowMenu: MenuItemConstructorOptions = {
+    label: "窗口",
+    submenu: [
+      { role: "minimize", label: "最小化" },
+      { role: "zoom", label: "缩放" },
+      {
+        label: "隐藏",
+        click: () => focusedContentWindow()?.hide(),
+      },
+      { role: "close", label: "关闭" },
       { type: "separator" },
-      { role: "quit" },
+      {
+        label: "最大化窗口",
+        click: () => {
+          const win = focusedContentWindow()
+          if (!win) return
+          if (win.isMaximized()) {
+            win.unmaximize()
+          } else {
+            win.maximize()
+          }
+        },
+      },
+      {
+        label: "窗口置顶",
+        click: () => {
+          const win = focusedContentWindow()
+          if (!win) return
+          win.setAlwaysOnTop(!win.isAlwaysOnTop())
+        },
+      },
+      {
+        label: "搜索",
+        click: () => broadcastToRenderer("xiaoye:in-app-menu", "open-search"),
+      },
+    ],
+  }
+
+  const helpMenu: MenuItemConstructorOptions = {
+    label: "帮助",
+    submenu: [
+      {
+        label: "问题反馈",
+        click: () => shell.openExternal("https://github.com/zhangzhengyang27/zhiye/issues"),
+      },
+      {
+        label: "帮助文档",
+        click: () => shell.openExternal("https://github.com/zhangzhengyang27/zhiye"),
+      },
+      { type: "separator" },
+      {
+        label: "快捷键",
+        click: () => openSettingsWindow(),
+      },
     ],
   }
 
   const template: MenuItemConstructorOptions[] = [
     ...(process.platform === "darwin" ? [applicationMenu] : []),
-    { role: "fileMenu" },
-    { role: "editMenu" },
-    { role: "viewMenu" },
-    { role: "windowMenu" },
+    editMenu,
+    historyMenu,
+    windowMenu,
+    helpMenu,
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
