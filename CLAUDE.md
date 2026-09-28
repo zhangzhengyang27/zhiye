@@ -132,6 +132,7 @@ electron-builder.yml  # 打包配置
 - `build.modulePreload.polyfill` 已关闭：vite 会把动态 import 的 preload helper 打进入口首个引用的手动 chunk（实践中是 board-excalidraw），导致入口连带依赖整块 4.8MB 画板 chunk 并 preload 到首屏。Electron 44 与现代浏览器原生支持 modulepreload。**已知遗留**：helper 落点仍使 board-excalidraw 的 JS/CSS 被 HTML 预载（浏览器低优先级预取，不阻塞；桌面端本地磁盘影响可忽略）。若要彻底解耦需等 vite 调整 chunk 放置策略或改手动 chunk 分组，勿随意改。
 - eslint ignores 含 `out/**`、`release/**`、`docs/**`——新构建产物目录必须同步加入，否则 lint 会卡死在产物上。
 - pnpm `onlyBuiltDependencies` 含 electron/esbuild；新增带 install 脚本的依赖需要补。
+- 发版走「打 `v*` tag → CI 打包 → GitHub Releases 草稿 → 人工 Publish」：SOP 与踩坑（GitHub Packages 须授权 zhiye 仓、产物名必须 ASCII、改构建配置须挪 tag）见 `docs/发布链路-2026-09-28.md`；`electron-builder.yml` 的 `artifactName` 与两个 workflow 的 Packages 认证段是承重配置勿删。
 
 ## Git 提交前缀
 
